@@ -6,8 +6,7 @@
   "scripts": {
     "dev": "node server.js",
     "build": "vite build",
-    "start": "NODE_ENV=production node server.js",
-    "seed": "node scripts/seed.js"
+    "start": "NODE_ENV=production node server.js"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -46,6 +45,7 @@
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.51.2",
     "react-router-dom": "^6.22.3",
+    "serverless-http": "^3.2.0",
     "sharp": "^0.35.4",
     "tailwind-merge": "^3.6.0",
     "three": "^0.163.0",
