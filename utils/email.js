@@ -1,16 +1,16 @@
 import nodemailer from 'nodemailer';
 
 const createTransporter = () => {
-  const smtpPass = process.env.SMTP_PASSWORD || process.env.SMTP_PASS;
+  const smtpPass = process.env.SMTP_PASS;
   
   if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !smtpPass) {
-    throw new Error('SMTP credentials missing');
+    throw new Error('SMTP credentials missing. Check SMTP_HOST, SMTP_USER, SMTP_PASS environment variables.');
   }
 
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT || 587,
-    secure: process.env.SMTP_PORT == 465,
+    port: parseInt(process.env.SMTP_PORT, 10) || 465,
+    secure: (parseInt(process.env.SMTP_PORT, 10) || 465) === 465,
     auth: {
       user: process.env.SMTP_USER,
       pass: smtpPass
