@@ -1,0 +1,1 @@
+export default function Ideas() { return <div className='p-8'><h1 className='text-3xl font-bold font-heading mb-4'>Ideas Page</h1><p className='text-text-secondary'>This is the placeholder for Ideas.</p></div>; }

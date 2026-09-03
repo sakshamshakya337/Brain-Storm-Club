@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-primary: #FFFFFF;
+    --bg-secondary: #F5F7FA;
+    --bg-card: #FFFFFF;
+    --bg-elevated: #F8FAFC;
+    --text-primary: #0F172A;
+    --text-secondary: #475569;
+    --text-muted: #64748B;
+    --brand-primary: #4F46E5;
+    --brand-secondary: #0EA5E9;
+    --brand-accent: #F59E0B;
+    --success: #16A34A;
+    --warning: #D97706;
+    --danger: #DC2626;
+    --border: #E2E8F0;
+  }
+
+  .dark {
+    --bg-primary: #080D1A;
+    --bg-secondary: #0D1424;
+    --bg-card: #111A2D;
+    --bg-elevated: #162033;
+    --text-primary: #F8FAFC;
+    --text-secondary: #A8B5C8;
+    --text-muted: #718096;
+    --brand-primary: #6366F1;
+    --brand-secondary: #38BDF8;
+    --brand-accent: #FBBF24;
+    --success: #4ADE80;
+    --warning: #FBBF24;
+    --border: #26344D;
+    
+    /* Global Overrides for Hardcoded Slate Classes in Dark Mode */
+    --color-slate-950: #080D1A;
+    --color-slate-900: #111A2D;
+    --color-slate-800: #26344D;
+  }
+}
+

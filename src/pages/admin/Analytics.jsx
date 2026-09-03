@@ -1,0 +1,1 @@
+export default function Analytics() { return <div className='p-8'><h1 className='text-3xl font-bold font-heading mb-4'>Analytics Page</h1><p className='text-text-secondary'>This is the placeholder for Admin Analytics.</p></div>; }

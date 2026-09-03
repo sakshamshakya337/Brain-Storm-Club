@@ -1,0 +1,1 @@
+export default function EventEntries() { return <div className='p-8'><h1 className='text-3xl font-bold font-heading mb-4'>EventEntries Page</h1><p className='text-text-secondary'>This is the placeholder for Admin EventEntries.</p></div>; }
