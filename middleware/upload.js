@@ -1,9 +1,6 @@
 import multer from 'multer';
 import sharp from 'sharp';
-import path from 'path';
 import crypto from 'crypto';
-import fs from 'fs/promises';
-import { existsSync } from 'fs';
 import Image from '../models/Image.js';
 import { uploadImageToCloudinary } from '../services/cloudinaryService.js';
 
@@ -31,62 +28,83 @@ export const uploadImage = multer({
 export const processAndProtectImage = (visibility = 'protected') => async (req, res, next) => {
   if (!req.file) return next();
 
+  // Guard: prevent sending a response more than once if multiple error paths fire
+  let responded = false;
+  const sendError = (status, message, err) => {
+    if (responded) return;
+    responded = true;
+    console.error(`[processAndProtectImage] ${message}`, err?.message || err || '');
+    res.status(status).json({ message });
+  };
+
   try {
-    // Process image with Sharp
-    // 1. Resize to max 1200px width/height while maintaining aspect ratio
-    // 2. Convert to WebP for modern web delivery (Cloudinary will auto-format anyway, but good for base)
-    // 3. Compress to 80% quality
-    const processedBuffer = await sharp(req.file.buffer)
-      .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
-      .toFormat('webp')
-      .webp({ quality: 80 })
-      .toBuffer(); 
-      
-    // Enforce < 2MB limit (2 * 1024 * 1024 bytes)
-    if (processedBuffer.length > 2097152) {
-      return res.status(400).json({ message: 'Image size exceeds 2MB limit after compression. Please upload a smaller image.' });
+    // 1. Resize to max 1200×1200, convert to WebP at 80% quality
+    let processedBuffer;
+    try {
+      processedBuffer = await sharp(req.file.buffer)
+        .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
+        .toFormat('webp')
+        .webp({ quality: 80 })
+        .toBuffer();
+    } catch (sharpErr) {
+      return sendError(500, 'Image processing failed. Please try a different image.', sharpErr);
     }
 
-    // Upload to Cloudinary
-    // Determine folder based on route or visibility if needed, defaulting to brainstorm
-    const folder = req.baseUrl.includes('members') || req.path.includes('join-us') ? 'brainstorm/members' : 'brainstorm/events';
-    
-    const cloudinaryResult = await uploadImageToCloudinary(processedBuffer, folder);
+    // 2. Enforce < 2MB post-compression
+    if (processedBuffer.length > 2097152) {
+      return sendError(400, 'Image size exceeds 2MB limit after compression. Please upload a smaller image.', null);
+    }
 
-    // Create Image Record in Database
+    // 3. Upload to Cloudinary
+    const folder = req.baseUrl.includes('members') || req.path.includes('join-us')
+      ? 'brainstorm/members'
+      : 'brainstorm/events';
+
+    let cloudinaryResult;
+    try {
+      cloudinaryResult = await uploadImageToCloudinary(processedBuffer, folder);
+    } catch (cloudErr) {
+      return sendError(502, 'Image upload failed. Please try again.', cloudErr);
+    }
+
+    // 4. Save image record to DB
     const imageId = crypto.randomUUID();
-    
-    // Determine ownerType based on route
+
     let ownerType = 'admin';
     if (req.path.includes('join-us')) ownerType = 'joinUs';
     else if (req.baseUrl.includes('events')) ownerType = 'event';
     else if (req.baseUrl.includes('members')) ownerType = 'member';
 
-    const imageDoc = await Image.create({
-      originalFilename: req.file.originalname,
-      imageId: imageId,
-      publicId: cloudinaryResult.public_id,
-      assetId: cloudinaryResult.asset_id,
-      format: cloudinaryResult.format,
-      width: cloudinaryResult.width,
-      height: cloudinaryResult.height,
-      bytes: cloudinaryResult.bytes,
-      mimeType: 'image/webp',
-      size: processedBuffer.length,
-      visibility: visibility,
-      deliveryType: 'authenticated',
-      resourceType: 'image',
-      status: 'approved',
-      ownerType: ownerType,
-      uploadedByOld: req.admin ? req.admin._id : null
-    });
+    let imageDoc;
+    try {
+      imageDoc = await Image.create({
+        originalFilename: req.file.originalname,
+        imageId,
+        publicId: cloudinaryResult.public_id,
+        assetId: cloudinaryResult.asset_id,
+        format: cloudinaryResult.format,
+        width: cloudinaryResult.width,
+        height: cloudinaryResult.height,
+        bytes: cloudinaryResult.bytes,
+        mimeType: 'image/webp',
+        size: processedBuffer.length,
+        visibility,
+        deliveryType: 'authenticated',
+        resourceType: 'image',
+        status: 'approved',
+        ownerType,
+        uploadedByOld: req.admin ? req.admin._id : null
+      });
+    } catch (dbErr) {
+      return sendError(500, 'Failed to save image record. Please try again.', dbErr);
+    }
 
-    // Attach the Image document ID to the request for the next controller to use
+    // 5. Attach image ID for the next controller and continue
     req.body.protectedImageId = imageDoc._id;
-    
     next();
+
   } catch (error) {
-    console.error('Image processing error:', error);
-    res.status(500).json({ message: 'Error processing image' });
+    // Catch-all for any unexpected error not caught above
+    sendError(500, 'Unexpected error processing image. Please try again.', error);
   }
 };
