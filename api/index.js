@@ -36,12 +36,11 @@ const createApp = () => {
     crossOriginEmbedderPolicy: false
   }));
 
-  const corsOrigin = process.env.CORS_ORIGIN || process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : 'http://localhost:5000';
+  const corsOrigin = process.env.CORS_ORIGIN
+    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:5000');
 
   app.use(cors({
-    origin: process.env.CORS_ORIGIN || [corsOrigin, /vercel\.app$/],
+    origin: [corsOrigin, /\.vercel\.app$/],
     credentials: true
   }));
 
