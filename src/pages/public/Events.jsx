@@ -101,64 +101,8 @@ export default function Events() {
         </div>
       </section>
 
-      {/* SECTION 2: FEATURED UPCOMING EVENT */}
-      <section className="py-20 md:py-32 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
-        <div className="container mx-auto px-6 md:px-12 max-w-[1440px]" data-reveal="up">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 border border-slate-200 dark:border-slate-800 group relative bg-slate-50 dark:bg-slate-900 rounded-sm overflow-hidden">
-            {/* LEFT: Details */}
-            <div className="col-span-1 lg:col-span-5 p-8 sm:p-12 md:p-16 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-slate-800 relative z-10 order-2 lg:order-1">
-              <div className="mb-8 flex items-center gap-4">
-                <EventStatus status="UPCOMING" />
-                <span className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500">HACKATHON</span>
-              </div>
-              
-              <h2 className="font-heading font-bold text-4xl md:text-5xl lg:text-6xl leading-[1] mb-6 text-slate-900 dark:text-white uppercase tracking-tight">
-                INNOVATE <br/>LPU 2026
-              </h2>
-              
-              <p className="font-body text-slate-600 dark:text-slate-400 mb-8 leading-relaxed font-light text-lg">
-                The ultimate 48-hour coding marathon. Build solutions that address real-world challenges using next-generation technologies. Over $5,000 in prizes.
-              </p>
-              
-              <div className="grid grid-cols-2 gap-y-6 font-mono text-[10px] tracking-widest border-t border-slate-200 dark:border-slate-800 pt-8 mb-10 font-bold text-slate-700 dark:text-slate-300 uppercase">
-                <div className="flex items-center gap-2">
-                  <Calendar size={14} className="text-brand-primary" />
-                  <div>OCT 15, 2026</div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock size={14} className="text-brand-primary" />
-                  <div>09:00 AM</div>
-                </div>
-                <div className="col-span-2 flex items-center gap-2">
-                  <MapPin size={14} className="text-brand-primary" />
-                  <div>INNOVATION LAB, BLOCK 32</div>
-                </div>
-              </div>
-              
-              <Link to="/events/innovate-lpu-2026" className="bg-slate-900 dark:bg-brand-primary text-white dark:text-white px-8 py-4 font-heading font-bold tracking-widest uppercase hover:bg-brand-primary dark:hover:bg-brand-primary/80 transition-colors w-full sm:w-fit flex items-center justify-center gap-2 text-sm shadow-xl group/btn">
-                Register Now
-                <ArrowRight size={16} className="group-hover/btn:translate-x-1 transition-transform" />
-              </Link>
-            </div>
-            
-            {/* RIGHT: Poster */}
-            <div className="col-span-1 lg:col-span-7 relative min-h-[300px] sm:min-h-[400px] lg:min-h-[600px] overflow-hidden bg-slate-950 order-1 lg:order-2">
-              <ProtectedImage 
-                src="https://images.unsplash.com/photo-1504384308090-c894fdcc538d?q=80&w=2070&auto=format&fit=crop" 
-                alt="Hackathon Poster" 
-                className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105 opacity-80 mix-blend-luminosity group-hover:mix-blend-normal"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent"></div>
-              <div className="absolute top-6 right-6 font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-white bg-black/50 backdrop-blur-md px-3 py-1.5 border border-white/20">
-                FEATURED EVENT
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 3: DISCOVERY HEADER & FILTERS */}
-      <section className="pt-20 pb-8 bg-slate-50 dark:bg-transparent border-t border-slate-200 dark:border-slate-800">
+      {/* SECTION 2: DISCOVERY HEADER & FILTERS */}
+      <section className="pt-20 pb-8 bg-slate-50 dark:bg-transparent">
         <div className="container mx-auto px-6 md:px-12 max-w-[1440px]" data-reveal="up">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
             <div>
