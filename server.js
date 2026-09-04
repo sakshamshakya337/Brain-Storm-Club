@@ -87,6 +87,24 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'success', message: 'API is running' });
 });
 
+// Minimal ping diagnostic endpoint (zero dependencies)
+app.get('/api/ping', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'pong',
+    timestamp: Date.now()
+  });
+});
+
+// Database health check
+app.get('/api/health/db', (req, res) => {
+  if (mongoose.connection.readyState === 1) {
+    res.status(200).json({ success: true, database: 'connected' });
+  } else {
+    res.status(503).json({ success: false, database: 'unavailable' });
+  }
+});
+
 // Explicit 404 Handler for unmatched API routes
 // This MUST come after all API routes and before ViteExpress
 // so that unmatched API requests return JSON instead of the SPA index.html
@@ -94,6 +112,18 @@ app.all('/api/*', (req, res) => {
   res.status(404).json({
     success: false,
     message: 'API endpoint not found'
+  });
+});
+
+// Global API error handler
+app.use((err, req, res, next) => {
+  console.error('[API Error]', err);
+  if (res.headersSent) {
+    return next(err);
+  }
+  res.status(err.status || 500).json({
+    success: false,
+    error: process.env.NODE_ENV === 'production' ? 'Internal server error' : (err.message || 'Unknown error')
   });
 });
 

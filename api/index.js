@@ -7,7 +7,6 @@ import mongoSanitize from 'express-mongo-sanitize';
 import xss from 'xss-clean';
 import cookieParser from 'cookie-parser';
 import mongoose from 'mongoose';
-import serverless from 'serverless-http';
 
 import authRoutes from '../routes/auth.js';
 import adminRoutes from '../routes/admin.js';
@@ -15,12 +14,10 @@ import publicRoutes from '../routes/public.js';
 import imageRoutes from '../routes/image.js';
 import { maintenanceGuard, getMaintenanceState } from '../middleware/maintenance.js';
 
-// ─── MongoDB Connection (with proper caching to survive warm invocations) ────────
-// We store the pending Promise itself so that concurrent cold-start invocations
-// all await the SAME promise rather than each kicking off their own connect().
+// ─── MongoDB Connection with Connection Caching for Serverless ─────────────────
 let connectionPromise = null;
 
-const connectToDB = () => {
+export const connectToDB = () => {
   // Already connected — return immediately
   if (mongoose.connection.readyState === 1) {
     return Promise.resolve();
@@ -29,22 +26,27 @@ const connectToDB = () => {
   if (connectionPromise) {
     return connectionPromise;
   }
+  if (!process.env.MONGODB_URI) {
+    const err = new Error('MONGODB_URI environment variable is not defined');
+    console.error('[MongoDB]', err.message);
+    return Promise.reject(err);
+  }
   // First call — start connecting and cache the promise
   connectionPromise = mongoose
     .connect(process.env.MONGODB_URI, {
       bufferCommands: false,
       maxPoolSize: 5,
       minPoolSize: 1,
-      serverSelectionTimeoutMS: 8000,  // Fail fast: give up after 8s
-      socketTimeoutMS: 30000,
-      connectTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 5000,  // Fail fast: 5s max
+      socketTimeoutMS: 20000,
+      connectTimeoutMS: 5000,
       heartbeatFrequencyMS: 30000,
     })
     .then(() => {
       console.log('[MongoDB] Connected successfully');
     })
     .catch((err) => {
-      // Reset so the next request can retry the connection
+      // Reset so future requests can retry the connection
       connectionPromise = null;
       console.error('[MongoDB] Connection failed:', err.message);
       throw err;
@@ -53,17 +55,42 @@ const connectToDB = () => {
   return connectionPromise;
 };
 
+// ─── Database Middleware (Per-Route Connection) ──────────────────────────────
+// Only database-dependent routes await this; ping/health/status remain independent.
+const ensureDB = async (req, res, next) => {
+  try {
+    await connectToDB();
+    next();
+  } catch (err) {
+    console.error('[DB Middleware Error]', err.message);
+    return res.status(503).json({
+      success: false,
+      error: 'Database temporarily unavailable. Please try again in a moment.'
+    });
+  }
+};
+
 // ─── Express App Factory ──────────────────────────────────────────────────────
 const createApp = () => {
   const app = express();
+
+  // URL Normalization: handle Vercel rewrite headers (x-matched-path)
+  app.use((req, res, next) => {
+    const matchedPath = req.headers['x-matched-path'];
+    if (matchedPath && (req.path === '/api/index.js' || req.path === '/api/index' || req.path === '/api')) {
+      const queryIdx = req.url.indexOf('?');
+      const query = queryIdx !== -1 ? req.url.slice(queryIdx) : '';
+      req.url = matchedPath + query;
+    }
+    next();
+  });
 
   app.use(helmet({
     contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false
   }));
 
-  // Allow both the explicit CORS_ORIGIN env var AND any *.vercel.app subdomain
-  // (covers preview deployments without needing to update the env var each time)
+  // Allow explicit CORS_ORIGIN, CLIENT_URL, and any *.vercel.app domain
   const allowedOrigins = [
     process.env.CORS_ORIGIN,
     process.env.CLIENT_URL,
@@ -100,24 +127,17 @@ const createApp = () => {
   });
   app.use('/api', limiter);
 
-  app.use('/api/images', imageRoutes);
-  app.use('/api/auth', authRoutes);
-  app.use('/api/admin', adminRoutes);
-
-  app.get('/api/site/status', async (req, res) => {
-    try {
-      const maintenanceMode = await getMaintenanceState();
-      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-      res.status(200).json({ success: true, data: { maintenanceMode } });
-    } catch (error) {
-      console.error('[Site Status Error]', error);
-      res.status(200).json({ success: true, data: { maintenanceMode: false } });
-    }
+  // ─── Database-Independent Diagnostic Endpoints ──────────────────────────────
+  // Minimal ping endpoint: zero dependencies, executes immediately
+  app.get('/api/ping', (req, res) => {
+    res.status(200).json({
+      success: true,
+      message: 'pong',
+      timestamp: Date.now()
+    });
   });
 
-  app.use(maintenanceGuard);
-  app.use('/api/public', publicRoutes);
-
+  // General API health check
   app.get('/api/health', (req, res) => {
     const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
     res.status(200).json({
@@ -128,54 +148,82 @@ const createApp = () => {
     });
   });
 
-  // 404 catch-all for unmatched /api/* routes
+  // Database health check (bounded timeout)
+  app.get('/api/health/db', async (req, res) => {
+    try {
+      await connectToDB();
+      res.status(200).json({
+        success: true,
+        database: 'connected'
+      });
+    } catch (err) {
+      res.status(503).json({
+        success: false,
+        database: 'unavailable',
+        error: process.env.NODE_ENV !== 'production' ? err.message : undefined
+      });
+    }
+  });
+
+  // ─── Site Status (Fast, non-blocking) ────────────────────────────────────────
+  app.get('/api/site/status', async (req, res) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    try {
+      let maintenanceMode = false;
+      if (mongoose.connection.readyState === 1) {
+        maintenanceMode = await Promise.race([
+          getMaintenanceState(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 2000))
+        ]).catch(() => false);
+      }
+      res.status(200).json({
+        success: true,
+        data: { maintenanceMode: !!maintenanceMode }
+      });
+    } catch (error) {
+      console.error('[Site Status Error]', error);
+      res.status(200).json({
+        success: true,
+        data: { maintenanceMode: false }
+      });
+    }
+  });
+
+  // ─── Database-Dependent Routes ──────────────────────────────────────────────
+  app.use('/api/images', ensureDB, imageRoutes);
+  app.use('/api/auth', ensureDB, authRoutes);
+  app.use('/api/admin', ensureDB, adminRoutes);
+
+  app.use(maintenanceGuard);
+  app.use('/api/public', ensureDB, publicRoutes);
+
+  // ─── 404 Catch-all for API Routes (Always JSON, never index.html) ───────────
   app.all('/api/*', (req, res) => {
-    res.status(404).json({ success: false, message: 'API endpoint not found' });
+    res.status(404).json({
+      success: false,
+      error: 'API route not found'
+    });
+  });
+
+  // ─── Global JSON Error Handler ──────────────────────────────────────────────
+  app.use((err, req, res, next) => {
+    console.error('[API Error]', err.message || err);
+    if (res.headersSent) {
+      return next(err);
+    }
+    res.status(err.status || 500).json({
+      success: false,
+      error: process.env.NODE_ENV === 'production' ? 'Internal server error' : (err.message || 'Unknown error')
+    });
   });
 
   return app;
 };
 
-// ─── Serverless Handler (cached across warm invocations) ─────────────────────
-let cachedHandler = null;
-
-const getHandler = async () => {
-  if (cachedHandler) return cachedHandler;
-
-  try {
-    await connectToDB();
-  } catch (dbError) {
-    console.error('[Handler Init] DB connection failed:', dbError.message);
-    // Return a proper error handler instead of timing out silently
-    return (req, res) => {
-      res.status(503).json({
-        success: false,
-        message: 'Database temporarily unavailable. Please try again in a moment.',
-        error: process.env.NODE_ENV !== 'production' ? dbError.message : undefined
-      });
-    };
-  }
-
-  const app = createApp();
-  cachedHandler = serverless(app, {
-    binary: ['image/*', 'application/pdf', 'application/octet-stream']
-  });
-
-  return cachedHandler;
-};
-
 // ─── Vercel Entry Point ───────────────────────────────────────────────────────
-export default async (req, res) => {
-  try {
-    const handler = await getHandler();
-    return handler(req, res);
-  } catch (err) {
-    console.error('[Vercel Entry Error]', err);
-    if (!res.headersSent) {
-      res.status(500).json({
-        success: false,
-        message: 'Internal server error during initialization.'
-      });
-    }
-  }
+// Export Express app directly — Vercel natively calls app(req, res).
+const app = createApp();
+
+export default (req, res) => {
+  return app(req, res);
 };
