@@ -110,3 +110,63 @@ export const generateSignedUrl = (publicId, variant) => {
     return null;
   }
 };
+
+/**
+ * Uploads a PDF buffer to Cloudinary as a raw resource
+ * @param {Buffer} buffer  The PDF file buffer
+ * @param {String} folder  Cloudinary folder (e.g. 'brainstorm/ideas')
+ * @param {String} filename  Original filename (without extension)
+ * @returns {Promise<Object>} Cloudinary result
+ */
+export const uploadPdfToCloudinary = async (buffer, folder, filename) => {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error('Cloudinary PDF upload timed out after 25 seconds'));
+    }, 25000);
+
+    const sanitized = (filename || 'idea-pdf')
+      .replace(/[^a-zA-Z0-9_-]/g, '_')
+      .substring(0, 80);
+
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder,
+        resource_type: 'raw',
+        type: 'authenticated',
+        public_id: `${sanitized}_${Date.now()}`,
+        timeout: 25000,
+      },
+      (error, result) => {
+        clearTimeout(timer);
+        if (error) return reject(error);
+        resolve(result);
+      }
+    );
+
+    uploadStream.on('error', (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+
+    uploadStream.end(buffer);
+  });
+};
+
+/**
+ * Generates a signed download URL for an authenticated raw (PDF) asset
+ * @param {String} publicId  Cloudinary public_id
+ * @returns {String|null}
+ */
+export const generateSignedPdfUrl = (publicId) => {
+  if (!publicId) return null;
+  try {
+    return cloudinary.utils.private_download_url(publicId, 'pdf', {
+      resource_type: 'raw',
+      type: 'authenticated',
+      expires_at: Math.floor(Date.now() / 1000) + 3600, // 1 hour
+    });
+  } catch (err) {
+    console.error('Error generating signed PDF URL:', err);
+    return null;
+  }
+};

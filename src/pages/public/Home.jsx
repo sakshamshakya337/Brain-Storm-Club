@@ -3,14 +3,108 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight, Calendar, Clock, MapPin, ChevronRight, PlayCircle, Users, Lightbulb, Zap, MessageSquare } from 'lucide-react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useGSAP } from '@gsap/react';
 import Footer from '../../components/layout/Footer';
 import IdeasFlow from '../../components/sections/IdeasFlow';
+import { usePageReveal } from '../../hooks/usePageReveal';
+import { useScrollReveal } from '../../hooks/useScrollReveal';
+import { useMagneticButton } from '../../hooks/useMagneticButton';
 
 gsap.registerPlugin(ScrollTrigger);
 
 export default function Home() {
-  const heroRef = useRef(null);
-  const carouselRef = useRef(null);
+  const containerRef = useRef(null);
+  usePageReveal(containerRef);
+  useScrollReveal(containerRef);
+  
+  const ctaRef = useMagneticButton(0.4);
+  const statsSectionRef = useRef(null);
+
+  // Stats Counter Animation
+  useGSAP(() => {
+    if (!statsSectionRef.current) return;
+
+    const statCards = gsap.utils.toArray('.stat-card', statsSectionRef.current);
+    const statElements = gsap.utils.toArray('.stat-counter', statsSectionRef.current);
+    const statLabels = gsap.utils.toArray('.stat-label', statsSectionRef.current);
+    const statNums = gsap.utils.toArray('.stat-num', statsSectionRef.current);
+    if (!statElements.length) return;
+
+    // Respect prefers-reduced-motion: skip animation, show final values
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) {
+      gsap.set([statCards, statElements, statLabels, statNums], { opacity: 1, y: 0 });
+      statElements.forEach((el) => { el.innerText = el.dataset.value; });
+      return;
+    }
+
+    // Set initial hidden states
+    gsap.set(statCards, { opacity: 0, y: 20 });
+    gsap.set(statNums, { opacity: 0 });
+
+    const tl = gsap.timeline({
+      scrollTrigger: {
+        trigger: statsSectionRef.current,
+        start: 'top 82%',
+        once: true,
+      }
+    });
+
+    // Staggered card reveal
+    tl.to(statCards, {
+      opacity: 1,
+      y: 0,
+      duration: 0.7,
+      stagger: 0.1,
+      ease: 'power3.out',
+    });
+
+    // Index number reveal
+    tl.to(statNums, {
+      opacity: 1,
+      duration: 0.4,
+      stagger: 0.1,
+      ease: 'power2.out',
+    }, '-=0.5');
+
+    // Count-up for each stat number
+    statElements.forEach((el, index) => {
+      const finalValue = el.dataset.value;
+      const numericMatch = finalValue.match(/[\d.]+/);
+      if (!numericMatch) return;
+
+      const targetNum = parseFloat(numericMatch[0]);
+      const suffix = finalValue.replace(numericMatch[0], '');
+      const isDecimal = numericMatch[0].includes('.');
+
+      // Reserve min-width to prevent layout shift during count-up
+      el.style.minWidth = `${el.offsetWidth}px`;
+
+      // Start at zero with the same suffix formatting to avoid layout shift
+      el.innerText = isDecimal ? `0.0${suffix}` : `0${suffix}`;
+
+      const proxy = { val: 0 };
+
+      tl.to(proxy, {
+        val: targetNum,
+        duration: 1.5,
+        ease: 'power2.out',
+        onUpdate() {
+          const v = isDecimal
+            ? proxy.val.toFixed(1)
+            : Math.floor(proxy.val);
+          el.innerText = `${v}${suffix}`;
+        },
+        onComplete() {
+          // Guarantee exact final value
+          el.innerText = finalValue;
+          // Release min-width constraint once settled
+          el.style.minWidth = '';
+        },
+      }, index * 0.15 + 0.2); // Subtle per-counter stagger, starts after card reveal
+    });
+
+  }, { scope: statsSectionRef });
 
   // Carousel State
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -22,15 +116,6 @@ export default function Home() {
   ];
 
   useEffect(() => {
-    // Basic GSAP fade in for the hero elements
-    if (heroRef.current) {
-      gsap.fromTo(
-        heroRef.current.children,
-        { y: 30, opacity: 0 },
-        { y: 0, opacity: 1, duration: 1, stagger: 0.15, ease: 'power3.out', delay: 1.5 } // delay allows preloader to finish
-      );
-    }
-
     // Auto-advance carousel
     const interval = setInterval(() => {
       setCurrentImageIndex((prev) => (prev + 1) % showcaseImages.length);
@@ -40,9 +125,9 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="w-full">
+    <div ref={containerRef} className="w-full">
       {/* SECTION 1: HERO */}
-      <section className="relative min-h-screen flex items-start pt-28 lg:pt-32 pb-12 overflow-hidden border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
+      <section className="relative min-h-[100svh] flex items-center pt-6 md:pt-10 pb-12 overflow-hidden border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
         {/* Subtle Decorative Grid */}
         <div
           className="absolute inset-0 z-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
@@ -53,8 +138,8 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center lg:items-start">
 
             {/* LEFT: Typography */}
-            <div ref={heroRef} className="col-span-1 lg:col-span-6 flex flex-col items-start pt-12 lg:pt-8">
-              <div className="flex flex-wrap items-center gap-4 mb-8">
+            <div className="col-span-1 lg:col-span-6 flex flex-col items-start">
+              <div className="reveal-eyebrow flex flex-wrap items-center gap-4 mb-8">
                 <span className="font-mono text-xs font-bold tracking-[0.2em] text-slate-500 dark:text-slate-400 uppercase border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-sm bg-slate-50 dark:bg-slate-900/50 backdrop-blur-sm">
                   LPU SCA / BRAINSTORM CLUB
                 </span>
@@ -64,33 +149,35 @@ export default function Home() {
                 </span>
               </div>
 
-              <h1 className="font-heading font-black text-[3.5rem] sm:text-6xl md:text-7xl lg:text-[5.5rem] xl:text-[6rem] leading-[0.9] tracking-tighter text-slate-900 dark:text-white mb-6 uppercase">
-                WHERE <br />
-                ACADEMIA <br />
-                MEETS <br />
-                <span className="text-brand-primary relative">
-                  INNOVATION.
-                  <span className="absolute -bottom-2 left-0 w-full h-1 bg-gradient-to-r from-brand-primary to-transparent opacity-50"></span>
+              <h1 className="font-heading font-black text-[clamp(3rem,10vw,6rem)] leading-[0.9] tracking-tighter text-slate-900 dark:text-white mb-6 uppercase flex flex-col">
+                <span className="overflow-hidden"><span className="reveal-heading-line block">WHERE</span></span>
+                <span className="overflow-hidden"><span className="reveal-heading-line block">ACADEMIA</span></span>
+                <span className="overflow-hidden"><span className="reveal-heading-line block">MEETS</span></span>
+                <span className="overflow-hidden pb-4">
+                  <span className="reveal-heading-line block text-brand-primary relative">
+                    INNOVATION.
+                    <span className="absolute -bottom-2 left-0 w-full h-1 bg-gradient-to-r from-brand-primary to-transparent opacity-50"></span>
+                  </span>
                 </span>
               </h1>
 
-              <p className="font-body text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-xl mb-10 leading-relaxed font-light">
+              <p className="reveal-text font-body text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-xl mb-10 leading-relaxed font-light">
                 A student-led technology community at Lovely Professional University where students think, build, connect and turn ideas into action.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-                <Link to="/events" className="bg-slate-900 dark:bg-brand-primary text-white px-8 py-4 rounded-full font-mono text-sm font-bold tracking-widest uppercase hover:scale-105 transition-transform flex items-center justify-center gap-2 group shadow-xl shadow-brand-primary/20">
+                <Link ref={ctaRef} to="/events" className="reveal-cta bg-slate-900 dark:bg-brand-primary text-white px-8 py-4 rounded-full font-mono text-sm font-bold tracking-widest uppercase hover:scale-105 transition-transform flex items-center justify-center gap-2 group shadow-xl shadow-brand-primary/20 relative">
                   Explore Events
                   <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                 </Link>
-                <Link to="/join-us" className="bg-transparent border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white px-8 py-4 rounded-full font-mono text-sm font-bold tracking-widest uppercase hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors flex items-center justify-center gap-2 group">
+                <Link to="/join-us" className="reveal-cta bg-transparent border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white px-8 py-4 rounded-full font-mono text-sm font-bold tracking-widest uppercase hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors flex items-center justify-center gap-2 group">
                   Join the Community
                   <ArrowUpRight size={16} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                 </Link>
               </div>
 
               {/* Scroll Indicator (Integrated into Left Column Flow) */}
-              <div className="mt-16 md:mt-24 flex flex-col items-start gap-3 opacity-60">
+              <div className="reveal-meta mt-16 md:mt-24 flex flex-col items-start gap-3 opacity-60">
                 <span className="font-mono text-[10px] tracking-[0.3em] font-bold uppercase text-slate-500 dark:text-slate-400">Scroll to explore</span>
                 <div className="w-[1px] h-12 bg-slate-300 dark:bg-slate-700 overflow-hidden relative ml-0.5">
                   <div className="absolute top-0 left-0 w-full h-full bg-brand-primary origin-top animate-[scroll_2s_ease-in-out_infinite]" />
@@ -99,7 +186,7 @@ export default function Home() {
             </div>
 
             {/* RIGHT: Automatic Image Showcase */}
-            <div className="col-span-1 lg:col-span-6 relative h-[500px] lg:h-[700px] w-full bg-slate-100 dark:bg-slate-900/50 flex flex-col p-6 overflow-hidden">
+            <div className="reveal-image col-span-1 lg:col-span-6 relative min-h-[400px] lg:h-[700px] w-full bg-slate-100 dark:bg-slate-900/50 flex flex-col p-6 overflow-hidden">
               {/* Dynamic Image Container */}
               <div className="absolute inset-0 z-0 bg-slate-950">
                 {showcaseImages.map((img, idx) => (
@@ -133,7 +220,7 @@ export default function Home() {
                   </div>
 
                   {/* Progress Indicator */}
-                  <div className="flex flex-col items-end gap-2">
+                  <div className="reveal-meta flex flex-col items-end gap-2">
                     <div className="font-mono text-xs font-bold text-white tracking-widest">
                       0{currentImageIndex + 1} <span className="text-slate-500">/ 0{showcaseImages.length}</span>
                     </div>
@@ -152,7 +239,7 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="flex flex-col items-start pb-4">
+                <div className="reveal-meta flex flex-col items-start pb-4">
                   <div className="font-mono text-[10px] tracking-widest text-brand-primary mb-2 font-bold bg-brand-primary/10 px-2 py-1 rounded-sm">
                     {showcaseImages[currentImageIndex].type}
                   </div>
@@ -220,7 +307,7 @@ export default function Home() {
 
       {/* SECTION 3: FEATURED EVENT */}
       <section className="py-20 md:py-32 bg-white dark:bg-slate-950">
-        <div className="container mx-auto px-6 md:px-12 max-w-[1440px]">
+        <div className="container mx-auto px-6 md:px-12 max-w-[1440px]" data-reveal="up">
           <div className="mb-16 flex flex-col md:flex-row md:items-end justify-between border-b border-slate-200 dark:border-slate-800 pb-6 gap-6">
             <div>
               <h2 className="font-heading font-black text-4xl md:text-5xl tracking-tight text-slate-900 dark:text-white uppercase">
@@ -291,19 +378,24 @@ export default function Home() {
       </section>
 
       {/* SECTION 4: STATISTICS (Editorial Grid) */}
-      <section className="py-16 border-y border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/20">
+      <section ref={statsSectionRef} className="py-16 border-y border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/20">
         <div className="container mx-auto px-6 md:px-12 max-w-[1440px]">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-0 lg:divide-x divide-slate-200 dark:divide-slate-800">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-0 lg:divide-x divide-slate-200 dark:divide-slate-800" data-reveal="stagger-children">
             {[
               { num: '01', value: '45+', label: 'EVENTS HOSTED' },
               { num: '02', value: '1.2K', label: 'ACTIVE MEMBERS' },
               { num: '03', value: '300+', label: 'IDEAS PITCHED' },
               { num: '04', value: '50+', label: 'LIVE PROJECTS' }
             ].map((stat, i) => (
-              <div key={i} className="flex flex-col lg:px-10">
-                <div className="font-mono text-[10px] font-bold tracking-widest text-brand-primary mb-4">{stat.num}</div>
-                <div className="font-heading font-black text-5xl md:text-6xl lg:text-7xl tracking-tighter text-slate-900 dark:text-white mb-2">{stat.value}</div>
-                <div className="font-mono text-xs font-medium tracking-[0.2em] uppercase text-slate-500">{stat.label}</div>
+              <div key={i} className="stat-card flex flex-col lg:px-10">
+                <div className="stat-num font-mono text-[10px] font-bold tracking-widest text-brand-primary mb-4">{stat.num}</div>
+                <div 
+                  className="stat-counter font-heading font-black text-5xl md:text-6xl lg:text-7xl tracking-tighter text-slate-900 dark:text-white mb-2 tabular-nums"
+                  data-value={stat.value}
+                >
+                  {stat.value}
+                </div>
+                <div className="stat-label font-mono text-xs font-medium tracking-[0.2em] uppercase text-slate-500">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -313,11 +405,11 @@ export default function Home() {
       {/* SECTION 5: WHAT WE DO */}
       <section className="py-20 md:py-32 bg-white dark:bg-slate-950">
         <div className="container mx-auto px-6 md:px-12 max-w-[1440px]">
-          <h2 className="font-heading font-black text-4xl md:text-5xl lg:text-[4rem] tracking-tight text-slate-900 dark:text-white uppercase mb-16 max-w-2xl leading-[0.9]">
+          <h2 className="font-heading font-black text-4xl md:text-5xl lg:text-[4rem] tracking-tight text-slate-900 dark:text-white uppercase mb-16 max-w-2xl leading-[0.9]" data-reveal="up">
             WHAT WE DO
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" data-reveal="stagger-children">
             {[
               { num: '01 / THINK', title: 'Explore ideas', desc: 'Dive into emerging technologies and new possibilities.', icon: <Lightbulb size={24} />, weight: 'lg:col-span-1 lg:row-span-2 bg-slate-100 dark:bg-slate-900' },
               { num: '02 / BUILD', title: 'Turn concepts into reality', desc: 'Practical projects built by students, for the world.', icon: <Zap size={24} />, weight: 'lg:col-span-2 bg-brand-primary text-white' },
@@ -342,7 +434,7 @@ export default function Home() {
       {/* SECTION 6: WHAT'S HAPPENING (Featured Events Grid) */}
       <section className="py-20 md:py-32 bg-slate-50 dark:bg-slate-900/30 border-t border-slate-200 dark:border-slate-800">
         <div className="container mx-auto px-6 md:px-12 max-w-[1440px]">
-          <div className="mb-16 max-w-2xl">
+          <div className="mb-16 max-w-2xl" data-reveal="up">
             <h2 className="font-heading font-black text-4xl md:text-5xl lg:text-[4rem] tracking-tight text-slate-900 dark:text-white uppercase leading-[0.9] mb-6">
               WHAT'S <br />HAPPENING.
             </h2>
@@ -351,7 +443,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4" data-reveal="stagger-children">
             {/* ONE LARGE EVENT */}
             <div className="md:col-span-8 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 group overflow-hidden relative min-h-[400px] flex flex-col justify-end p-8">
               <img src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=2070&auto=format&fit=crop" className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-40 group-hover:scale-105 transition-transform duration-700" alt="Event" />
@@ -414,7 +506,7 @@ export default function Home() {
       {/* SECTION 8: PEOPLE SECTION */}
       <section className="py-20 md:py-32 bg-slate-50 dark:bg-slate-900/30 border-t border-slate-200 dark:border-slate-800">
         <div className="container mx-auto px-6 md:px-12 max-w-[1440px]">
-          <div className="mb-16 flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="mb-16 flex flex-col md:flex-row md:items-end justify-between gap-6" data-reveal="up">
             <h2 className="font-heading font-black text-4xl md:text-5xl lg:text-[4rem] tracking-tight text-slate-900 dark:text-white uppercase leading-[0.9]">
               THE PEOPLE <br />BEHIND THE IDEAS.
             </h2>
@@ -462,11 +554,11 @@ export default function Home() {
       {/* SECTION 9: GALLERY SECTION */}
       <section className="py-20 md:py-32 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800">
         <div className="container mx-auto px-6 md:px-12 max-w-[1440px]">
-          <h2 className="font-heading font-black text-4xl md:text-5xl lg:text-[4rem] tracking-tight text-slate-900 dark:text-white uppercase leading-[0.9] mb-16 text-center">
+          <h2 className="font-heading font-black text-4xl md:text-5xl lg:text-[4rem] tracking-tight text-slate-900 dark:text-white uppercase leading-[0.9] mb-16 text-center" data-reveal="up">
             MOMENTS <br />IN MOTION.
           </h2>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 auto-rows-[200px] md:auto-rows-[300px]">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 auto-rows-[200px] md:auto-rows-[300px]" data-reveal="stagger-children">
             {/* Large */}
             <div className="col-span-2 row-span-2 bg-slate-100 dark:bg-slate-900 relative group overflow-hidden cursor-crosshair">
               <img src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=2070&auto=format&fit=crop" className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80 group-hover:scale-105 group-hover:mix-blend-normal transition-all duration-700" alt="Gallery" />
@@ -510,7 +602,7 @@ export default function Home() {
             <span className="w-12 h-px bg-brand-secondary/50"></span>
           </div>
 
-          <h2 className="font-heading font-black text-6xl md:text-8xl lg:text-[8rem] tracking-tighter uppercase leading-[0.85] mb-12 flex flex-col items-center">
+          <h2 className="font-heading font-black text-[clamp(3.5rem,12vw,8rem)] tracking-tighter uppercase leading-[0.85] mb-12 flex flex-col items-center">
             <span>THINK.</span>
             <span>BUILD.</span>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-secondary to-brand-primary">CHANGE</span>

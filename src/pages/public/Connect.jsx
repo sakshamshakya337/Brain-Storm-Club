@@ -209,7 +209,7 @@ export default function Connect() {
         </div>
 
         {/* Footer */}
-        <div className="gsap-footer opacity-0 mt-16 pb-6 pt-8 border-t border-slate-200 dark:border-slate-800 w-full max-w-[200px] flex flex-col items-center">
+        <div className="gsap-footer opacity-0 mt-24 pb-6 pt-8 border-t border-slate-200 dark:border-slate-800 w-full max-w-[200px] flex flex-col items-center">
           <span className="text-[10px] font-mono font-bold tracking-widest text-slate-400 dark:text-slate-500 uppercase">
             Brainstorm Club
           </span>

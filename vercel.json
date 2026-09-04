@@ -6,8 +6,8 @@
   "installCommand": "npm install --include=dev && npm rebuild sharp",
   "functions": {
     "api/index.js": {
-      "includeFiles": "dist/**",
-      "maxDuration": 30
+      "includeFiles": "routes/**,controllers/**,middleware/**,models/**,utils/**,services/**",
+      "maxDuration": 60
     }
   },
   "rewrites": [

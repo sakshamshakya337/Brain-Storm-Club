@@ -6,7 +6,10 @@ import {
   getJoinRequests, 
   updateJoinRequestStatus,
   getContactQueries,
-  updateContactQueryStatus
+  updateContactQueryStatus,
+  getIdeas,
+  getIdeaById,
+  updateIdeaStatus
 } from '../controllers/adminController.js';
 import { 
   getAllMembersAdmin, 
@@ -127,3 +130,7 @@ router.patch('/notifications/read-all', markAllAsRead);
 router.patch('/notifications/:id/read', markAsRead);
 
 export default router;
+
+// Ideas
+router.route('/ideas').get(getIdeas);
+router.route('/ideas/:id').get(getIdeaById).patch(updateIdeaStatus);

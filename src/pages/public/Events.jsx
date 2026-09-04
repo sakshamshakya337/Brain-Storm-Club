@@ -2,17 +2,18 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, ArrowRight, ArrowUpRight, Calendar, MapPin, Clock, Filter, PlayCircle } from 'lucide-react';
 import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Footer from '../../components/layout/Footer';
-
-gsap.registerPlugin(ScrollTrigger);
 
 import EventStatus from '../../components/events/EventStatus';
 import EventCard from '../../components/events/EventCard';
 import ProtectedImage from '../../components/common/ProtectedImage';
+import { usePageReveal } from '../../hooks/usePageReveal';
+import { useScrollReveal } from '../../hooks/useScrollReveal';
 
 export default function Events() {
-  const heroRef = useRef(null);
+  const containerRef = useRef(null);
+  usePageReveal(containerRef);
+  useScrollReveal(containerRef);
   const [activeFilter, setActiveFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -29,14 +30,6 @@ export default function Events() {
       })
       .catch(err => console.error('Error fetching events:', err))
       .finally(() => setLoading(false));
-
-    if (heroRef.current) {
-      gsap.fromTo(
-        heroRef.current.children,
-        { y: 30, opacity: 0 },
-        { y: 0, opacity: 1, duration: 1, stagger: 0.1, ease: 'power3.out' }
-      );
-    }
   }, []);
 
   const filteredUpcoming = events.filter(event => {
@@ -54,31 +47,33 @@ export default function Events() {
   });
 
   return (
-    <div className="w-full bg-white dark:bg-slate-950 min-h-screen text-slate-900 dark:text-slate-300">
+    <div ref={containerRef} className="w-full bg-white dark:bg-slate-950 min-h-screen text-slate-900 dark:text-slate-300">
       {/* SECTION 1: EDITORIAL HERO */}
-      <section className="relative min-h-[70vh] md:min-h-[85vh] flex items-center pt-24 pb-12 overflow-hidden border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
+      <section className="relative min-h-[70svh] md:min-h-[85svh] flex items-center pt-6 md:pt-10 pb-12 overflow-hidden border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
         <div className="absolute inset-0 z-0 opacity-[0.02] dark:opacity-[0.04] pointer-events-none" style={{ backgroundImage: 'linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)', backgroundSize: '64px 64px', color: 'currentColor' }} />
         
         <div className="w-full mx-auto px-6 lg:px-12 max-w-[1440px] relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
             {/* LEFT: Typography */}
-            <div ref={heroRef} className="col-span-1 lg:col-span-6 flex flex-col items-start pt-12 lg:pt-0">
-              <div className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-brand-primary mb-8 border border-brand-primary/30 px-3 py-1.5 rounded-sm bg-brand-primary/5">
+            <div className="col-span-1 lg:col-span-6 flex flex-col items-start">
+              <div className="reveal-eyebrow font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-brand-primary mb-8 border border-brand-primary/30 px-3 py-1.5 rounded-sm bg-brand-primary/5">
                 BRAINSTORM / EVENTS
               </div>
               
-              <h1 className="font-heading font-black text-6xl md:text-7xl lg:text-[7rem] leading-[0.85] tracking-tighter text-slate-900 dark:text-white mb-8 uppercase">
-                IDEAS <br/>
-                IN <br/>
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-brand-secondary">MOTION.</span>
+              <h1 className="font-heading font-black text-[clamp(3.5rem,10vw,7rem)] leading-[0.85] tracking-tighter text-slate-900 dark:text-white mb-8 uppercase flex flex-col">
+                <span className="overflow-hidden"><span className="reveal-heading-line block">IDEAS</span></span>
+                <span className="overflow-hidden"><span className="reveal-heading-line block">IN</span></span>
+                <span className="overflow-hidden pb-4">
+                  <span className="reveal-heading-line block text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-brand-secondary">MOTION.</span>
+                </span>
               </h1>
               
-              <p className="font-body text-lg text-slate-600 dark:text-slate-400 max-w-xl mb-12 font-light leading-relaxed">
+              <p className="reveal-text font-body text-lg text-slate-600 dark:text-slate-400 max-w-xl mb-12 font-light leading-relaxed">
                 Discover workshops, hackathons, seminars, contests and community events designed to help students learn, build and connect.
               </p>
 
               {/* Technical Metadata */}
-              <div className="flex flex-wrap gap-6 font-mono text-[10px] tracking-[0.2em] font-bold uppercase text-slate-500 dark:text-slate-500">
+              <div className="reveal-meta flex flex-wrap gap-6 font-mono text-[10px] tracking-[0.2em] font-bold uppercase text-slate-500 dark:text-slate-500">
                 <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-brand-accent"></div> 01 / UPCOMING</span>
                 <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-brand-primary"></div> 02 / ONGOING</span>
                 <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-slate-300"></div> 03 / COMPLETED</span>
@@ -86,7 +81,7 @@ export default function Events() {
             </div>
             
             {/* RIGHT: Abstract Visual Composition */}
-            <div className="col-span-1 lg:col-span-6 relative h-[400px] lg:h-[600px] w-full flex items-center justify-center p-6">
+            <div className="reveal-image col-span-1 lg:col-span-6 relative h-[400px] lg:h-[600px] w-full flex items-center justify-center p-6">
               <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 gap-2 opacity-50">
                 <div className="col-span-2 row-span-2 bg-slate-100 dark:bg-slate-900 relative overflow-hidden group">
                   <img src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=2070&auto=format&fit=crop" className="absolute w-full h-full object-cover mix-blend-luminosity opacity-60 group-hover:scale-105 transition-transform duration-1000" alt="Event" />
@@ -108,7 +103,7 @@ export default function Events() {
 
       {/* SECTION 2: FEATURED UPCOMING EVENT */}
       <section className="py-20 md:py-32 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
-        <div className="container mx-auto px-6 md:px-12 max-w-[1440px]">
+        <div className="container mx-auto px-6 md:px-12 max-w-[1440px]" data-reveal="up">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 border border-slate-200 dark:border-slate-800 group relative bg-slate-50 dark:bg-slate-900 rounded-sm overflow-hidden">
             {/* LEFT: Details */}
             <div className="col-span-1 lg:col-span-5 p-8 sm:p-12 md:p-16 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-slate-800 relative z-10 order-2 lg:order-1">
@@ -164,7 +159,7 @@ export default function Events() {
 
       {/* SECTION 3: DISCOVERY HEADER & FILTERS */}
       <section className="pt-20 pb-8 bg-slate-50 dark:bg-transparent border-t border-slate-200 dark:border-slate-800">
-        <div className="container mx-auto px-6 md:px-12 max-w-[1440px]">
+        <div className="container mx-auto px-6 md:px-12 max-w-[1440px]" data-reveal="up">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
             <div>
               <h2 className="font-heading font-bold text-3xl md:text-4xl text-slate-900 dark:text-white uppercase tracking-tight mb-2">Explore Events</h2>
@@ -209,7 +204,7 @@ export default function Events() {
       {/* SECTION 4: ASYMMETRIC EVENT GRID */}
       <section className="py-12 pb-24 bg-slate-50 dark:bg-transparent">
         <div className="container mx-auto px-6 md:px-12 max-w-[1440px]">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 lg:gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 lg:gap-6" data-reveal="stagger-children">
             
             {filteredUpcoming.length === 0 ? (
               <div className="md:col-span-12 py-24 text-center flex flex-col items-center">
@@ -221,7 +216,7 @@ export default function Events() {
                 {/* EVENT 1: LARGE MAIN (Col 8) */}
                 {filteredUpcoming[0] && (
                   <div className="md:col-span-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 group overflow-hidden relative min-h-[450px] flex flex-col justify-end p-8 lg:p-12 hover:border-brand-primary/50 dark:hover:bg-bg-elevated dark:hover:border-slate-700 transition-colors shadow-sm dark:shadow-none rounded-sm">
-                    <ProtectedImage imageId={filteredUpcoming[0].posterId?.imageId} variant="event_detail" className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-40 group-hover:scale-105 transition-transform duration-700" alt="Event" />
+                    <ProtectedImage imageId={filteredUpcoming[0].posterId?.imageId} variant="event_detail" className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:scale-105 group-hover:opacity-100 transition-all duration-700" alt="Event" />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent"></div>
                     
                     <div className="relative z-10 text-white w-full">
@@ -317,7 +312,7 @@ export default function Events() {
           </div>
           
             {/* Event Card Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-reveal="stagger-children">
               {filteredPast.length > 0 ? (
                 filteredPast.map((event) => (
                   <EventCard key={event._id || event.id} event={event} />

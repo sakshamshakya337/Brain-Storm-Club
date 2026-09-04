@@ -1,5 +1,5 @@
 import express from 'express';
-import { uploadImage, processAndProtectImage } from '../middleware/upload.js';
+import { uploadImage, processAndProtectImage, uploadPdf, processPdfUpload } from '../middleware/upload.js';
 import { getPublicEvents, getPublicEventDetails, getPublicMembers } from '../controllers/publicController.js';
 import { 
   submitMemberRegistration, 
@@ -28,7 +28,7 @@ router.post(
   submitJoinUs
 );
 router.post('/contact', submitContact);
-router.post('/ideas', submitIdea);
+router.post('/ideas', uploadPdf.single('pdf'), processPdfUpload, submitIdea);
 router.post('/events/register', submitEventRegistration);
 
 // Member Registration requires file upload (Protected visibility by default)

@@ -38,7 +38,7 @@ export default function MemberDetail() {
     <div className="w-full bg-white dark:bg-slate-950 min-h-screen text-slate-900 dark:text-slate-300 font-body">
       
       {/* HERO SECTION */}
-      <section className="pt-24 lg:pt-32 pb-16 lg:pb-24 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/20">
+      <section className="pt-6 md:pt-10 pb-16 lg:pb-24 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/20">
         <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]">
           
           {/* Breadcrumb */}

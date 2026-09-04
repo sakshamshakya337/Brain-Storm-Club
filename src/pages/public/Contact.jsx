@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight, CheckCircle2 } from 'lucide-react';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Footer from '../../components/layout/Footer';
-
-gsap.registerPlugin(ScrollTrigger);
+import { usePageReveal } from '../../hooks/usePageReveal';
+import { useScrollReveal } from '../../hooks/useScrollReveal';
 
 export default function Contact() {
   const [formState, setFormState] = useState('DEFAULT'); // DEFAULT, SENDING, SUCCESS, ERROR
@@ -16,52 +14,14 @@ export default function Contact() {
     subject: '',
     message: ''
   });
-  
-  const heroRef = useRef(null);
-  const infoRef = useRef(null);
-  const formRef = useRef(null);
+  const containerRef = useRef(null);
+
+  usePageReveal(containerRef);
+  useScrollReveal(containerRef);
 
   useEffect(() => {
     // Scroll to top on mount
     window.scrollTo(0, 0);
-
-    // Hero Animation
-    if (heroRef.current) {
-      gsap.fromTo(
-        heroRef.current.children,
-        { y: 30, opacity: 0 },
-        { y: 0, opacity: 1, duration: 1, stagger: 0.1, ease: 'power3.out' }
-      );
-    }
-
-    // Scroll Animations
-    if (infoRef.current) {
-      gsap.fromTo(
-        infoRef.current,
-        { y: 40, opacity: 0 },
-        {
-          y: 0, opacity: 1, duration: 0.8, ease: 'power3.out',
-          scrollTrigger: {
-            trigger: infoRef.current,
-            start: 'top 85%',
-          }
-        }
-      );
-    }
-
-    if (formRef.current) {
-      gsap.fromTo(
-        formRef.current,
-        { y: 40, opacity: 0 },
-        {
-          y: 0, opacity: 1, duration: 0.8, ease: 'power3.out',
-          scrollTrigger: {
-            trigger: formRef.current,
-            start: 'top 85%',
-          }
-        }
-      );
-    }
   }, []);
 
   const handleInputChange = (e) => {
@@ -97,31 +57,33 @@ export default function Contact() {
   };
 
   return (
-    <div className="w-full bg-white dark:bg-[#080D1A] min-h-screen text-slate-900 dark:text-[#F8FAFC] font-body overflow-x-hidden transition-colors duration-300">
+    <div ref={containerRef} className="w-full bg-white dark:bg-[#080D1A] min-h-screen text-slate-900 dark:text-[#F8FAFC] font-body overflow-x-hidden transition-colors duration-300">
       
       {/* HERO SECTION */}
-      <section className="relative min-h-[60vh] md:min-h-[75vh] flex items-center pt-32 pb-20 overflow-hidden border-b border-slate-200 dark:border-[#26344D]">
+      <section className="relative min-h-[60svh] md:min-h-[75svh] flex items-center pt-6 md:pt-10 pb-20 overflow-hidden border-b border-slate-200 dark:border-[#26344D]">
         <div className="absolute inset-0 z-0 opacity-[0.02] dark:opacity-10 pointer-events-none" style={{ backgroundImage: 'linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)', backgroundSize: '64px 64px', color: 'currentColor' }} />
         
         <div className="container mx-auto px-6 lg:px-12 max-w-[1440px] relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
             
             {/* LEFT */}
-            <div ref={heroRef} className="col-span-1 lg:col-span-7 flex flex-col items-start min-w-0">
-              <div className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-brand-primary mb-8 border border-brand-primary/30 px-3 py-1.5 rounded-sm bg-brand-primary/5 flex gap-4">
+            <div className="col-span-1 lg:col-span-7 flex flex-col items-start min-w-0">
+              <div className="reveal-eyebrow font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-brand-primary mb-8 border border-brand-primary/30 px-3 py-1.5 rounded-sm bg-brand-primary/5 flex gap-4">
                 <span>CONTACT</span>
                 <span className="text-slate-400 dark:text-[#71819B]">/</span>
                 <span>BRAINSTORM CLUB</span>
               </div>
               
-              <h1 className="font-heading font-black text-[clamp(3.5rem,8vw,6rem)] leading-[0.9] tracking-tighter text-slate-900 dark:text-[#F8FAFC] mb-8 uppercase max-w-full break-words">
-                LET'S <br/>
-                BUILD <br/>
-                SOMETHING <br/>
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-secondary to-brand-primary">TOGETHER.</span>
+              <h1 className="font-heading font-black text-[clamp(3.5rem,8vw,6rem)] leading-[0.9] tracking-tighter text-slate-900 dark:text-[#F8FAFC] mb-8 uppercase max-w-full break-words flex flex-col">
+                <span className="overflow-hidden"><span className="reveal-heading-line block">LET'S</span></span>
+                <span className="overflow-hidden"><span className="reveal-heading-line block">BUILD</span></span>
+                <span className="overflow-hidden"><span className="reveal-heading-line block">SOMETHING</span></span>
+                <span className="overflow-hidden pb-4">
+                  <span className="reveal-heading-line block text-transparent bg-clip-text bg-gradient-to-r from-brand-secondary to-brand-primary">TOGETHER.</span>
+                </span>
               </h1>
               
-              <div className="flex items-center gap-4 mb-6">
+              <div className="reveal-text flex items-center gap-4 mb-6">
                  <span className="relative flex h-3 w-3">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-primary opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-3 w-3 bg-brand-primary"></span>
@@ -129,13 +91,13 @@ export default function Contact() {
                  <span className="font-mono text-[10px] font-bold tracking-widest text-slate-500 dark:text-[#71819B] uppercase">SYS.CONTACT / OPEN</span>
               </div>
               
-              <p className="font-body text-lg md:text-xl text-slate-600 dark:text-[#A8B5CC] max-w-xl font-light leading-relaxed">
+              <p className="reveal-text font-body text-lg md:text-xl text-slate-600 dark:text-[#A8B5CC] max-w-xl font-light leading-relaxed">
                 Have an idea, want to collaborate, or simply want to connect? Reach out to the Brainstorm community.
               </p>
             </div>
             
             {/* RIGHT (VISUAL) */}
-            <div className="col-span-1 lg:col-span-5 relative h-[400px] w-full hidden md:flex items-center justify-center p-6 lg:p-12">
+            <div className="reveal-image col-span-1 lg:col-span-5 relative h-[400px] w-full hidden md:flex items-center justify-center p-6 lg:p-12">
               <div className="w-full h-full border border-slate-200 dark:border-[#26344D] bg-slate-50 dark:bg-[#0D1424] overflow-hidden rounded-sm relative flex items-center justify-center group p-8">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#151F33_1px,transparent_1px),linear-gradient(to_bottom,#151F33_1px,transparent_1px)] bg-[size:32px_32px] opacity-40 dark:opacity-60" />
                 
@@ -144,7 +106,7 @@ export default function Contact() {
                   
                   {/* Central Large Element */}
                   <div className="absolute w-32 h-32 md:w-48 md:h-48 border border-brand-primary/20 dark:border-brand-primary/30 bg-brand-primary/5 dark:bg-[#111A2D] rounded-full flex items-center justify-center group-hover:scale-105 transition-transform duration-700 shadow-[0_0_40px_rgba(99,102,241,0.05)]">
-                     <span className="font-heading font-black text-6xl md:text-8xl text-brand-primary/20 dark:text-[#26344D] group-hover:text-brand-primary/40 dark:group-hover:text-[#6366F1] transition-colors">@</span>
+                     <span className="font-heading font-black text-[clamp(4rem,15vw,8rem)] text-brand-primary/20 dark:text-[#26344D] group-hover:text-brand-primary/40 dark:group-hover:text-[#6366F1] transition-colors">@</span>
                   </div>
 
                   {/* Connecting Nodes */}
@@ -193,8 +155,8 @@ export default function Contact() {
       </section>
 
       {/* CONTACT INFO GRID */}
-      <section ref={infoRef} className="py-16 md:py-24 border-b border-slate-200 dark:border-[#26344D] bg-slate-50 dark:bg-[#080D1A]">
-        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]">
+      <section className="py-16 md:py-24 border-b border-slate-200 dark:border-[#26344D] bg-slate-50 dark:bg-[#080D1A]">
+        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]" data-reveal="up">
           <h2 className="font-heading font-black text-3xl uppercase tracking-tight text-slate-900 dark:text-[#F8FAFC] mb-12">
             CONTACT CHANNELS
           </h2>
@@ -233,8 +195,8 @@ export default function Contact() {
       </section>
 
       {/* FORM SECTION */}
-      <section ref={formRef} className="py-20 md:py-32">
-        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]">
+      <section className="py-20 md:py-32">
+        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]" data-reveal="up">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-24">
             
             {/* Left Context */}
@@ -366,7 +328,7 @@ export default function Contact() {
 
       {/* COMMUNITY CTA */}
       <section className="py-24 md:py-32 bg-slate-50 dark:bg-[#0D1424] border-t border-slate-200 dark:border-[#26344D]">
-        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px] text-center flex flex-col items-center">
+        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px] text-center flex flex-col items-center" data-reveal="up">
           <h2 className="font-heading font-black text-4xl md:text-5xl uppercase tracking-tight text-slate-900 dark:text-[#F8FAFC] mb-6">
             HAVE AN IDEA?
           </h2>
@@ -375,7 +337,7 @@ export default function Contact() {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-6">
-            <Link to="/join-us" className="bg-slate-900 dark:bg-brand-primary text-white px-8 py-4 rounded-full font-mono text-[10px] font-bold tracking-widest uppercase hover:scale-105 transition-transform flex items-center justify-center gap-2 group shadow-lg">
+            <Link to="/ideas" className="bg-slate-900 dark:bg-brand-primary text-white px-8 py-4 rounded-full font-mono text-[10px] font-bold tracking-widest uppercase hover:scale-105 transition-transform flex items-center justify-center gap-2 group shadow-lg">
               SUBMIT AN IDEA
               <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
             </Link>

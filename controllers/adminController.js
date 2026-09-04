@@ -140,3 +140,86 @@ export const updateContactQueryStatus = async (req, res) => {
     res.status(500).json({ success: false, message: 'Error updating contact query' });
   }
 };
+
+// ─── Ideas ────────────────────────────────────────────────────────────────────
+import Idea from '../models/Idea.js';
+import { generateSignedPdfUrl } from '../services/cloudinaryService.js';
+
+export const getIdeas = async (req, res) => {
+  try {
+    const page   = Math.max(1, parseInt(req.query.page,  10) || 1);
+    const limit  = Math.min(50, parseInt(req.query.limit, 10) || 20);
+    const status = req.query.status;
+    const search = req.query.search;
+
+    const query = {};
+    if (status && status !== 'All') query.status = status;
+    if (search) {
+      query.$or = [
+        { title:       { $regex: search, $options: 'i' } },
+        { name:        { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { course:      { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const [total, ideas] = await Promise.all([
+      Idea.countDocuments(query),
+      Idea.find(query)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        ideas,
+        pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+      },
+    });
+  } catch (error) {
+    console.error('[getIdeas error]', error);
+    res.status(500).json({ success: false, message: 'Error fetching ideas' });
+  }
+};
+
+export const getIdeaById = async (req, res) => {
+  try {
+    const idea = await Idea.findById(req.params.id).lean();
+    if (!idea) return res.status(404).json({ success: false, message: 'Idea not found' });
+
+    // Attach a short-lived signed PDF URL if there is one
+    if (idea.pdfPublicId) {
+      idea.pdfSignedUrl = generateSignedPdfUrl(idea.pdfPublicId);
+    }
+
+    res.status(200).json({ success: true, data: { idea } });
+  } catch (error) {
+    console.error('[getIdeaById error]', error);
+    res.status(500).json({ success: false, message: 'Error fetching idea' });
+  }
+};
+
+export const updateIdeaStatus = async (req, res) => {
+  try {
+    const { status, adminNotes } = req.body;
+    const allowed = ['New', 'Reviewed', 'Shortlisted', 'Implemented', 'Rejected'];
+    if (!allowed.includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid status value' });
+    }
+
+    const idea = await Idea.findByIdAndUpdate(
+      req.params.id,
+      { status, ...(adminNotes !== undefined && { adminNotes }) },
+      { new: true, runValidators: true }
+    );
+    if (!idea) return res.status(404).json({ success: false, message: 'Idea not found' });
+
+    res.status(200).json({ success: true, data: { idea } });
+  } catch (error) {
+    console.error('[updateIdeaStatus error]', error);
+    res.status(500).json({ success: false, message: 'Error updating idea status' });
+  }
+};

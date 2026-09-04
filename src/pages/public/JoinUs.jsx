@@ -1,14 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, CheckCircle2, Upload, X, FileImage, AlertCircle, FileWarning } from 'lucide-react';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Footer from '../../components/layout/Footer';
+import { usePageReveal } from '../../hooks/usePageReveal';
+import { useScrollReveal } from '../../hooks/useScrollReveal';
 
 // Dynamically import compression libs to prevent SSR issues if this was Next.js (fine for Vite)
 import imageCompression from 'browser-image-compression';
-
-gsap.registerPlugin(ScrollTrigger);
 
 const INTERESTS = [
   'Web Development', 'App Development', 'AI / ML', 'Data Science', 
@@ -37,29 +35,13 @@ export default function JoinUs() {
   const [imageProcessing, setImageProcessing] = useState(false);
   const [imageError, setImageError] = useState('');
 
-  const heroRef = useRef(null);
-  const contentRef = useRef(null);
+  const containerRef = useRef(null);
+
+  usePageReveal(containerRef);
+  useScrollReveal(containerRef);
 
   useEffect(() => {
     window.scrollTo(0, 0);
-
-    if (heroRef.current) {
-      gsap.fromTo(
-        heroRef.current.children,
-        { y: 30, opacity: 0 },
-        { y: 0, opacity: 1, duration: 1, stagger: 0.1, ease: 'power3.out' }
-      );
-    }
-    if (contentRef.current) {
-      gsap.fromTo(
-        contentRef.current,
-        { y: 40, opacity: 0 },
-        {
-          y: 0, opacity: 1, duration: 0.8, ease: 'power3.out',
-          scrollTrigger: { trigger: contentRef.current, start: 'top 85%' }
-        }
-      );
-    }
   }, []);
 
   // Sync WhatsApp when phone changes if checkbox is checked
@@ -205,16 +187,16 @@ export default function JoinUs() {
   };
 
   return (
-    <div className="w-full bg-white dark:bg-[#080D1A] min-h-screen text-slate-900 dark:text-[#F8FAFC] font-body transition-colors duration-300">
+    <div ref={containerRef} className="w-full bg-white dark:bg-[#080D1A] min-h-screen text-slate-900 dark:text-[#F8FAFC] font-body transition-colors duration-300">
       
       {/* HERO SECTION */}
-      <section className="relative pt-32 pb-16 md:pt-40 md:pb-24 overflow-hidden border-b border-slate-200 dark:border-[#26344D]">
+      <section className="relative pt-8 pb-16 md:pt-14 md:pb-24 overflow-hidden border-b border-slate-200 dark:border-[#26344D]">
         <div className="absolute inset-0 z-0 opacity-[0.03] dark:opacity-10 pointer-events-none" style={{ backgroundImage: 'linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)', backgroundSize: '48px 48px', color: 'currentColor' }} />
         
         <div className="container mx-auto px-6 lg:px-12 max-w-[1440px] relative z-10">
-          <div ref={heroRef} className="max-w-4xl flex flex-col items-start">
+          <div className="max-w-4xl flex flex-col items-start">
             
-            <div className="flex flex-wrap gap-4 mb-8">
+            <div className="reveal-eyebrow flex flex-wrap gap-4 mb-8">
               <div className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-brand-primary border border-brand-primary/30 px-3 py-1.5 rounded-sm bg-brand-primary/5">
                 LPU SCA / BRAINSTORM CLUB
               </div>
@@ -223,13 +205,13 @@ export default function JoinUs() {
               </div>
             </div>
             
-            <h1 className="font-heading font-black text-[clamp(3rem,6vw,5rem)] leading-[0.95] tracking-tighter text-slate-900 dark:text-[#F8FAFC] mb-8 uppercase">
-              JOIN THE <br/>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-brand-secondary">BRAINSTORM</span><br/>
-              COMMUNITY.
+            <h1 className="font-heading font-black text-[clamp(3rem,6vw,5rem)] leading-[0.95] tracking-tighter text-slate-900 dark:text-[#F8FAFC] mb-8 uppercase flex flex-col">
+              <span className="overflow-hidden"><span className="reveal-heading-line block">JOIN THE</span></span>
+              <span className="overflow-hidden"><span className="reveal-heading-line block text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-brand-secondary">BRAINSTORM</span></span>
+              <span className="overflow-hidden pb-4"><span className="reveal-heading-line block">COMMUNITY.</span></span>
             </h1>
             
-            <p className="font-body text-lg md:text-xl text-slate-600 dark:text-[#A8B5CC] max-w-2xl font-light leading-relaxed">
+            <p className="reveal-text font-body text-lg md:text-xl text-slate-600 dark:text-[#A8B5CC] max-w-2xl font-light leading-relaxed">
               Become part of LPU's student-led technology community where ideas become projects, skills become experience, and students build together.
             </p>
           </div>
@@ -239,7 +221,7 @@ export default function JoinUs() {
       {/* MAIN APPLICATION AREA */}
       <section className="py-12 md:py-24 bg-slate-50 dark:bg-[#0D1424]">
         <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]">
-          <div ref={contentRef} className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-24">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-24" data-reveal="up">
             
             {/* LEFT: BENEFITS & PROCESS */}
             <div className="col-span-1 lg:col-span-4 flex flex-col gap-12">

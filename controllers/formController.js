@@ -116,10 +116,45 @@ export const submitContact = async (req, res) => {
 
 export const submitIdea = async (req, res) => {
   try {
-    const idea = await Idea.create(req.body);
-    res.status(201).json({ status: 'success', message: 'Idea submitted successfully.' });
+    const { name, course, section, contact, title, description, outcome, category } = req.body;
+
+    // Required field validation
+    if (!name || !course || !section || !contact || !title || !description || !outcome) {
+      return res.status(400).json({ message: 'All required fields must be filled in.' });
+    }
+
+    const ideaData = {
+      name: name.trim(),
+      course: course.trim(),
+      section: section.trim(),
+      contact: contact.trim(),
+      title: title.trim(),
+      description: description.trim(),
+      outcome: outcome.trim(),
+      category: category ? category.trim() : '',
+    };
+
+    // Attach PDF metadata if upload middleware ran
+    if (req.pdfPublicId) {
+      ideaData.pdfPublicId     = req.pdfPublicId;
+      ideaData.pdfOriginalName = req.pdfOriginalName;
+      ideaData.pdfSizeBytes    = req.pdfSizeBytes;
+    }
+
+    const idea = await Idea.create(ideaData);
+
+    await Notification.create({
+      type: 'IDEA_SUBMISSION',
+      title: 'New Idea Submitted',
+      message: `A new idea "${idea.title}" has been submitted by ${idea.name}.`,
+      entityType: 'Idea',
+      entityId: idea._id
+    }).catch(err => console.error('Failed to create notification:', err));
+
+    res.status(201).json({ status: 'success', message: 'Idea submitted successfully.', data: { id: idea._id } });
   } catch (error) {
-    res.status(500).json({ message: 'Error submitting idea' });
+    console.error('[submitIdea error]', error);
+    res.status(500).json({ message: 'Error submitting idea. Please try again.' });
   }
 };
 

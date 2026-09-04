@@ -20,6 +20,7 @@ export default function ProtectedImage({
   variant = 'event_card',
   alt = '',
   className = '',
+  style = {},
   fallback = null,
 }) {
   const [status, setStatus] = useState('loading'); // 'loading' | 'loaded' | 'error'
@@ -93,6 +94,7 @@ export default function ProtectedImage({
     return (
       <div
         className={`flex flex-col items-center justify-center bg-slate-100 dark:bg-slate-900 text-slate-400 ${className}`}
+        style={style}
         aria-label="Image unavailable"
       >
         <User size={28} strokeWidth={1.5} className="opacity-40" />
@@ -104,7 +106,8 @@ export default function ProtectedImage({
   if (status === 'loading') {
     return (
       <div
-        className={`bg-slate-100 dark:bg-slate-900 animate-pulse ${className}`}
+        className={`bg-slate-100 dark:bg-slate-900 animate-pulse w-full min-h-[200px] ${className}`}
+        style={style}
         aria-label="Loading image…"
       />
     );
@@ -119,7 +122,7 @@ export default function ProtectedImage({
       onContextMenu={preventInteraction}
       onDragStart={preventInteraction}
       className={`select-none pointer-events-none ${className}`}
-      style={{ WebkitUserSelect: 'none', msUserSelect: 'none', userSelect: 'none' }}
+      style={{ WebkitUserSelect: 'none', msUserSelect: 'none', userSelect: 'none', ...style }}
     />
   );
 }

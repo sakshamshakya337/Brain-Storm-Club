@@ -11,7 +11,8 @@ import {
   LogOut,
   X,
   Link as LinkIcon,
-  Bell
+  Bell,
+  Lightbulb
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -33,6 +34,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
         { name: 'Join Requests', path: '/control/join-us', icon: UserPlus },
         { name: 'Members', path: '/control/members', icon: Users },
         { name: 'Events', path: '/control/events', icon: CalendarDays },
+        { name: 'Submit Ideas', path: '/control/ideas', icon: Lightbulb },
         { name: 'Contact Queries', path: '/control/contact', icon: MessageSquare },
         { name: 'Links', path: '/control/links', icon: LinkIcon },
       ]

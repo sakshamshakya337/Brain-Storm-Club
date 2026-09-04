@@ -3,25 +3,21 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight, Code, Trophy, Users, Zap, Briefcase, Globe, Sparkles, MessageSquare, Terminal } from 'lucide-react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useGSAP } from '@gsap/react';
 import Footer from '../../components/layout/Footer';
+import { usePageReveal } from '../../hooks/usePageReveal';
+import { useScrollReveal } from '../../hooks/useScrollReveal';
 
-gsap.registerPlugin(ScrollTrigger);
+gsap.registerPlugin(ScrollTrigger, useGSAP);
 
 export default function About() {
-  const heroRef = useRef(null);
+  const containerRef = useRef(null);
   const processRef = useRef(null);
 
-  useEffect(() => {
-    // Basic Hero Reveal
-    if (heroRef.current) {
-      gsap.fromTo(
-        heroRef.current.children,
-        { y: 30, opacity: 0 },
-        { y: 0, opacity: 1, duration: 1, stagger: 0.1, ease: 'power3.out' }
-      );
-    }
+  usePageReveal(containerRef);
+  useScrollReveal(containerRef);
 
-    // Process nodes stagger on scroll
+  useGSAP(() => {
     if (processRef.current) {
       const nodes = processRef.current.querySelectorAll('.process-node');
       const lines = processRef.current.querySelectorAll('.process-line');
@@ -57,7 +53,7 @@ export default function About() {
         }
       );
     }
-  }, []);
+  }, { scope: processRef });
 
   const activities = [
     { id: '01', title: 'HACKATHONS', icon: Code, desc: 'Intense coding marathons focused on rapid prototyping and competitive problem-solving.' },
@@ -84,35 +80,37 @@ export default function About() {
   ];
 
   return (
-    <div className="w-full bg-white dark:bg-slate-950 min-h-screen text-slate-900 dark:text-slate-300 font-body">
+    <div ref={containerRef} className="w-full bg-white dark:bg-slate-950 min-h-screen text-slate-900 dark:text-slate-300 font-body">
       
       {/* SECTION 01: HERO */}
-      <section className="relative min-h-[70vh] md:min-h-[85vh] flex items-center pt-32 pb-20 overflow-hidden border-b border-slate-200 dark:border-slate-800">
+      <section className="relative min-h-[70svh] md:min-h-[85svh] flex items-center pt-6 md:pt-10 pb-20 overflow-hidden border-b border-slate-200 dark:border-slate-800">
         <div className="absolute inset-0 z-0 opacity-[0.02] dark:opacity-[0.04] pointer-events-none" style={{ backgroundImage: 'linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)', backgroundSize: '64px 64px', color: 'currentColor' }} />
         
         <div className="container mx-auto px-6 lg:px-12 max-w-[1440px] relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
             
             {/* LEFT */}
-            <div ref={heroRef} className="col-span-1 lg:col-span-6 flex flex-col items-start">
-              <div className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-brand-primary mb-8 border border-brand-primary/30 px-3 py-1.5 rounded-sm bg-brand-primary/5">
+            <div className="col-span-1 lg:col-span-6 flex flex-col items-start">
+              <div className="reveal-eyebrow font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-brand-primary mb-8 border border-brand-primary/30 px-3 py-1.5 rounded-sm bg-brand-primary/5">
                 BRAINSTORM / ABOUT
               </div>
               
-              <h1 className="font-heading font-black text-[3.5rem] sm:text-6xl md:text-7xl lg:text-[6.5rem] leading-[0.9] tracking-tighter text-slate-900 dark:text-white mb-8 uppercase">
-                WE THINK. <br/>
-                WE BUILD. <br/>
-                WE CONNECT. <br/>
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-brand-secondary">WE CREATE IMPACT.</span>
+              <h1 className="font-heading font-black text-[clamp(3rem,10vw,6.5rem)] leading-[0.9] tracking-tighter text-slate-900 dark:text-white mb-8 uppercase flex flex-col">
+                <span className="overflow-hidden"><span className="reveal-heading-line block">WE THINK.</span></span>
+                <span className="overflow-hidden"><span className="reveal-heading-line block">WE BUILD.</span></span>
+                <span className="overflow-hidden"><span className="reveal-heading-line block">WE CONNECT.</span></span>
+                <span className="overflow-hidden pb-4">
+                  <span className="reveal-heading-line block text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-brand-secondary">WE CREATE IMPACT.</span>
+                </span>
               </h1>
               
-              <p className="font-body text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-xl font-light leading-relaxed">
+              <p className="reveal-text font-body text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-xl font-light leading-relaxed">
                 Brainstorm is a student-led technology community at Lovely Professional University where curious minds come together to learn, build, experiment and turn ideas into action.
               </p>
             </div>
             
             {/* RIGHT */}
-            <div className="col-span-1 lg:col-span-6 relative h-[400px] lg:h-[600px] w-full flex items-center justify-center p-6 lg:p-12">
+            <div className="reveal-image col-span-1 lg:col-span-6 relative h-[400px] lg:h-[600px] w-full flex items-center justify-center p-6 lg:p-12">
               <div className="absolute inset-0 border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30 overflow-hidden rounded-sm flex items-center justify-center">
                 <img 
                   src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=2070&auto=format&fit=crop" 
@@ -136,7 +134,7 @@ export default function About() {
 
       {/* SECTION 02: MISSION */}
       <section className="py-24 md:py-32 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
-        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]">
+        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]" data-reveal="up">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
             {/* LEFT */}
             <div className="col-span-1 lg:col-span-5 order-2 lg:order-1">
@@ -168,7 +166,7 @@ export default function About() {
 
       {/* SECTION 03: ACTIVITIES */}
       <section className="py-24 md:py-32 bg-slate-50 dark:bg-slate-900/20 border-b border-slate-200 dark:border-slate-800">
-        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]">
+        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]" data-reveal="stagger-children">
           <div className="mb-16 md:mb-24 flex flex-col md:flex-row md:items-end justify-between gap-8">
             <div>
               <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 mb-6 flex items-center gap-3">
@@ -236,7 +234,7 @@ export default function About() {
 
       {/* SECTION 05: COMMUNITY */}
       <section className="py-24 md:py-32 bg-slate-50 dark:bg-slate-900/20 border-b border-slate-200 dark:border-slate-800">
-        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]">
+        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]" data-reveal="up">
           <div className="mb-16 flex flex-col md:flex-row md:items-end justify-between gap-8">
             <div>
               <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 mb-6 flex items-center gap-3">
@@ -282,7 +280,7 @@ export default function About() {
       {/* SECTION 06: STATISTICS STRIP */}
       <section className="py-12 bg-slate-900 dark:bg-[#050914] text-white border-b border-slate-800">
         <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4 divide-x-0 md:divide-x divide-slate-800">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4 divide-x-0 md:divide-x divide-slate-800" data-reveal="stagger-children">
             {[
               { label: 'APPROACH', value: 'STUDENT-LED' },
               { label: 'FOCUS', value: 'TECH-DRIVEN' },
@@ -300,7 +298,7 @@ export default function About() {
 
       {/* SECTION 07: VALUES */}
       <section className="py-24 md:py-32 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
-        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]">
+        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]" data-reveal="stagger-children">
           <div className="text-center mb-16 md:mb-24 flex flex-col items-center">
             <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 mb-6 flex items-center justify-center gap-3">
               05 / PRINCIPLES
@@ -329,7 +327,7 @@ export default function About() {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:100px_100px] opacity-30" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-brand-primary/10 rounded-full blur-[100px] pointer-events-none"></div>
         
-        <div className="relative z-10 px-6">
+        <div className="relative z-10 px-6" data-reveal="up">
           <h2 className="font-heading font-black text-5xl sm:text-7xl md:text-8xl lg:text-[8rem] leading-[0.9] tracking-tighter uppercase text-slate-900 dark:text-white mix-blend-normal">
             IDEAS ARE <br/>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-secondary to-brand-primary">ONLY THE</span> <br/>
@@ -340,7 +338,7 @@ export default function About() {
 
       {/* SECTION 09: CTA */}
       <section className="py-24 md:py-32 bg-white dark:bg-slate-950">
-        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px] text-center flex flex-col items-center relative z-10">
+        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px] text-center flex flex-col items-center relative z-10" data-reveal="up">
           <h2 className="font-heading font-black text-4xl md:text-6xl uppercase tracking-tight text-slate-900 dark:text-white mb-6">
             HAVE AN IDEA?
           </h2>
@@ -349,7 +347,7 @@ export default function About() {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto justify-center">
-            <Link to="/join-us" className="bg-slate-900 dark:bg-brand-primary text-white px-10 py-5 rounded-full font-mono text-sm font-bold tracking-widest uppercase hover:scale-105 transition-transform flex items-center justify-center gap-2 group shadow-xl shadow-brand-primary/20">
+            <Link to="/ideas" className="bg-slate-900 dark:bg-brand-primary text-white px-10 py-5 rounded-full font-mono text-sm font-bold tracking-widest uppercase hover:scale-105 transition-transform flex items-center justify-center gap-2 group shadow-xl shadow-brand-primary/20">
               Submit An Idea
               <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
             </Link>

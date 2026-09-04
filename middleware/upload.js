@@ -2,7 +2,7 @@ import multer from 'multer';
 import sharp from 'sharp';
 import crypto from 'crypto';
 import Image from '../models/Image.js';
-import { uploadImageToCloudinary } from '../services/cloudinaryService.js';
+import { uploadImageToCloudinary, uploadPdfToCloudinary } from '../services/cloudinaryService.js';
 
 // Use memory storage to process image BEFORE saving it
 const multerStorage = multer.memoryStorage();
@@ -106,5 +106,53 @@ export const processAndProtectImage = (visibility = 'protected') => async (req, 
   } catch (error) {
     // Catch-all for any unexpected error not caught above
     sendError(500, 'Unexpected error processing image. Please try again.', error);
+  }
+};
+
+// ─── PDF Upload Middleware ────────────────────────────────────────────────────
+
+const pdfFilter = (req, file, cb) => {
+  if (file.mimetype === 'application/pdf') {
+    cb(null, true);
+  } else {
+    cb(new Error('Only PDF files are accepted.'), false);
+  }
+};
+
+export const uploadPdf = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: pdfFilter,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB raw limit — server rejects truly huge files
+});
+
+/**
+ * Validates the PDF buffer size and uploads to Cloudinary.
+ * Attaches req.pdfPublicId, req.pdfOriginalName, req.pdfSizeBytes on success.
+ * Responds with 400 if the final file exceeds 2 MB.
+ */
+export const processPdfUpload = async (req, res, next) => {
+  // No file attached — optional field, skip
+  if (!req.file) return next();
+
+  const MAX_BYTES = 2 * 1024 * 1024; // 2 MB
+
+  if (req.file.size > MAX_BYTES) {
+    return res.status(400).json({
+      message: `PDF file is ${(req.file.size / (1024 * 1024)).toFixed(2)} MB. Maximum allowed size is 2 MB. Please upload a smaller PDF.`
+    });
+  }
+
+  try {
+    const originalName = req.file.originalname.replace(/\.pdf$/i, '');
+    const result = await uploadPdfToCloudinary(req.file.buffer, 'brainstorm/ideas', originalName);
+
+    req.pdfPublicId     = result.public_id;
+    req.pdfOriginalName = req.file.originalname;
+    req.pdfSizeBytes    = req.file.size;
+
+    next();
+  } catch (err) {
+    console.error('[processPdfUpload error]', err.message);
+    return res.status(502).json({ message: 'PDF upload failed. Please try again.' });
   }
 };

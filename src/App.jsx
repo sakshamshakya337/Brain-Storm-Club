@@ -122,7 +122,7 @@ function AppContent() {
 
         {!isAdminRoute && !isConnectRoute && <Navbar theme={theme} toggleTheme={toggleTheme} />}
 
-        <main className={cn("w-full", !isAdminRoute && !isConnectRoute && "pt-20")}>
+        <main className={cn("w-full", !isAdminRoute && !isConnectRoute && "pt-16")}>
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<Home />} />

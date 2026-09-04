@@ -250,7 +250,7 @@ export default function IdeasFlow() {
         
         {/* CTA */}
         <Link 
-          to="/join-us" 
+          to="/ideas" 
           ref={ctaRef}
           className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-10 py-5 rounded-full font-heading text-sm font-bold tracking-widest uppercase hover:scale-105 transition-transform flex items-center justify-center gap-2 group shadow-xl border border-transparent"
         >

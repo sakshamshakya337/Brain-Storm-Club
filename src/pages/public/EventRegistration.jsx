@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowRight, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Footer from '../../components/layout/Footer';
 import EventStatus from '../../components/events/EventStatus';
-
-gsap.registerPlugin(ScrollTrigger);
+import { usePageReveal } from '../../hooks/usePageReveal';
+import { useScrollReveal } from '../../hooks/useScrollReveal';
 
 export default function EventRegistration() {
   const { slug } = useParams();
@@ -30,8 +28,10 @@ export default function EventRegistration() {
 
   const [sameAsPhone, setSameAsPhone] = useState(false);
 
-  const heroRef = useRef(null);
-  const contentRef = useRef(null);
+  const containerRef = useRef(null);
+
+  usePageReveal(containerRef, [loading, !event]);
+  useScrollReveal(containerRef, [loading, !event]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -53,29 +53,6 @@ export default function EventRegistration() {
         setLoading(false);
       });
   }, [slug]);
-
-  // GSAP Animations
-  useEffect(() => {
-    if (!loading && event) {
-      if (heroRef.current) {
-        gsap.fromTo(
-          heroRef.current.children,
-          { y: 30, opacity: 0 },
-          { y: 0, opacity: 1, duration: 1, stagger: 0.1, ease: 'power3.out' }
-        );
-      }
-      if (contentRef.current) {
-        gsap.fromTo(
-          contentRef.current,
-          { y: 40, opacity: 0 },
-          {
-            y: 0, opacity: 1, duration: 0.8, ease: 'power3.out',
-            scrollTrigger: { trigger: contentRef.current, start: 'top 85%' }
-          }
-        );
-      }
-    }
-  }, [loading, event]);
 
   // Sync WhatsApp
   useEffect(() => {
@@ -161,12 +138,12 @@ export default function EventRegistration() {
   const isClosed = !event.registrationOpen;
 
   return (
-    <div className="w-full bg-white dark:bg-slate-950 min-h-screen text-slate-900 dark:text-slate-300 font-body">
+    <div ref={containerRef} className="w-full bg-white dark:bg-slate-950 min-h-screen text-slate-900 dark:text-slate-300 font-body">
       
       {/* HERO SECTION */}
-      <section className="pt-24 lg:pt-32 pb-16 lg:pb-24 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/20">
-        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]" ref={heroRef}>
-          <div className="mb-6 font-mono text-[10px] tracking-widest uppercase text-slate-500 font-bold flex flex-wrap items-center gap-2">
+      <section className="pt-6 md:pt-10 pb-16 lg:pb-24 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/20">
+        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]">
+          <div className="reveal-eyebrow mb-6 font-mono text-[10px] tracking-widest uppercase text-slate-500 font-bold flex flex-wrap items-center gap-2">
             <Link to="/events" className="hover:text-brand-primary transition-colors">Events</Link>
             <span>/</span>
             <Link to={`/events/${event.slug}`} className="hover:text-brand-primary transition-colors truncate max-w-[200px]">{event.title}</Link>
@@ -175,16 +152,16 @@ export default function EventRegistration() {
           </div>
 
           <div className="max-w-4xl">
-            <h1 className="font-heading font-black text-[clamp(2.75rem,6vw,4.5rem)] leading-[0.9] tracking-tighter uppercase mb-6 text-slate-900 dark:text-white">
-              {isClosed ? "REGISTRATION CLOSED" : "EVENT REGISTRATION"}
+            <h1 className="font-heading font-black text-[clamp(2.75rem,6vw,4.5rem)] leading-[0.9] tracking-tighter uppercase mb-6 text-slate-900 dark:text-white flex flex-col">
+              <span className="overflow-hidden pb-2"><span className="reveal-heading-line block">{isClosed ? "REGISTRATION CLOSED" : "EVENT REGISTRATION"}</span></span>
             </h1>
-            <p className="font-body text-lg md:text-xl text-slate-600 dark:text-slate-400 font-light max-w-2xl leading-relaxed mb-8">
+            <p className="reveal-text font-body text-lg md:text-xl text-slate-600 dark:text-slate-400 font-light max-w-2xl leading-relaxed mb-8">
               {isClosed 
                 ? `Registration for ${event.title} is currently closed. We are no longer accepting new registrations.`
                 : `Secure your spot for ${event.title}. Please provide accurate information as it will be used for your certificate and event communications.`}
             </p>
             
-            <div className="flex flex-wrap gap-4 items-center font-mono text-xs font-bold tracking-widest uppercase">
+            <div className="reveal-text flex flex-wrap gap-4 items-center font-mono text-xs font-bold tracking-widest uppercase">
                <EventStatus status={event.status} />
                <span className="border border-slate-200 dark:border-slate-800 px-3 py-1.5 bg-white/50 dark:bg-slate-900/50">
                  {event.date}
@@ -196,7 +173,7 @@ export default function EventRegistration() {
 
       {/* FORM SECTION */}
       <section className="py-16 lg:py-24">
-        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]" ref={contentRef}>
+        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]" data-reveal="up">
           
           {isClosed ? (
             <div className="max-w-3xl mx-auto bg-slate-50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800 p-8 lg:p-12 text-center rounded-sm">
