@@ -294,7 +294,7 @@ export default function EventRegistration() {
                           value={formData.course} 
                           onChange={handleInputChange}
                           className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-4 py-3 font-body text-slate-900 dark:text-white focus:outline-none focus:border-brand-primary dark:focus:border-brand-primary transition-colors rounded-sm"
-                          placeholder="e.g. B.Tech CSE"
+                          placeholder="e.g. MCA/BCA"
                         />
                       </div>
                       <div className="space-y-2">

@@ -21,7 +21,10 @@ import {
   updateEvent,
   deleteEvent,
   uploadEventPoster,
-  toggleEventRegistration
+  toggleEventRegistration,
+  getEventEntriesAdmin,
+  deleteEventEntryAdmin,
+  updateEventEntryStatusAdmin
 } from '../controllers/eventController.js';
 import { exportData } from '../controllers/exportController.js';
 import {
@@ -76,6 +79,13 @@ router.route('/events/:id')
   .delete(deleteEvent);
 
 router.patch('/events/:id/registration', toggleEventRegistration);
+
+router.route('/events/:id/entries')
+  .get(getEventEntriesAdmin);
+
+router.route('/events/:id/entries/:registrationId')
+  .patch(updateEventEntryStatusAdmin)
+  .delete(deleteEventEntryAdmin);
 
 router.post(
   '/events/:id/poster', 

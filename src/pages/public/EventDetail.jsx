@@ -10,15 +10,26 @@ export default function EventDetail() {
   const { slug } = useParams();
   const [event, setEvent] = useState(null);
   const [relatedEvents, setRelatedEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Scroll to top when loading new event
     window.scrollTo(0, 0);
     setLoading(true);
 
+    const fetchJson = async (res) => {
+      if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+      const text = await res.text();
+      try {
+        return JSON.parse(text);
+      } catch (err) {
+        throw new Error('Invalid JSON response from server');
+      }
+    };
+
     Promise.all([
-      fetch(`/api/public/events/${slug}`).then(res => res.json()),
-      fetch('/api/public/events').then(res => res.json())
+      fetch(`/api/public/events/${slug}`).then(fetchJson),
+      fetch('/api/public/events').then(fetchJson)
     ])
     .then(([eventData, allEventsData]) => {
       if (eventData.status === 'success') {

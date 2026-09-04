@@ -131,3 +131,98 @@ export const toggleEventRegistration = async (req, res) => {
     res.status(500).json({ success: false, message: 'Error toggling event registration' });
   }
 };
+
+export const getEventEntriesAdmin = async (req, res) => {
+  try {
+    const { id: eventId } = req.params;
+    const event = await Event.findById(eventId).populate('posterId');
+    if (!event) return res.status(404).json({ message: 'Event not found' });
+    
+    const { search, status, page = 1, limit = 20 } = req.query;
+    const query = { eventId };
+    
+    if (status && status !== 'All') query.status = status;
+    
+    if (search) {
+      query.$or = [
+        { fullName: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { registrationNumber: { $regex: search, $options: 'i' } },
+        { phone: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    
+    const EventRegistration = (await import('../models/EventRegistration.js')).default;
+    
+    const total = await EventRegistration.countDocuments(query);
+    const entries = await EventRegistration.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    // Stats
+    const statsQuery = { eventId };
+    const allEntries = await EventRegistration.find(statsQuery).select('status');
+    const stats = {
+      total: allEntries.length,
+      confirmed: allEntries.filter(e => e.status === 'Registered' || e.status === 'Participated' || e.status === 'Completed').length,
+      pending: 0, // No pending in enum by default, just keeping stat structure
+      cancelled: allEntries.filter(e => e.status === 'No-show').length
+    };
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        event,
+        registrations: entries,
+        stats,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / parseInt(limit))
+        }
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error fetching registrations' });
+  }
+};
+
+export const deleteEventEntryAdmin = async (req, res) => {
+  try {
+    const { id: eventId, registrationId } = req.params;
+    const EventRegistration = (await import('../models/EventRegistration.js')).default;
+    
+    const entry = await EventRegistration.findOneAndDelete({ _id: registrationId, eventId });
+    if (!entry) return res.status(404).json({ message: 'Registration not found' });
+    
+    res.status(204).json({ status: 'success', data: null });
+  } catch (error) {
+    res.status(500).json({ message: 'Error deleting registration' });
+  }
+};
+
+export const updateEventEntryStatusAdmin = async (req, res) => {
+  try {
+    const { id: eventId, registrationId } = req.params;
+    const { status } = req.body;
+    
+    const EventRegistration = (await import('../models/EventRegistration.js')).default;
+    
+    const entry = await EventRegistration.findOneAndUpdate(
+      { _id: registrationId, eventId },
+      { status },
+      { new: true, runValidators: true }
+    );
+    
+    if (!entry) return res.status(404).json({ message: 'Registration not found' });
+    
+    res.status(200).json({ status: 'success', data: { entry } });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating registration' });
+  }
+};

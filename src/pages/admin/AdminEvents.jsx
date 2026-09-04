@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Loader2, Search, Filter, Plus, Calendar, Clock, MapPin, MoreVertical, Edit, Trash2, Users } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Link } from 'react-router-dom';
+import ProtectedImage from '../../components/common/ProtectedImage';
 
 export default function AdminEvents() {
   const [events, setEvents] = useState([]);
@@ -225,11 +226,11 @@ export default function AdminEvents() {
                   {/* Event Poster Header */}
                   <div className="h-32 bg-slate-100 relative border-b border-slate-200">
                     {event.posterId ? (
-                      <img 
-                        src={`/api/images/${event.posterId}`} 
+                      <ProtectedImage 
+                        imageId={event.posterId?.imageId || event.posterId} 
+                        variant="event_card"
                         alt={event.title} 
-                        className="w-full h-full object-cover"
-                        crossOrigin="use-credentials"
+                        className="absolute inset-0 w-full h-full object-cover"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-slate-400">
