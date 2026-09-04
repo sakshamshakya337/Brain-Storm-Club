@@ -21,11 +21,19 @@ const connectToDB = async () => {
   if (cachedConnection && mongoose.connection.readyState === 1) {
     return cachedConnection;
   }
-  cachedConnection = await mongoose.connect(process.env.MONGODB_URI, {
-    bufferCommands: false,
-    maxPoolSize: 5
-  });
-  return cachedConnection;
+  try {
+    cachedConnection = await mongoose.connect(process.env.MONGODB_URI, {
+      bufferCommands: false,
+      maxPoolSize: 5,
+      serverSelectionTimeoutMS: 5000, // Fail fast if no server is available
+      socketTimeoutMS: 20000,         // Close sockets after 20s of inactivity
+      connectTimeoutMS: 10000         // Fail if connection takes longer than 10s
+    });
+    return cachedConnection;
+  } catch (error) {
+    console.error('[MongoDB Connection Error]', error);
+    throw error;
+  }
 };
 
 const createApp = () => {
@@ -80,7 +88,12 @@ const createApp = () => {
   app.use('/api/public', publicRoutes);
 
   app.get('/api/health', (req, res) => {
-    res.status(200).json({ status: 'success', message: 'API is running' });
+    const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'error';
+    res.status(200).json({ 
+      success: true, 
+      api: 'ok',
+      database: dbStatus
+    });
   });
 
   app.all('/api/*', (req, res) => {
@@ -96,7 +109,15 @@ const createApp = () => {
 let cachedHandler = null;
 const getHandler = async () => {
   if (cachedHandler) return cachedHandler;
-  await connectToDB();
+  
+  try {
+    await connectToDB();
+  } catch (dbError) {
+    // If DB fails to connect, we still want to return a JSON 5xx error instead of hanging
+    console.error('[Vercel Handler DB Init Error]', dbError);
+    return (req, res) => res.status(503).json({ success: false, message: 'Database connection failed. Service temporarily unavailable.' });
+  }
+
   const app = createApp();
   cachedHandler = serverless(app, {
     binary: ['image/*', 'application/pdf']

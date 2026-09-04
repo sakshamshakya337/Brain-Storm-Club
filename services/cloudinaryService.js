@@ -16,17 +16,17 @@ cloudinary.config({
  */
 export const uploadImageToCloudinary = async (buffer, folder) => {
   return new Promise((resolve, reject) => {
-    // Abort the upload if Cloudinary doesn't respond within 25 seconds.
+    // Abort the upload if Cloudinary doesn't respond within 8 seconds.
     // This prevents the Vercel function from hanging silently until it is killed.
     const timer = setTimeout(() => {
-      reject(new Error('Cloudinary upload timed out after 25 seconds'));
-    }, 25000);
+      reject(new Error('Cloudinary upload timed out after 8 seconds'));
+    }, 8000);
 
     const uploadStream = cloudinary.uploader.upload_stream(
       {
         folder: folder,
         type: 'authenticated',
-        timeout: 25000, // Cloudinary SDK-level timeout (ms)
+        timeout: 8000, // Cloudinary SDK-level timeout (ms)
       },
       (error, result) => {
         clearTimeout(timer);

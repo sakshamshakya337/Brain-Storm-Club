@@ -134,7 +134,6 @@ export const verifyOTP = async (req, res) => {
 
     res.status(200).json({
       status: 'success',
-      token,
       data: {
         admin: {
           id: admin._id,
@@ -182,7 +181,7 @@ export const forgotPassword = async (req, res) => {
 
     await admin.save();
 
-    const origin = req.headers.origin || process.env.CORS_ORIGIN || 'http://localhost:5173';
+    const origin = process.env.APP_URL || req.headers.origin || process.env.CORS_ORIGIN || 'http://localhost:5173';
     const resetUrl = `${origin}/control/reset-password/${resetToken}`;
 
     try {
