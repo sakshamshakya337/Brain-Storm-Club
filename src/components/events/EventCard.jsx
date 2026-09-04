@@ -5,6 +5,11 @@ import EventStatus from './EventStatus';
 import ProtectedImage from '../common/ProtectedImage';
 
 export default function EventCard({ event }) {
+  const cover = event.coverImage || (event.images && event.images.find(img => img.isCover)) || (event.images && event.images[0]);
+  const imageId = cover?.imageId?.imageId || cover?.imageId || event.posterId?.imageId || (typeof event.posterId === 'string' ? event.posterId : null);
+  const externalSrc = cover?.source === 'external' ? cover.url : (event.images?.[0]?.source === 'external' ? event.images[0].url : null);
+  const galleryCount = Array.isArray(event.images) ? event.images.length : (imageId || externalSrc ? 1 : 0);
+
   return (
     <Link 
       to={`/events/${event.slug}`}
@@ -13,15 +18,32 @@ export default function EventCard({ event }) {
       {/* Background Glow on Hover */}
       <div className="absolute inset-0 bg-gradient-to-br from-brand-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
       
-      {/* Image Block */}
-      <div className="relative w-full h-48 md:h-56 overflow-hidden bg-slate-100 dark:bg-slate-950">
+      {/* Responsive Image Block with Ambient Backdrop */}
+      <div className="relative w-full aspect-[16/10] sm:aspect-auto sm:h-48 md:h-56 overflow-hidden bg-slate-950 flex items-center justify-center">
+        {/* Ambient blurred backdrop to prevent black bars and match image palette */}
         <ProtectedImage 
-          imageId={event.posterId?.imageId} 
+          imageId={imageId} 
+          src={externalSrc}
+          variant="event_card"
+          alt="" 
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-cover blur-md scale-110 opacity-35 dark:opacity-40 pointer-events-none" 
+        />
+        {/* Crisp foreground poster with full containment (no cropped text) */}
+        <ProtectedImage 
+          imageId={imageId} 
+          src={externalSrc}
           variant="event_card"
           alt={event.title} 
-          className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:scale-[1.03] group-hover:opacity-100 transition-all duration-700" 
+          className="relative z-10 max-w-full max-h-full w-auto h-auto object-contain transition-transform duration-500 group-hover:scale-[1.02]" 
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent opacity-40"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent z-20 pointer-events-none"></div>
+
+        {galleryCount > 1 && (
+          <span className="absolute bottom-2 right-2 z-20 font-mono text-[9px] font-bold tracking-wider px-1.5 py-0.5 rounded bg-slate-900/85 text-slate-200 border border-white/15 backdrop-blur-sm">
+            {galleryCount} PHOTOS
+          </span>
+        )}
       </div>
       
       {/* Content Block */}
@@ -43,10 +65,10 @@ export default function EventCard({ event }) {
       </div>
 
       {/* Footer Block */}
-      <div className="relative z-10 flex flex-col gap-4 border-t border-slate-200 dark:border-slate-800 pt-4 pb-6 px-6 md:px-8 font-mono text-[9px] md:text-[10px] tracking-widest uppercase text-slate-500">
+      <div className="relative z-10 flex flex-col gap-4 border-t border-slate-200 dark:border-slate-800 pt-4 pb-6 px-6 md:px-8 font-mono text-[9px] md:text-[10px] tracking-widest uppercase text-slate-500 dark:text-slate-400">
         <div className="flex justify-between items-center">
           <span className="flex items-center gap-1.5"><Calendar size={12}/> {event.date || event.year}</span>
-          <span className={event.registrationOpen ? 'text-emerald-500 dark:text-emerald-400 font-bold' : 'text-slate-400 dark:text-slate-600 font-bold'}>
+          <span className={event.registrationOpen ? 'text-emerald-500 dark:text-emerald-400 font-bold' : 'text-slate-400 dark:text-slate-500 font-bold'}>
             {event.registrationOpen ? 'REG OPEN' : 'REG CLOSED'}
           </span>
         </div>

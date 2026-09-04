@@ -184,14 +184,14 @@ function MemberCard({ member }) {
           {member.fullName}
         </h3>
         {member.memberType === 'faculty' ? (
-          <span className="font-body text-sm font-light text-slate-500">
+          <span className="font-body text-sm font-light text-slate-500 dark:text-slate-400">
             {member.designation
               ? (member.department ? `${member.designation} • ${member.department}` : member.designation)
               : (member.department || 'Faculty')}
           </span>
         ) : (
           member.course && (
-            <span className="font-body text-sm font-light text-slate-500">
+            <span className="font-body text-sm font-light text-slate-500 dark:text-slate-400">
               {member.course}{member.section ? ` • Sec ${member.section}` : ''}
             </span>
           )
@@ -220,7 +220,7 @@ function RoleSection({ roleName, members, index }) {
             {roleName}
           </h2>
         </div>
-        <span className="font-mono text-[10px] tracking-widest text-slate-400 font-bold uppercase">
+        <span className="font-mono text-[10px] tracking-widest text-slate-500 dark:text-slate-400 font-bold uppercase">
           {members.length} {members.length === 1 ? 'Member' : 'Members'}
         </span>
       </div>
@@ -396,7 +396,7 @@ export default function Members() {
             </div>
           ) : groupedMembers.length === 0 ? (
             <div className="flex justify-center items-center py-32">
-              <div className="font-mono text-sm tracking-[0.2em] font-bold text-slate-500 uppercase">
+              <div className="font-mono text-sm tracking-[0.2em] font-bold text-slate-500 dark:text-slate-400 uppercase">
                 No active members found.
               </div>
             </div>

@@ -73,7 +73,7 @@ export default function Events() {
               </p>
 
               {/* Technical Metadata */}
-              <div className="reveal-meta flex flex-wrap gap-6 font-mono text-[10px] tracking-[0.2em] font-bold uppercase text-slate-500 dark:text-slate-500">
+              <div className="reveal-meta flex flex-wrap gap-6 font-mono text-[10px] tracking-[0.2em] font-bold uppercase text-slate-500 dark:text-slate-400">
                 <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-brand-accent"></div> 01 / UPCOMING</span>
                 <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-brand-primary"></div> 02 / ONGOING</span>
                 <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-slate-300"></div> 03 / COMPLETED</span>
@@ -152,36 +152,59 @@ export default function Events() {
             
             {filteredUpcoming.length === 0 ? (
               <div className="md:col-span-12 py-24 text-center flex flex-col items-center">
-                <span className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 mb-4 border border-slate-200 dark:border-slate-800 px-3 py-1">NO EVENTS FOUND</span>
+                <span className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-slate-400 mb-4 border border-slate-200 dark:border-slate-800 px-3 py-1">NO EVENTS FOUND</span>
                 <p className="font-body text-slate-600 dark:text-slate-400">Try another category or search term.</p>
               </div>
             ) : (
               <>
                 {/* EVENT 1: LARGE MAIN (Col 8) */}
-                {filteredUpcoming[0] && (
-                  <div className="md:col-span-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 group overflow-hidden relative min-h-[450px] flex flex-col justify-end p-8 lg:p-12 hover:border-brand-primary/50 dark:hover:bg-bg-elevated dark:hover:border-slate-700 transition-colors shadow-sm dark:shadow-none rounded-sm">
-                    <ProtectedImage imageId={filteredUpcoming[0].posterId?.imageId} variant="event_detail" className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:scale-105 group-hover:opacity-100 transition-all duration-700" alt="Event" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent"></div>
-                    
-                    <div className="relative z-10 text-white w-full">
-                      <div className="flex flex-wrap gap-3 mb-6">
-                        <span className="font-mono text-[10px] font-bold tracking-widest uppercase border border-white/20 px-3 py-1 bg-white/5 backdrop-blur-sm">{filteredUpcoming[0].category}</span>
-                        <EventStatus status={filteredUpcoming[0].status} />
+                {filteredUpcoming[0] && (() => {
+                  const firstEv = filteredUpcoming[0];
+                  const firstCover = firstEv.coverImage || (firstEv.images && firstEv.images.find(img => img.isCover)) || (firstEv.images && firstEv.images[0]);
+                  const firstImageId = firstCover?.imageId?.imageId || firstCover?.imageId || firstEv.posterId?.imageId || (typeof firstEv.posterId === 'string' ? firstEv.posterId : null);
+                  const firstSrc = firstCover?.source === 'external' ? firstCover.url : (firstEv.images?.[0]?.source === 'external' ? firstEv.images[0].url : null);
+
+                  return (
+                    <div className="md:col-span-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 group overflow-hidden relative min-h-[450px] flex flex-col justify-end p-8 lg:p-12 hover:border-brand-primary/50 dark:hover:bg-bg-elevated dark:hover:border-slate-700 transition-colors shadow-sm dark:shadow-none rounded-sm">
+                      <div className="absolute inset-0 bg-slate-950 overflow-hidden flex items-center justify-center">
+                        <ProtectedImage 
+                          imageId={firstImageId} 
+                          src={firstSrc}
+                          variant="event_detail" 
+                          className="absolute inset-0 w-full h-full object-cover blur-sm scale-105 opacity-40 group-hover:scale-110 transition-all duration-700 pointer-events-none" 
+                          alt="" 
+                          aria-hidden="true"
+                        />
+                        <ProtectedImage 
+                          imageId={firstImageId} 
+                          src={firstSrc}
+                          variant="event_detail" 
+                          className="relative z-10 max-w-full max-h-full w-auto h-auto object-contain opacity-90 group-hover:opacity-100 transition-all duration-700" 
+                          alt={firstEv.title} 
+                        />
                       </div>
-                      <h3 className="font-heading font-bold text-3xl md:text-5xl uppercase tracking-tight mb-4">{filteredUpcoming[0].title}</h3>
-                      <p className="font-body text-slate-300 font-light mb-8 max-w-lg hidden sm:block">{filteredUpcoming[0].desc}</p>
-                      <div className="flex flex-wrap items-center justify-between gap-6 font-mono text-[10px] tracking-widest text-slate-300 uppercase border-t border-white/20 pt-6">
-                        <div className="flex gap-6">
-                          <span className="flex items-center gap-2"><Calendar size={14}/> {filteredUpcoming[0].date}</span>
-                          <span className="flex items-center gap-2"><MapPin size={14}/> {filteredUpcoming[0].venue}</span>
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-transparent z-10"></div>
+                      
+                      <div className="relative z-20 text-white w-full">
+                        <div className="flex flex-wrap gap-3 mb-6">
+                          <span className="font-mono text-[10px] font-bold tracking-widest uppercase border border-white/20 px-3 py-1 bg-white/5 backdrop-blur-sm">{firstEv.category}</span>
+                          <EventStatus status={firstEv.status} />
                         </div>
-                        <Link to={`/events/${filteredUpcoming[0].slug}`} className="font-bold flex items-center gap-2 hover:text-brand-primary transition-colors">
-                          View Event <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform"/>
-                        </Link>
+                        <h3 className="font-heading font-bold text-3xl md:text-5xl uppercase tracking-tight mb-4">{firstEv.title}</h3>
+                        <p className="font-body text-slate-300 font-light mb-8 max-w-lg hidden sm:block">{firstEv.desc}</p>
+                        <div className="flex flex-wrap items-center justify-between gap-6 font-mono text-[10px] tracking-widest text-slate-300 uppercase border-t border-white/20 pt-6">
+                          <div className="flex gap-6">
+                            <span className="flex items-center gap-2"><Calendar size={14}/> {firstEv.date}</span>
+                            <span className="flex items-center gap-2"><MapPin size={14}/> {firstEv.venue}</span>
+                          </div>
+                          <Link to={`/events/${firstEv.slug}`} className="font-bold flex items-center gap-2 hover:text-brand-primary transition-colors">
+                            View Event <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform"/>
+                          </Link>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
                 
                 {/* EVENT 2 & 3: SMALL STACKED (Col 4) */}
                 <div className="md:col-span-4 flex flex-col gap-4 lg:gap-6">
@@ -190,13 +213,13 @@ export default function Events() {
                       <div className="absolute inset-0 bg-gradient-to-br from-brand-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                       <div className="relative z-10">
                         <div className="flex justify-between items-start mb-6">
-                          <span className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500">{event.category}</span>
+                          <span className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-slate-400">{event.category}</span>
                           <EventStatus status={event.status} />
                         </div>
                         <h3 className="font-heading font-bold text-2xl uppercase tracking-tight text-slate-900 dark:text-white mb-3 line-clamp-2">{event.title}</h3>
                         <p className="font-body text-sm font-light text-slate-600 dark:text-slate-400 mb-6 line-clamp-2">{event.desc}</p>
                       </div>
-                      <div className="relative z-10 flex flex-col gap-4 border-t border-slate-200 dark:border-slate-800 pt-4 font-mono text-[9px] tracking-widest uppercase text-slate-500">
+                      <div className="relative z-10 flex flex-col gap-4 border-t border-slate-200 dark:border-slate-800 pt-4 font-mono text-[9px] tracking-widest uppercase text-slate-500 dark:text-slate-400">
                         <div className="flex justify-between">
                           <span className="flex items-center gap-1.5"><Calendar size={12}/> {event.date}</span>
                           <span className="flex items-center gap-1.5"><MapPin size={12}/> {event.venue}</span>
@@ -210,30 +233,51 @@ export default function Events() {
                 </div>
                 
                 {/* EVENT 4+: HORIZONTAL FULL WIDTH */}
-                {filteredUpcoming.slice(3).map(event => (
-                  <div key={event._id || event.id} className="md:col-span-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row group hover:border-brand-primary/50 dark:hover:bg-bg-elevated dark:hover:border-slate-700 transition-colors overflow-hidden shadow-sm dark:shadow-none rounded-sm mt-2">
-                    <div className="w-full md:w-[400px] h-[250px] md:h-auto relative overflow-hidden shrink-0 bg-slate-100 dark:bg-slate-950">
-                      <ProtectedImage imageId={event.posterId?.imageId} variant="event_card" className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80 group-hover:scale-105 group-hover:mix-blend-normal transition-transform duration-700" alt="Event" />
-                    </div>
-                    <div className="p-8 lg:p-12 flex flex-col justify-center w-full relative">
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-brand-primary/10 to-transparent"></div>
-                      <div className="flex gap-3 mb-4">
-                        <EventStatus status={event.status} />
-                        <span className="font-mono text-[10px] font-bold tracking-widest uppercase text-brand-secondary border border-slate-200 dark:border-slate-800 px-2 py-1">{event.category}</span>
+                {filteredUpcoming.slice(3).map(event => {
+                  const hCover = event.coverImage || (event.images && event.images.find(img => img.isCover)) || (event.images && event.images[0]);
+                  const hImageId = hCover?.imageId?.imageId || hCover?.imageId || event.posterId?.imageId || (typeof event.posterId === 'string' ? event.posterId : null);
+                  const hSrc = hCover?.source === 'external' ? hCover.url : (event.images?.[0]?.source === 'external' ? event.images[0].url : null);
+
+                  return (
+                    <div key={event._id || event.id} className="md:col-span-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row group hover:border-brand-primary/50 dark:hover:bg-bg-elevated dark:hover:border-slate-700 transition-colors overflow-hidden shadow-sm dark:shadow-none rounded-sm mt-2">
+                      <div className="w-full md:w-[380px] aspect-[16/10] md:aspect-auto md:min-h-[260px] relative overflow-hidden shrink-0 bg-slate-950 flex items-center justify-center">
+                        <ProtectedImage 
+                          imageId={hImageId} 
+                          src={hSrc}
+                          variant="event_card" 
+                          className="absolute inset-0 w-full h-full object-cover blur-md scale-110 opacity-35 pointer-events-none" 
+                          alt="" 
+                          aria-hidden="true"
+                        />
+                        <ProtectedImage 
+                          imageId={hImageId} 
+                          src={hSrc}
+                          variant="event_card" 
+                          className="relative z-10 max-w-full max-h-full w-auto h-auto object-contain transition-transform duration-500 group-hover:scale-[1.02]" 
+                          alt={event.title} 
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent z-20 pointer-events-none"></div>
                       </div>
-                      <h3 className="font-heading font-bold text-3xl md:text-4xl uppercase tracking-tight text-slate-900 dark:text-white mb-3">{event.title}</h3>
-                      <p className="font-body text-slate-600 dark:text-slate-400 font-light mb-8 max-w-2xl">{event.desc}</p>
-                      <div className="flex flex-wrap items-center gap-8 font-mono text-[10px] tracking-widest uppercase text-slate-500">
-                        <span className="flex items-center gap-2"><Calendar size={14} className="text-slate-400"/> {event.date}</span>
-                        <span className="flex items-center gap-2"><Clock size={14} className="text-slate-400"/> {event.time}</span>
-                        <span className="flex items-center gap-2"><MapPin size={14} className="text-slate-400"/> {event.venue}</span>
-                        <Link to={`/events/${event.slug}`} className="font-bold flex items-center gap-2 text-slate-900 dark:text-white hover:text-brand-primary transition-colors ml-auto group/link">
-                          VIEW DETAILS <ArrowRight size={14} className="group-hover/link:translate-x-1 transition-transform"/>
-                        </Link>
+                      <div className="p-8 lg:p-12 flex flex-col justify-center w-full relative">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-brand-primary/10 to-transparent"></div>
+                        <div className="flex gap-3 mb-4">
+                          <EventStatus status={event.status} />
+                          <span className="font-mono text-[10px] font-bold tracking-widest uppercase text-brand-secondary border border-slate-200 dark:border-slate-800 px-2 py-1">{event.category}</span>
+                        </div>
+                        <h3 className="font-heading font-bold text-3xl md:text-4xl uppercase tracking-tight text-slate-900 dark:text-white mb-3">{event.title}</h3>
+                        <p className="font-body text-slate-600 dark:text-slate-400 font-light mb-8 max-w-2xl">{event.desc}</p>
+                        <div className="flex flex-wrap items-center gap-8 font-mono text-[10px] tracking-widest uppercase text-slate-500 dark:text-slate-400">
+                          <span className="flex items-center gap-2"><Calendar size={14} className="text-slate-400"/> {event.date}</span>
+                          <span className="flex items-center gap-2"><Clock size={14} className="text-slate-400"/> {event.time}</span>
+                          <span className="flex items-center gap-2"><MapPin size={14} className="text-slate-400"/> {event.venue}</span>
+                          <Link to={`/events/${event.slug}`} className="font-bold flex items-center gap-2 text-slate-900 dark:text-white hover:text-brand-primary transition-colors ml-auto group/link">
+                            VIEW DETAILS <ArrowRight size={14} className="group-hover/link:translate-x-1 transition-transform"/>
+                          </Link>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </>
             )}
           </div>
@@ -263,7 +307,7 @@ export default function Events() {
                 ))
               ) : (
                 <div className="col-span-full py-12 text-center flex flex-col items-center">
-                  <span className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 mb-4 border border-slate-200 dark:border-slate-800 px-3 py-1">NO PAST EVENTS FOUND</span>
+                  <span className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-slate-400 mb-4 border border-slate-200 dark:border-slate-800 px-3 py-1">NO PAST EVENTS FOUND</span>
                 </div>
               )}
             </div>

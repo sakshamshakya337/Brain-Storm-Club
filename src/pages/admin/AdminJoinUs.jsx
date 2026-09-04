@@ -38,7 +38,7 @@ function StatusBadge({ status }) {
 }
 
 // ─── ActionMenu (dropdown) ────────────────────────────────────────────────────
-function ActionMenu({ req, onView, onEdit, onStatus, onDelete, processing }) {
+function ActionMenu({ req, onView, onEdit, onApprove, onStatus, onDelete, processing }) {
   const [open, setOpen]   = useState(false);
   const [coords, setCoords] = useState({ top: 0, right: 0 });
   const btnRef = useRef(null);
@@ -92,7 +92,7 @@ function ActionMenu({ req, onView, onEdit, onStatus, onDelete, processing }) {
         <MenuItem icon={UserCheck}   label="Mark Onboarded"  onClick={() => handle(() => onStatus('Onboarded'))}  color="emerald" />
       )}
       {isActive && (
-        <MenuItem icon={CheckCircle2} label="Approve"         onClick={() => handle(() => onStatus('Approved'))}  color="teal" />
+        <MenuItem icon={CheckCircle2} label="Approve"         onClick={() => handle(onApprove)}  color="teal" />
       )}
       {req.status !== 'Rejected' && (
         <MenuItem icon={XCircle}     label="Reject"           onClick={() => handle(() => onStatus('Rejected', true))} color="red" />
@@ -169,6 +169,7 @@ function ViewModal({ req, onClose }) {
           <Field label="Reg. Number"   value={req.registrationNumber} mono />
           <Field label="Course"        value={req.course} />
           <Field label="Section"       value={req.section} />
+          <Field label="Domain"        value={req.domain || 'Technical'} />
           <Field label="Email"         value={req.email} />
           <Field label="Phone"         value={req.phone} />
           {req.whatsapp && <Field label="WhatsApp" value={req.whatsapp} />}
@@ -216,6 +217,7 @@ function EditModal({ req, onClose, onSaved }) {
     fullName: req.fullName || '',
     course:   req.course   || '',
     section:  req.section  || '',
+    domain:   req.domain   || 'Technical',
     email:    req.email    || '',
     phone:    req.phone    || '',
     whatsapp: req.whatsapp || '',
@@ -259,7 +261,16 @@ function EditModal({ req, onClose, onSaved }) {
           <label className={lbl}>Full Name</label>
           <input className={inp} value={form.fullName} onChange={e => setForm(p=>({...p,fullName:e.target.value}))} required />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <label className={lbl}>Domain</label>
+            <select className={inp} value={form.domain} onChange={e => setForm(p=>({...p,domain:e.target.value}))}>
+              <option value="Technical">Technical</option>
+              <option value="Media">Media</option>
+              <option value="Anchor">Anchor</option>
+              <option value="Coordinator">Coordinator</option>
+            </select>
+          </div>
           <div>
             <label className={lbl}>Course</label>
             <input className={inp} value={form.course} onChange={e => setForm(p=>({...p,course:e.target.value}))} required />
@@ -295,6 +306,117 @@ function EditModal({ req, onClose, onSaved }) {
           </button>
         </div>
       </form>
+    </Modal>
+  );
+}
+
+// ─── Approve Modal ────────────────────────────────────────────────────────────
+function ApproveModal({ req, onClose, onConfirm, processing }) {
+  const [domain, setDomain] = useState(req.domain || 'Technical');
+  
+  const DOMAIN_ROLES_DEFAULT = {
+    Technical: 'Technical Team',
+    Media: 'Media Team',
+    Anchor: 'Anchor',
+    Coordinator: 'Coordinator',
+  };
+
+  const [role, setRole] = useState(DOMAIN_ROLES_DEFAULT[req.domain || 'Technical'] || 'Technical Team');
+
+  const handleDomainChange = (newDomain) => {
+    setDomain(newDomain);
+    setRole(DOMAIN_ROLES_DEFAULT[newDomain] || 'Technical Team');
+  };
+
+  const allAvailableRoles = [
+    { group: 'Team Roles (Default)', roles: ['Technical Team', 'Media Team', 'Anchor', 'Coordinator'] },
+    { group: 'Admin-Only Leadership Positions', roles: ['Head Coordinator', 'Technical Head', 'Social Media Head'] },
+    { group: 'Executive Positions', roles: ['President', 'Vice President', 'Secretary'] },
+  ];
+
+  return (
+    <Modal title="Approve Application & Create Live Member" onClose={onClose} maxWidth="max-w-lg">
+      <div className="flex items-start gap-3 mb-5 p-3 bg-teal-50 border border-teal-200 rounded-lg">
+        <div className="w-9 h-9 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center shrink-0">
+          <CheckCircle2 size={18} />
+        </div>
+        <div className="text-xs text-teal-900 leading-relaxed">
+          <p className="font-semibold text-sm">Approve {req.fullName} ({req.registrationNumber})</p>
+          <p className="mt-0.5 text-teal-700">
+            This will create a live, approved profile in the database. The candidate will immediately appear on the public <span className="font-mono font-bold">/members</span> page and in <span className="font-mono font-bold">Admin → Members</span>.
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono">
+          <div>
+            <span className="text-slate-400 block uppercase text-[9px]">Course / Section</span>
+            <span className="font-bold text-slate-800">{req.course} • Sec {req.section}</span>
+          </div>
+          <div>
+            <span className="text-slate-400 block uppercase text-[9px]">Contact Email</span>
+            <span className="font-bold text-slate-800 truncate block">{req.email}</span>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-[10px] font-mono font-bold tracking-widest uppercase text-slate-500 mb-1.5">
+            Approved Domain *
+          </label>
+          <select
+            value={domain}
+            onChange={e => handleDomainChange(e.target.value)}
+            className="w-full p-2.5 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+          >
+            <option value="Technical">Technical</option>
+            <option value="Media">Media</option>
+            <option value="Anchor">Anchor</option>
+            <option value="Coordinator">Coordinator</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-[10px] font-mono font-bold tracking-widest uppercase text-slate-500 mb-1.5">
+            Assigned Role / Position *
+          </label>
+          <select
+            value={role}
+            onChange={e => setRole(e.target.value)}
+            className="w-full p-2.5 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+          >
+            {allAvailableRoles.map(g => (
+              <optgroup key={g.group} label={g.group}>
+                {g.roles.map(r => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+          <p className="text-[10px] font-mono text-slate-400 mt-1">
+            Admin-only positions (Head Coordinator, Technical Head, Social Media Head) can only be assigned by administrators here.
+          </p>
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-3 pt-6 mt-6 border-t border-slate-100">
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          disabled={processing}
+          onClick={() => onConfirm({ domain, role })}
+          className="px-5 py-2 text-sm font-semibold text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-60 flex items-center gap-2 shadow-sm"
+        >
+          {processing && <Loader2 size={14} className="animate-spin" />}
+          Approve & Make Live
+        </button>
+      </div>
     </Modal>
   );
 }
@@ -402,6 +524,7 @@ export default function AdminJoinUs() {
   // Modal state
   const [viewReq, setViewReq]       = useState(null);
   const [editReq, setEditReq]       = useState(null);
+  const [approveReq, setApproveReq] = useState(null);
   const [rejectReq, setRejectReq]   = useState(null);
   const [deleteReq, setDeleteReq]   = useState(null);
   const [toast, setToast]           = useState(null);  // { msg, type }
@@ -451,20 +574,28 @@ export default function AdminJoinUs() {
   };
 
   // ── Status update ─────────────────────────────────────────────────────────
-  const doStatusUpdate = async (id, status, rejectionReason) => {
+  const doStatusUpdate = async (id, status, extra = {}) => {
     setProcessing(p => ({ ...p, [id]: true }));
     try {
+      const payload = {
+        status,
+        ...(typeof extra === 'string' ? { rejectionReason: extra } : {}),
+        ...(extra?.rejectionReason ? { rejectionReason: extra.rejectionReason } : {}),
+        ...(extra?.domain ? { domain: extra.domain } : {}),
+        ...(extra?.role ? { role: extra.role } : {}),
+      };
       const res  = await fetch(`/api/admin/join-us/${id}`, {
         method: 'PATCH',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status, ...(rejectionReason ? { rejectionReason } : {}) }),
+        body: JSON.stringify(payload),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || 'Update failed');
       setRequests(prev => prev.map(r => r._id === id ? { ...r, ...json.data.request } : r));
-      showToast(`Status updated to ${status}`);
+      showToast(status === 'Approved' ? 'Application approved & live member created!' : `Status updated to ${status}`);
       setRejectReq(null);
+      setApproveReq(null);
     } catch (e) {
       showToast(e.message, 'error');
     } finally {
@@ -607,6 +738,9 @@ export default function AdminJoinUs() {
                       <p className="font-semibold text-slate-900 leading-tight">{req.fullName}</p>
                       <p className="text-xs font-mono text-slate-500 mt-0.5">{req.registrationNumber}</p>
                       <p className="text-xs text-slate-500 mt-0.5">{req.course} · {req.section}</p>
+                      <span className="inline-block mt-1 font-mono text-[9px] font-bold tracking-wider uppercase text-brand-primary bg-brand-primary/5 border border-brand-primary/20 px-1.5 py-0.5 rounded">
+                        {req.domain || 'Technical'}
+                      </span>
                     </td>
                     <td className="px-6 py-4">
                       <p className="text-slate-800">{req.phone}</p>
@@ -636,6 +770,7 @@ export default function AdminJoinUs() {
                         processing={processing[req._id]}
                         onView={() => setViewReq(req)}
                         onEdit={() => setEditReq(req)}
+                        onApprove={() => setApproveReq(req)}
                         onStatus={(status, needsReason) => {
                           if (needsReason) { setRejectReq(req); }
                           else { doStatusUpdate(req._id, status); }
@@ -673,6 +808,14 @@ export default function AdminJoinUs() {
       {/* Modals */}
       {viewReq  && <ViewModal   req={viewReq}   onClose={() => setViewReq(null)} />}
       {editReq  && <EditModal   req={editReq}   onClose={() => setEditReq(null)} onSaved={handleEditSaved} />}
+      {approveReq && (
+        <ApproveModal
+          req={approveReq}
+          processing={!!processing[approveReq._id]}
+          onClose={() => setApproveReq(null)}
+          onConfirm={({ domain, role }) => doStatusUpdate(approveReq._id, 'Approved', { domain, role })}
+        />
+      )}
       {rejectReq && (
         <RejectModal
           req={rejectReq}

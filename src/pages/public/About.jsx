@@ -138,7 +138,7 @@ export default function About() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
             {/* LEFT */}
             <div className="col-span-1 lg:col-span-5 order-2 lg:order-1">
-              <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 mb-6 flex items-center gap-3">
+              <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-slate-400 mb-6 flex items-center gap-3">
                 <span className="w-8 h-px bg-slate-300 dark:bg-slate-700"></span>
                 01 / MISSION
               </div>
@@ -169,7 +169,7 @@ export default function About() {
         <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]" data-reveal="stagger-children">
           <div className="mb-16 md:mb-24 flex flex-col md:flex-row md:items-end justify-between gap-8">
             <div>
-              <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 mb-6 flex items-center gap-3">
+              <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-slate-400 mb-6 flex items-center gap-3">
                 <span className="w-8 h-px bg-slate-300 dark:bg-slate-700"></span>
                 02 / ACTIVITIES
               </div>
@@ -189,7 +189,7 @@ export default function About() {
                 </div>
                 <h3 className="relative z-10 font-heading font-bold text-2xl uppercase tracking-tight text-slate-900 dark:text-white mb-4">{activity.title}</h3>
                 <p className="relative z-10 font-body text-slate-600 dark:text-slate-400 font-light text-sm leading-relaxed mb-8 flex-grow">{activity.desc}</p>
-                <div className="relative z-10 border-t border-slate-200 dark:border-slate-800 pt-4 flex items-center justify-between font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 group-hover:text-brand-primary transition-colors">
+                <div className="relative z-10 border-t border-slate-200 dark:border-slate-800 pt-4 flex items-center justify-between font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-slate-400 group-hover:text-brand-primary transition-colors">
                   EXPLORE <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
@@ -201,7 +201,7 @@ export default function About() {
       {/* SECTION 04: PROCESS */}
       <section className="py-24 md:py-32 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="container mx-auto px-6 lg:px-12 max-w-[1440px] text-center flex flex-col items-center">
-          <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 mb-6 flex items-center justify-center gap-3">
+          <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-slate-400 mb-6 flex items-center justify-center gap-3">
             03 / PROCESS
           </div>
           <h2 className="font-heading font-black text-4xl md:text-5xl uppercase tracking-tight text-slate-900 dark:text-white mb-20">
@@ -237,7 +237,7 @@ export default function About() {
         <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]" data-reveal="up">
           <div className="mb-16 flex flex-col md:flex-row md:items-end justify-between gap-8">
             <div>
-              <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 mb-6 flex items-center gap-3">
+              <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-slate-400 mb-6 flex items-center gap-3">
                 <span className="w-8 h-px bg-slate-300 dark:bg-slate-700"></span>
                 04 / COMMUNITY
               </div>
@@ -267,7 +267,7 @@ export default function About() {
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent opacity-60"></div>
                 </div>
                 <h4 className="font-heading font-bold uppercase text-lg text-slate-900 dark:text-white mb-1">{member.name}</h4>
-                <div className="flex justify-between items-center font-mono text-[10px] uppercase font-bold tracking-widest text-slate-500">
+                <div className="flex justify-between items-center font-mono text-[10px] uppercase font-bold tracking-widest text-slate-500 dark:text-slate-400">
                   <span>{member.role}</span>
                   <span className="text-brand-primary">{member.interest}</span>
                 </div>
@@ -300,7 +300,7 @@ export default function About() {
       <section className="py-24 md:py-32 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
         <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]" data-reveal="stagger-children">
           <div className="text-center mb-16 md:mb-24 flex flex-col items-center">
-            <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 mb-6 flex items-center justify-center gap-3">
+            <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-slate-400 mb-6 flex items-center justify-center gap-3">
               05 / PRINCIPLES
             </div>
             <h2 className="font-heading font-black text-4xl md:text-5xl uppercase tracking-tight text-slate-900 dark:text-white">

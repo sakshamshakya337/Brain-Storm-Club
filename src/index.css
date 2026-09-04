@@ -40,5 +40,56 @@
     --color-slate-900: #111A2D;
     --color-slate-800: #26344D;
   }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  html:not(.dark) {
+    color-scheme: light;
+  }
+
+  .dark select option {
+    background-color: #111A2D;
+    color: #F8FAFC;
+  }
+
+  .dark input,
+  .dark textarea,
+  .dark select {
+    color-scheme: dark;
+  }
+
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    color: #718096;
+  }
+
+  .dark input:-webkit-autofill,
+  .dark input:-webkit-autofill:hover,
+  .dark input:-webkit-autofill:focus,
+  .dark textarea:-webkit-autofill,
+  .dark select:-webkit-autofill {
+    -webkit-text-fill-color: #F8FAFC !important;
+    -webkit-box-shadow: 0 0 0px 1000px #111A2D inset !important;
+    transition: background-color 5000s ease-in-out 0s;
+  }
+
+  /* Custom dark scrollbars for dark mode */
+  .dark ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .dark ::-webkit-scrollbar-track {
+    background: #080D1A;
+  }
+  .dark ::-webkit-scrollbar-thumb {
+    background: #26344D;
+    border-radius: 4px;
+  }
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: #3B4D6E;
+  }
 }
+
 

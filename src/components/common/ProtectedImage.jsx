@@ -17,6 +17,7 @@ import { User } from 'lucide-react';
  */
 export default function ProtectedImage({
   imageId,
+  src = null,
   variant = 'event_card',
   alt = '',
   className = '',
@@ -28,7 +29,24 @@ export default function ProtectedImage({
   const abortRef = useRef(null);
   const timeoutRef = useRef(null);
 
+  // External URL handling
   useEffect(() => {
+    if (!src) return;
+    setStatus('loading');
+    const img = new window.Image();
+    img.src = src;
+    img.onload = () => setStatus('loaded');
+    img.onerror = () => setStatus('error');
+    return () => {
+      img.onload = null;
+      img.onerror = null;
+    };
+  }, [src]);
+
+  // Protected imageId handling
+  useEffect(() => {
+    if (src) return; // If direct src is provided, skip fetch
+
     // No imageId → show fallback immediately
     if (!imageId) {
       setStatus('error');
@@ -48,8 +66,7 @@ export default function ProtectedImage({
 
     fetch(`/api/images/${imageId}?variant=${variant}`, {
       signal: controller.signal,
-      // No credentials needed — the signed URL is already time-limited
-      credentials: 'omit',
+      credentials: 'same-origin',
     })
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -77,7 +94,7 @@ export default function ProtectedImage({
       controller.abort();
       clearTimeout(timeoutRef.current);
     };
-  }, [imageId, variant]);
+  }, [imageId, variant, src]);
 
   // Cleanup object URL on unmount or when it changes
   useEffect(() => {
@@ -88,8 +105,10 @@ export default function ProtectedImage({
 
   const preventInteraction = (e) => e.preventDefault();
 
+  const displayUrl = src || objectUrl;
+
   // — Fallback / error —
-  if (status === 'error' || (!objectUrl && status !== 'loading')) {
+  if (status === 'error' || (!displayUrl && status !== 'loading')) {
     if (fallback) return fallback;
     return (
       <div
@@ -116,7 +135,7 @@ export default function ProtectedImage({
   // — Loaded —
   return (
     <img
-      src={objectUrl}
+      src={displayUrl}
       alt={alt}
       draggable="false"
       onContextMenu={preventInteraction}

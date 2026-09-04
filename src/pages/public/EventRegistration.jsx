@@ -120,7 +120,17 @@ export default function EventRegistration() {
   };
 
   if (loading) {
-    return <div className="min-h-screen bg-bg-primary"></div>;
+    return (
+      <div className="w-full bg-white dark:bg-slate-950 min-h-screen text-slate-900 dark:text-slate-300 font-body flex flex-col justify-between">
+        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px] pt-24 pb-32 flex-1 flex flex-col justify-center items-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-8 h-8 border-2 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
+            <span className="font-mono text-xs tracking-widest text-slate-500 uppercase">LOADING EVENT REGISTRATION...</span>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
   }
 
   if (eventError || !event) {
@@ -143,7 +153,7 @@ export default function EventRegistration() {
       {/* HERO SECTION */}
       <section className="pt-6 md:pt-10 pb-16 lg:pb-24 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/20">
         <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]">
-          <div className="reveal-eyebrow mb-6 font-mono text-[10px] tracking-widest uppercase text-slate-500 font-bold flex flex-wrap items-center gap-2">
+          <div className="reveal-eyebrow mb-6 font-mono text-[10px] tracking-widest uppercase text-slate-500 dark:text-slate-400 font-bold flex flex-wrap items-center gap-2">
             <Link to="/events" className="hover:text-brand-primary transition-colors">Events</Link>
             <span>/</span>
             <Link to={`/events/${event.slug}`} className="hover:text-brand-primary transition-colors truncate max-w-[200px]">{event.title}</Link>
@@ -226,7 +236,7 @@ export default function EventRegistration() {
                   
                   {/* Personal Details */}
                   <div className="space-y-6">
-                    <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 mb-6 flex items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
+                    <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-slate-400 mb-6 flex items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
                       <span className="w-8 h-px bg-slate-300 dark:bg-slate-700"></span>
                       1. PERSONAL DETAILS
                     </div>
@@ -293,7 +303,7 @@ export default function EventRegistration() {
 
                   {/* Contact Details */}
                   <div className="space-y-6">
-                    <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 mb-6 flex items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
+                    <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-slate-400 mb-6 flex items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
                       <span className="w-8 h-px bg-slate-300 dark:bg-slate-700"></span>
                       2. CONTACT DETAILS
                     </div>
@@ -333,7 +343,7 @@ export default function EventRegistration() {
                             <label className="block font-mono text-xs font-bold tracking-widest uppercase text-slate-700 dark:text-slate-300">
                               WhatsApp Number
                             </label>
-                            <label className="flex items-center gap-2 cursor-pointer font-mono text-[9px] uppercase tracking-wider text-slate-500">
+                            <label className="flex items-center gap-2 cursor-pointer font-mono text-[9px] uppercase tracking-wider text-slate-500 dark:text-slate-400">
                               <input 
                                 type="checkbox" 
                                 checked={sameAsPhone} 
@@ -358,7 +368,7 @@ export default function EventRegistration() {
                   </div>
 
                   <div className="pt-6 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-6 flex-wrap">
-                    <p className="font-mono text-xs text-slate-500 max-w-sm">
+                    <p className="font-mono text-xs text-slate-500 dark:text-slate-400 max-w-sm">
                       By submitting this form, you agree to participate in the event and receive communications.
                     </p>
                     <button 

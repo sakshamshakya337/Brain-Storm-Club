@@ -16,6 +16,12 @@ const joinUsSchema = new mongoose.Schema({
   whatsapp: { type: String },
   whyJoin: { type: String, required: true },
   interests: [{ type: String }],
+  domain: {
+    type: String,
+    enum: ['Technical', 'Anchor', 'Media', 'Coordinator'],
+    default: 'Technical',
+    required: true
+  },
   status: {
     type: String,
     enum: ['New', 'Pending', 'Contacted', 'Approved', 'Onboarded', 'Rejected'],

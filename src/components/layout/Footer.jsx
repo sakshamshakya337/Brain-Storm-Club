@@ -28,7 +28,7 @@ export default function Footer() {
               </div>
             </Link>
             
-            <p className="text-slate-500 font-light leading-relaxed max-w-sm mb-10 text-sm">
+            <p className="text-slate-400 font-light leading-relaxed max-w-sm mb-10 text-sm">
               A student-led technology and innovation community at Lovely Professional University. We build the future.
             </p>
             
@@ -83,7 +83,7 @@ export default function Footer() {
               </h4>
               <ul className="space-y-4 text-sm font-light text-slate-400">
                 <li className="flex items-start gap-3">
-                  <Mail size={16} className="text-slate-600 shrink-0 mt-0.5" />
+                  <Mail size={16} className="text-slate-400 shrink-0 mt-0.5" />
                   <a href="mailto:contact@lpusca.com" className="hover:text-white transition-colors break-words">contact@lpusca.com</a>
                 </li>
                 <li className="flex items-start gap-3">
@@ -98,14 +98,14 @@ export default function Footer() {
         
         {/* BOTTOM: Copyright */}
         <div className="pt-8 border-t border-slate-900 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="font-mono text-[10px] tracking-widest text-slate-600 uppercase">
+          <p className="font-mono text-[10px] tracking-widest text-slate-400 uppercase">
             &copy; {new Date().getFullYear()} LPU SCA Brainstorm Club
           </p>
           <div className="flex items-center gap-6">
-            <Link to="/privacy-policy" className="font-mono text-[10px] tracking-widest text-slate-600 uppercase hover:text-slate-400 transition-colors">
+            <Link to="/privacy-policy" className="font-mono text-[10px] tracking-widest text-slate-400 uppercase hover:text-slate-200 transition-colors">
               Privacy Policy
             </Link>
-            <div className="flex items-center gap-2 font-mono text-[10px] tracking-widest text-slate-600 uppercase">
+            <div className="flex items-center gap-2 font-mono text-[10px] tracking-widest text-slate-400 uppercase">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
               All Systems Operational
             </div>

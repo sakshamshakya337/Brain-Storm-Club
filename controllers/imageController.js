@@ -27,10 +27,11 @@ export const getProtectedImage = async (req, res) => {
       return res.status(404).json({ message: 'Image not found' });
     }
 
-    // Security: Only approved images can be viewed publicly
-    if (imageDoc.status !== 'approved') {
+    // Security: Only approved public/protected images can be viewed publicly.
+    // Private images or pending/rejected images require active admin authentication.
+    if (imageDoc.visibility === 'private' || imageDoc.status !== 'approved') {
       if (!req.admin) {
-        return res.status(404).json({ message: 'Image not found or not yet approved' });
+        return res.status(403).json({ message: 'Access denied. Administrator privileges required.' });
       }
     }
 
@@ -42,11 +43,15 @@ export const getProtectedImage = async (req, res) => {
         .json({ message: 'Invalid variant requested or error generating URL' });
     }
 
-    // Security headers
+    // Security and CORS headers
     res.setHeader('X-Robots-Tag', 'noindex');
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    // Allow our own frontend's fetch to work cross-origin from the same origin (it's same-origin anyway)
-    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+    if (req.headers.origin) {
+      res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    } else {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    }
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
 
     // Cache control

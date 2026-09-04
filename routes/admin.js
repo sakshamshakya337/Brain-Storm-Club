@@ -9,6 +9,7 @@ import {
   deleteJoinRequest,
   getContactQueries,
   updateContactQueryStatus,
+  replyToContactQuery,
   getIdeas,
   getIdeaById,
   getIdeaPdf,
@@ -28,6 +29,8 @@ import {
   updateEvent,
   deleteEvent,
   uploadEventPoster,
+  uploadEventGalleryImage,
+  uploadEventImageStandalone,
   toggleEventRegistration,
   getEventEntriesAdmin,
   deleteEventEntryAdmin,
@@ -66,6 +69,7 @@ router.route('/contact')
   .get(getContactQueries);
 router.route('/contact/:id')
   .patch(updateContactQueryStatus);
+router.post('/contact/:id/reply', replyToContactQuery);
 
 // Members
 router.route('/members')
@@ -84,6 +88,13 @@ router.patch('/members/:id/approve', approveMember);
 router.patch('/members/:id/reject', rejectMember);
 
 // Events
+router.post(
+  '/events/upload-image',
+  uploadImage.single('image'),
+  processAndProtectImage('public'),
+  uploadEventImageStandalone
+);
+
 router.route('/events')
   .get(getAllEventsAdmin)
   .post(createEvent);
@@ -106,6 +117,13 @@ router.post(
   uploadImage.single('poster'), 
   processAndProtectImage('public'), // Event posters are meant for public display
   uploadEventPoster
+);
+
+router.post(
+  '/events/:id/images',
+  uploadImage.single('image'),
+  processAndProtectImage('public'),
+  uploadEventGalleryImage
 );
 
 // Exports

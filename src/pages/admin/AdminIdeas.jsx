@@ -512,31 +512,36 @@ export default function AdminIdeas() {
                 {selected.pdfPublicId && (
                   <div className="px-6 py-5 border-b border-slate-100">
                     <p className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-400 mb-3">ATTACHMENT</p>
-                    <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-md">
-                      <div className="w-9 h-9 rounded-md bg-brand-primary/10 flex items-center justify-center text-brand-primary shrink-0">
-                        <FileText size={16} />
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-slate-50 border border-slate-200 rounded-md">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-md bg-brand-primary/10 flex items-center justify-center text-brand-primary shrink-0">
+                          <FileText size={16} />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-slate-900 truncate">
+                            {selected.pdfOriginalName?.toLowerCase().endsWith('.pdf') ? selected.pdfOriginalName : `${selected.pdfOriginalName || 'document'}.pdf`}
+                          </p>
+                          {selected.pdfSizeBytes && (
+                            <p className="text-xs text-slate-500 font-mono">{fmtSize(selected.pdfSizeBytes)}</p>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-900 truncate">
-                          {selected.pdfOriginalName?.toLowerCase().endsWith('.pdf') ? selected.pdfOriginalName : `${selected.pdfOriginalName || 'document'}.pdf`}
-                        </p>
-                        {selected.pdfSizeBytes && (
-                          <p className="text-xs text-slate-500 font-mono">{fmtSize(selected.pdfSizeBytes)}</p>
-                        )}
-                      </div>
-                      {detailLoading && !selected.pdfSignedUrl ? (
-                        <span className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 text-xs text-slate-400 font-mono">
-                          <RefreshCw size={12} className="animate-spin" /> Loading…
-                        </span>
-                      ) : (
+                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
                         <button
                           type="button"
                           onClick={() => setPdfViewerOpen(true)}
-                          className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-bold tracking-wider uppercase bg-brand-primary text-white rounded-sm hover:bg-brand-primary/80 transition-colors cursor-pointer shadow-sm"
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-bold tracking-wider uppercase bg-brand-primary text-white rounded-sm hover:bg-brand-primary/80 transition-colors cursor-pointer shadow-sm"
                         >
                           <Eye size={12} /> View PDF
                         </button>
-                      )}
+                        <a
+                          href={`/api/admin/ideas/${selected._id}/pdf?download=1`}
+                          download={selected.pdfOriginalName?.toLowerCase().endsWith('.pdf') ? selected.pdfOriginalName : `${selected.pdfOriginalName || 'document'}.pdf`}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-bold tracking-wider uppercase bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 hover:text-slate-900 rounded-sm transition-colors cursor-pointer shadow-sm"
+                        >
+                          <Download size={12} /> Download PDF
+                        </a>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -607,92 +612,9 @@ export default function AdminIdeas() {
       )}
 
       {/* ── IN-PAGE PDF VIEWER MODAL ────────────────────────────────────────── */}
-      {pdfViewerOpen && selected && (selected.pdfSignedUrl || selected.pdfPublicId) && (() => {
-        const viewerUrl = selected.pdfSignedUrl || `/api/admin/ideas/${selected._id}/pdf`;
-        const displayName = selected.pdfOriginalName?.toLowerCase().endsWith('.pdf')
-          ? selected.pdfOriginalName
-          : `${selected.pdfOriginalName || 'document'}.pdf`;
-
-        return (
-          <div 
-            className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 md:p-6 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200"
-            role="dialog"
-            aria-modal="true"
-            aria-label="PDF Document Viewer"
-          >
-            {/* Backdrop click to close */}
-            <div className="absolute inset-0" onClick={() => setPdfViewerOpen(false)} />
-
-            {/* Modal Container */}
-            <div className="relative z-10 w-full max-w-5xl h-[92vh] max-h-[900px] bg-white rounded-lg shadow-2xl border border-slate-200 flex flex-col overflow-hidden">
-              
-              {/* Viewer Toolbar */}
-              <div className="flex items-center justify-between px-4 py-3 bg-slate-900 text-white border-b border-slate-800 shrink-0">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-8 h-8 rounded bg-brand-primary/20 flex items-center justify-center text-brand-primary shrink-0">
-                    <FileText size={16} />
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="font-heading font-bold text-sm text-white truncate">
-                      {displayName}
-                    </h3>
-                    <div className="flex items-center gap-3 text-[11px] font-mono text-slate-400">
-                      <span>{fmtSize(selected.pdfSizeBytes)}</span>
-                      <span>•</span>
-                      <span className="text-brand-primary uppercase truncate max-w-[200px]">{selected.title}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  {/* Download button with proper .pdf filename */}
-                  <a
-                    href={`/api/admin/ideas/${selected._id}/pdf?download=1`}
-                    download={displayName}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-bold tracking-wider uppercase text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded transition-colors"
-                    title={`Download ${displayName}`}
-                  >
-                    <Download size={13} />
-                    <span className="hidden sm:inline">Download</span>
-                  </a>
-
-                  {/* Fallback open in new tab */}
-                  <a
-                    href={viewerUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-bold tracking-wider uppercase text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded transition-colors"
-                    title="Open in new tab"
-                  >
-                    <ExternalLink size={13} />
-                    <span className="hidden sm:inline">New Tab</span>
-                  </a>
-
-                  {/* Close Button */}
-                  <button
-                    type="button"
-                    onClick={() => setPdfViewerOpen(false)}
-                    className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors cursor-pointer"
-                    aria-label="Close PDF viewer (Esc)"
-                    title="Close (Esc)"
-                  >
-                    <X size={20} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Viewer Body */}
-              <div className="flex-1 w-full bg-slate-100 relative overflow-hidden">
-                <iframe
-                  src={`${viewerUrl}#toolbar=1&navpanes=1`}
-                  className="w-full h-full border-0"
-                  title={displayName}
-                />
-              </div>
-            </div>
-          </div>
-        );
-      })()}
+      {pdfViewerOpen && selected && (selected.pdfSignedUrl || selected.pdfPublicId) && (
+        <PdfViewerModal idea={selected} onClose={() => setPdfViewerOpen(false)} />
+      )}
     </div>
   );
 }
@@ -706,6 +628,213 @@ function MetaField({ icon: Icon, label, value, className = '' }) {
         <span className="font-mono text-[9px] font-bold tracking-widest uppercase text-slate-400">{label}</span>
       </div>
       <p className="text-sm text-slate-800 font-medium leading-snug">{value || '—'}</p>
+    </div>
+  );
+}
+
+// ─── PDF Viewer Modal Component ─────────────────────────────────────────────
+function PdfViewerModal({ idea, onClose }) {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [blobUrl, setBlobUrl] = useState(null);
+
+  const displayName = idea.pdfOriginalName?.toLowerCase().endsWith('.pdf')
+    ? idea.pdfOriginalName
+    : `${idea.pdfOriginalName || 'document'}.pdf`;
+
+  const fallbackUrl = idea.pdfSignedUrl || `/api/admin/ideas/${idea._id}/pdf`;
+
+  const fetchPdf = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch(`/api/admin/ideas/${idea._id}/pdf`, {
+        credentials: 'include',
+      });
+
+      if (!res.ok) {
+        if (res.status === 401) throw new Error('Session expired or unauthorized. Please log in.');
+        if (res.status === 404) throw new Error('PDF file not found in storage.');
+        throw new Error(`Failed to load PDF (HTTP ${res.status}).`);
+      }
+
+      const blob = await res.blob();
+      const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+      const url = URL.createObjectURL(pdfBlob);
+      setBlobUrl(url);
+    } catch (err) {
+      console.error('[PdfViewerModal fetch error]', err);
+      setError(err.message || 'Unable to load this PDF.');
+    } finally {
+      setLoading(false);
+    }
+  }, [idea._id]);
+
+  useEffect(() => {
+    fetchPdf();
+  }, [fetchPdf]);
+
+  // Clean up object URL on unmount or URL change
+  useEffect(() => {
+    return () => {
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
+      }
+    };
+  }, [blobUrl]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 md:p-6 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200"
+      role="dialog"
+      aria-modal="true"
+      aria-label="PDF Document Viewer"
+    >
+      {/* Backdrop click to close */}
+      <div className="absolute inset-0" onClick={onClose} />
+
+      {/* Modal Container */}
+      <div className="relative z-10 w-full max-w-5xl h-[92vh] max-h-[900px] bg-white rounded-lg shadow-2xl border border-slate-200 flex flex-col overflow-hidden">
+
+        {/* Viewer Toolbar */}
+        <div className="flex items-center justify-between px-4 py-3 bg-slate-900 text-white border-b border-slate-800 shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-8 h-8 rounded bg-brand-primary/20 flex items-center justify-center text-brand-primary shrink-0">
+              <FileText size={16} />
+            </div>
+            <div className="min-w-0">
+              <h3 className="font-heading font-bold text-sm text-white truncate">
+                {displayName}
+              </h3>
+              <div className="flex items-center gap-3 text-[11px] font-mono text-slate-400">
+                {idea.pdfSizeBytes && <span>{fmtSize(idea.pdfSizeBytes)}</span>}
+                {idea.pdfSizeBytes && <span>•</span>}
+                <span className="text-brand-primary uppercase truncate max-w-[200px]">{idea.title}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Download Button */}
+            {blobUrl ? (
+              <a
+                href={blobUrl}
+                download={displayName}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-bold tracking-wider uppercase text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded transition-colors"
+                title={`Download ${displayName}`}
+              >
+                <Download size={13} />
+                <span className="hidden sm:inline">Download</span>
+              </a>
+            ) : (
+              <a
+                href={`/api/admin/ideas/${idea._id}/pdf?download=1`}
+                download={displayName}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-bold tracking-wider uppercase text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded transition-colors"
+                title={`Download ${displayName}`}
+              >
+                <Download size={13} />
+                <span className="hidden sm:inline">Download</span>
+              </a>
+            )}
+
+            {/* Open in New Tab */}
+            <a
+              href={blobUrl || fallbackUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-bold tracking-wider uppercase text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded transition-colors"
+              title="Open in new tab"
+            >
+              <ExternalLink size={13} />
+              <span className="hidden sm:inline">New Tab</span>
+            </a>
+
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors cursor-pointer"
+              aria-label="Close PDF viewer (Esc)"
+              title="Close (Esc)"
+            >
+              <X size={20} />
+            </button>
+          </div>
+        </div>
+
+        {/* Viewer Body */}
+        <div className="flex-1 w-full bg-slate-100 relative overflow-hidden flex flex-col">
+          {loading ? (
+            <div className="flex-1 flex flex-col items-center justify-center gap-3 bg-slate-50 p-8">
+              <RefreshCw size={32} className="animate-spin text-brand-primary" />
+              <p className="font-heading font-semibold text-slate-800 text-base">Loading PDF...</p>
+              <p className="text-xs text-slate-500 font-mono">Fetching document securely</p>
+            </div>
+          ) : error ? (
+            <div className="flex-1 flex flex-col items-center justify-center gap-4 bg-slate-50 p-8 text-center max-w-md mx-auto">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+                <AlertCircle size={24} />
+              </div>
+              <div>
+                <h4 className="font-heading font-bold text-slate-900 text-base mb-1">Unable to load this PDF</h4>
+                <p className="text-xs text-slate-600 font-body">{error}</p>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
+                <button
+                  type="button"
+                  onClick={fetchPdf}
+                  className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-mono font-bold tracking-wider uppercase bg-brand-primary text-white rounded hover:bg-brand-primary/90 transition-colors cursor-pointer shadow-sm"
+                >
+                  <RefreshCw size={13} /> Retry
+                </button>
+                <a
+                  href={`/api/admin/ideas/${idea._id}/pdf?download=1`}
+                  download={displayName}
+                  className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-mono font-bold tracking-wider uppercase bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 rounded transition-colors cursor-pointer shadow-sm"
+                >
+                  <Download size={13} /> Download PDF
+                </a>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-3.5 py-2 text-xs font-mono font-bold tracking-wider uppercase bg-slate-200 text-slate-700 hover:bg-slate-300 rounded transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          ) : blobUrl ? (
+            <object
+              data={`${blobUrl}#toolbar=1&navpanes=1`}
+              type="application/pdf"
+              className="w-full h-full"
+            >
+              <embed
+                src={`${blobUrl}#toolbar=1&navpanes=1`}
+                type="application/pdf"
+                className="w-full h-full"
+              />
+              <iframe
+                src={`${blobUrl}#toolbar=1&navpanes=1`}
+                className="w-full h-full border-0"
+                title={displayName}
+              >
+                <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-slate-50">
+                  <p className="text-sm text-slate-700 mb-3 font-body">Your browser does not support inline PDF viewing.</p>
+                  <a
+                    href={blobUrl}
+                    download={displayName}
+                    className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-white text-xs font-bold rounded uppercase tracking-wider shadow-sm"
+                  >
+                    <Download size={14} /> Download PDF
+                  </a>
+                </div>
+              </iframe>
+            </object>
+          ) : null}
+        </div>
+      </div>
     </div>
   );
 }

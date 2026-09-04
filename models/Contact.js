@@ -7,9 +7,15 @@ const contactSchema = new mongoose.Schema({
   message: { type: String, required: true },
   status: {
     type: String,
-    enum: ['Unread', 'Read', 'Resolved'],
+    enum: ['Unread', 'Read', 'Replied', 'Resolved'],
     default: 'Unread'
-  }
+  },
+  replies: [{
+    message: { type: String, required: true },
+    adminId: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' },
+    adminName: { type: String },
+    sentAt: { type: Date, default: Date.now }
+  }]
 }, { timestamps: true });
 
 export default mongoose.model('Contact', contactSchema);

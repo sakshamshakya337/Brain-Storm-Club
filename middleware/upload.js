@@ -75,6 +75,12 @@ export const processAndProtectImage = (visibility = 'protected') => async (req, 
     else if (req.baseUrl.includes('events')) ownerType = 'event';
     else if (req.baseUrl.includes('members')) ownerType = 'member';
 
+    // Unapproved applicant photos (join-us or public self-registration) start as pending and private.
+    // Admin uploads or event posters start as approved with requested visibility.
+    const isApplicantOrPublicRegister = ownerType === 'joinUs' || (ownerType === 'member' && !req.admin);
+    const initialStatus = isApplicantOrPublicRegister ? 'pending' : 'approved';
+    const initialVisibility = isApplicantOrPublicRegister ? 'private' : visibility;
+
     let imageDoc;
     try {
       imageDoc = await Image.create({
@@ -88,10 +94,10 @@ export const processAndProtectImage = (visibility = 'protected') => async (req, 
         bytes: cloudinaryResult.bytes,
         mimeType: 'image/webp',
         size: processedBuffer.length,
-        visibility,
+        visibility: initialVisibility,
         deliveryType: 'authenticated',
         resourceType: 'image',
-        status: 'approved',
+        status: initialStatus,
         ownerType,
         uploadedByOld: req.admin ? req.admin._id : null
       });

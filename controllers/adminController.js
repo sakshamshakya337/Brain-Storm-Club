@@ -1,8 +1,10 @@
+import mongoose from 'mongoose';
 import Event from '../models/Event.js';
 import Member from '../models/Member.js';
 import JoinUs from '../models/JoinUs.js';
 import Contact from '../models/Contact.js';
 import AdminActivity from '../models/AdminActivity.js';
+import Image from '../models/Image.js';
 
 export const getDashboardStats = async (req, res) => {
   try {
@@ -96,11 +98,18 @@ export const getJoinRequests = async (req, res) => {
 };
 
 const VALID_JOIN_STATUSES = ['New', 'Pending', 'Contacted', 'Approved', 'Onboarded', 'Rejected'];
+const ALLOWED_MEMBER_DOMAINS = ['Technical', 'Anchor', 'Media', 'Coordinator'];
+const DEFAULT_DOMAIN_ROLES = {
+  Technical: 'Technical Team',
+  Media: 'Media Team',
+  Anchor: 'Anchor',
+  Coordinator: 'Coordinator',
+};
 
 export const updateJoinRequestStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, rejectionReason } = req.body;
+    const { status, rejectionReason, domain: chosenDomain, role: chosenRole } = req.body;
 
     if (!VALID_JOIN_STATUSES.includes(status)) {
       return res.status(400).json({ success: false, message: `Invalid status. Must be one of: ${VALID_JOIN_STATUSES.join(', ')}` });
@@ -110,17 +119,83 @@ export const updateJoinRequestStatus = async (req, res) => {
     if (!request) return res.status(404).json({ success: false, message: 'Request not found' });
 
     request.status = status;
+    let member = null;
 
     if (status === 'Onboarded' || status === 'Approved') {
       request.approvedBy = req.admin._id;
       request.approvedAt = new Date();
+
+      if (request.photoId) {
+        await Image.findByIdAndUpdate(request.photoId, { 
+          status: 'approved', 
+          visibility: 'protected',
+          ownerType: 'member'
+        });
+      }
+
+      // Determine domain: admin override -> request.domain -> default 'Technical'
+      const targetDomain = (chosenDomain && ALLOWED_MEMBER_DOMAINS.includes(chosenDomain.trim()))
+        ? chosenDomain.trim()
+        : (request.domain && ALLOWED_MEMBER_DOMAINS.includes(request.domain) ? request.domain : 'Technical');
+      request.domain = targetDomain;
+
+      // Determine role: admin specified role (e.g. Technical Head) or default domain role
+      const targetRole = (chosenRole && chosenRole.trim())
+        ? chosenRole.trim()
+        : (DEFAULT_DOMAIN_ROLES[targetDomain] || 'Technical Team');
+
+      const normalizedRegNo = (request.registrationNumber || '').trim().toUpperCase();
+
+      // Check whether a member record already exists (idempotency check)
+      member = await Member.findOne({ registrationNumber: normalizedRegNo });
+
+      if (member) {
+        // Idempotent update: ensure Approved status and sync latest profile details
+        member.fullName = request.fullName;
+        member.course = request.course;
+        member.section = request.section;
+        member.email = request.email;
+        member.phone = request.phone;
+        member.whatsapp = request.whatsapp || request.phone;
+        member.domain = targetDomain;
+        if (chosenRole) member.role = targetRole;
+        if (request.photoId) member.photoId = request.photoId;
+        member.status = 'Approved';
+        member.approvedBy = req.admin._id;
+        member.approvedAt = new Date();
+        await member.save();
+      } else {
+        // Create new live member record
+        member = await Member.create({
+          memberType: 'student',
+          fullName: request.fullName,
+          registrationNumber: normalizedRegNo,
+          course: request.course,
+          section: request.section,
+          email: request.email,
+          phone: request.phone,
+          whatsapp: request.whatsapp || request.phone,
+          domain: targetDomain,
+          role: targetRole,
+          photoId: request.photoId,
+          status: 'Approved',
+          approvedBy: req.admin._id,
+          approvedAt: new Date(),
+          consentGivenAt: request.consentGivenAt || new Date(),
+        });
+      }
     }
-    if (status === 'Rejected' && rejectionReason) {
-      request.rejectionReason = rejectionReason.trim();
+
+    if (status === 'Rejected') {
+      request.rejectionReason = rejectionReason ? rejectionReason.trim() : 'Not specified';
     }
 
     await request.save();
-    res.status(200).json({ success: true, data: { request } });
+    res.status(200).json({ 
+      success: true, 
+      message: status === 'Approved' ? 'Application approved and member is now live!' : `Status updated to ${status}`,
+      data: { request, member } 
+    });
   } catch (error) {
     console.error('[updateJoinRequestStatus error]', error);
     res.status(500).json({ success: false, message: 'Error updating join request status' });
@@ -130,7 +205,7 @@ export const updateJoinRequestStatus = async (req, res) => {
 export const updateJoinRequest = async (req, res) => {
   try {
     const { id } = req.params;
-    const { fullName, course, section, email, phone, whatsapp, whyJoin } = req.body;
+    const { fullName, course, section, email, phone, whatsapp, whyJoin, domain } = req.body;
 
     const request = await JoinUs.findById(id);
     if (!request) return res.status(404).json({ success: false, message: 'Request not found' });
@@ -142,6 +217,9 @@ export const updateJoinRequest = async (req, res) => {
     if (phone)     request.phone     = phone.trim();
     if (whatsapp !== undefined) request.whatsapp = whatsapp.trim();
     if (whyJoin)   request.whyJoin   = whyJoin.trim();
+    if (domain && ALLOWED_MEMBER_DOMAINS.includes(domain.trim())) {
+      request.domain = domain.trim();
+    }
 
     await request.save();
     res.status(200).json({ success: true, data: { request } });
@@ -211,6 +289,11 @@ export const updateContactQueryStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
     
+    const validStatuses = ['Unread', 'Read', 'Replied', 'Resolved'];
+    if (status && !validStatuses.includes(status)) {
+      return res.status(400).json({ success: false, message: `Invalid status. Must be one of: ${validStatuses.join(', ')}` });
+    }
+
     const query = await Contact.findById(id);
     if (!query) return res.status(404).json({ success: false, message: 'Query not found' });
     
@@ -220,6 +303,96 @@ export const updateContactQueryStatus = async (req, res) => {
     res.status(200).json({ success: true, data: { query } });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Error updating contact query' });
+  }
+};
+
+export const replyToContactQuery = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { message } = req.body;
+
+    // 1. Validation
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid query ID format.' });
+    }
+
+    const trimmedMessage = (message || '').trim();
+    if (!trimmedMessage) {
+      return res.status(400).json({ success: false, message: 'Reply message cannot be empty.' });
+    }
+
+    if (trimmedMessage.length < 5) {
+      return res.status(400).json({ success: false, message: 'Reply message must be at least 5 characters long.' });
+    }
+
+    if (trimmedMessage.length > 5000) {
+      return res.status(400).json({ success: false, message: 'Reply message exceeds maximum length of 5000 characters.' });
+    }
+
+    // 2. Fetch contact query from database
+    const contact = await Contact.findById(id);
+    if (!contact) {
+      return res.status(404).json({ success: false, message: 'Contact query not found.' });
+    }
+
+    if (!contact.email) {
+      return res.status(400).json({ success: false, message: 'Cannot reply: contact query does not have a valid email address.' });
+    }
+
+    // 3. Send email via SMTP service
+    const { sendContactQueryReplyEmail } = await import('../utils/email.js');
+    try {
+      await sendContactQueryReplyEmail({
+        toEmail: contact.email,
+        recipientName: contact.name,
+        originalSubject: contact.subject,
+        replyMessage: trimmedMessage
+      });
+    } catch (emailErr) {
+      console.error('[replyToContactQuery] Email delivery failed:', emailErr);
+      return res.status(502).json({
+        success: false,
+        message: 'Reply could not be sent. Email delivery failed. Please check SMTP settings and try again.'
+      });
+    }
+
+    // 4. Record reply in database and update status ONLY after successful email
+    const adminUser = req.admin || req.user;
+    const adminId = adminUser?._id || null;
+    const adminName = adminUser?.name || adminUser?.email?.split('@')[0] || 'Brainstorm Admin';
+
+    if (!contact.replies) {
+      contact.replies = [];
+    }
+
+    contact.replies.push({
+      message: trimmedMessage,
+      adminId,
+      adminName,
+      sentAt: new Date()
+    });
+
+    contact.status = 'Replied';
+    await contact.save();
+
+    // 5. Audit log
+    try {
+      await AdminActivity.create({
+        adminId,
+        action: `Replied to contact query from ${contact.name} (${contact.email})`
+      });
+    } catch (logErr) {
+      console.error('[replyToContactQuery] Failed to log admin activity:', logErr);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Reply sent successfully.',
+      data: { query: contact }
+    });
+  } catch (error) {
+    console.error('[replyToContactQuery] Unexpected error:', error);
+    res.status(500).json({ success: false, message: error.message || 'Error sending reply.' });
   }
 };
 
@@ -343,6 +516,11 @@ export const getIdeaPdf = async (req, res) => {
       'Content-Disposition',
       `${disposition}; filename="${fileName.replace(/"/g, '')}"; filename*="UTF-8''${encodeURIComponent(fileName)}"`
     );
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    if (req.headers.origin) {
+      res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
     res.setHeader('Cache-Control', 'private, max-age=3600');
 
     const arrayBuffer = await cloudRes.arrayBuffer();

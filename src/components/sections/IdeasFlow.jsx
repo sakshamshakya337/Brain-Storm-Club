@@ -173,7 +173,7 @@ export default function IdeasFlow() {
             >
               <MessageSquare ref={ideaIconRef} size={24} className="text-slate-400 dark:text-slate-600" />
             </div>
-            <div ref={ideaLabelRef} className="font-mono text-[10px] md:text-xs tracking-widest uppercase text-slate-400 opacity-50 font-medium">IDEA</div>
+            <div ref={ideaLabelRef} className="font-mono text-[10px] md:text-xs tracking-widest uppercase text-slate-500 dark:text-slate-400 font-medium">IDEA</div>
           </div>
           
           {/* LINE 1 */}
@@ -197,7 +197,7 @@ export default function IdeasFlow() {
             >
               <Users ref={reviewIconRef} size={24} className="text-slate-400 dark:text-slate-600" />
             </div>
-            <div ref={reviewLabelRef} className="font-mono text-[10px] md:text-xs tracking-widest uppercase text-slate-400 opacity-50 font-medium">REVIEW</div>
+            <div ref={reviewLabelRef} className="font-mono text-[10px] md:text-xs tracking-widest uppercase text-slate-500 dark:text-slate-400 font-medium">REVIEW</div>
           </div>
           
           {/* LINE 2 */}
@@ -220,7 +220,7 @@ export default function IdeasFlow() {
             >
               <Zap ref={buildIconRef} size={24} className="text-slate-400 dark:text-slate-600" />
             </div>
-            <div ref={buildLabelRef} className="font-mono text-[10px] md:text-xs tracking-widest uppercase text-slate-400 opacity-50 font-medium">BUILD</div>
+            <div ref={buildLabelRef} className="font-mono text-[10px] md:text-xs tracking-widest uppercase text-slate-500 dark:text-slate-400 font-medium">BUILD</div>
           </div>
           
           {/* LINE 3 */}
@@ -243,7 +243,7 @@ export default function IdeasFlow() {
             >
               <Calendar ref={eventIconRef} size={24} className="text-slate-400 dark:text-slate-600" />
             </div>
-            <div ref={eventLabelRef} className="font-mono text-[10px] md:text-xs tracking-widest uppercase text-slate-400 opacity-50 font-medium">EVENT</div>
+            <div ref={eventLabelRef} className="font-mono text-[10px] md:text-xs tracking-widest uppercase text-slate-500 dark:text-slate-400 font-medium">EVENT</div>
           </div>
           
         </div>

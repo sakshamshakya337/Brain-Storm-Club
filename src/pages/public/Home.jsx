@@ -109,9 +109,9 @@ export default function Home() {
   // Carousel State
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const showcaseImages = [
-    { src: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2070&auto=format&fit=crop', label: '01 / THINK', type: 'EVENT', title: 'WORKSHOP' },
-    { src: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?q=80&w=2070&auto=format&fit=crop', label: '02 / BUILD', type: 'BRAINSTORM', title: 'SESSION' },
-    { src: 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=2070&auto=format&fit=crop', label: '03 / CONNECT', type: 'HACKATHON', title: 'PROJECTS' },
+    { src: 'https://i.ibb.co/fdnpG2jd/IMG-9328.jpg', label: '01 / THINK', type: 'EVENT', title: 'WORKSHOP' },
+    { src: '/build.jpg', label: '02 / BUILD', type: 'BRAINSTORM', title: 'SESSION' },
+    { src: 'https://i.ibb.co/4wmHXZfg/IMG-1202.avif', label: '03 / CONNECT', type: 'HACKATHON', title: 'PROJECTS' },
     { src: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?q=80&w=2070&auto=format&fit=crop', label: '04 / IMPACT', type: 'COMMUNITY', title: 'MEETUP' }
   ];
 
@@ -222,7 +222,7 @@ export default function Home() {
                   {/* Progress Indicator */}
                   <div className="reveal-meta flex flex-col items-end gap-2">
                     <div className="font-mono text-xs font-bold text-white tracking-widest">
-                      0{currentImageIndex + 1} <span className="text-slate-500">/ 0{showcaseImages.length}</span>
+                      0{currentImageIndex + 1} <span className="text-slate-400">/ 0{showcaseImages.length}</span>
                     </div>
                     <div className="flex gap-1">
                       {showcaseImages.map((_, idx) => (
@@ -305,79 +305,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* SECTION 3: FEATURED EVENT */}
-      <section className="py-20 md:py-32 bg-white dark:bg-slate-950">
-        <div className="container mx-auto px-6 md:px-12 max-w-[1440px]" data-reveal="up">
-          <div className="mb-16 flex flex-col md:flex-row md:items-end justify-between border-b border-slate-200 dark:border-slate-800 pb-6 gap-6">
-            <div>
-              <h2 className="font-heading font-black text-4xl md:text-5xl tracking-tight text-slate-900 dark:text-white uppercase">
-                Featured Event
-              </h2>
-              <p className="font-mono text-sm text-brand-primary mt-2 tracking-widest font-bold uppercase">The Next Big Thing</p>
-            </div>
-            <Link to="/events" className="flex items-center gap-2 font-mono text-xs font-bold tracking-widest text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors uppercase group">
-              View All Calendar
-              <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 border border-slate-200 dark:border-slate-800 group relative">
-            {/* LEFT: Details */}
-            <div className="col-span-1 lg:col-span-5 p-8 sm:p-12 md:p-16 flex flex-col justify-center bg-slate-50 dark:bg-slate-900/30 border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-slate-800 relative z-10">
-              <div className="mb-8">
-                <span className="inline-block px-3 py-1 bg-brand-primary/10 text-brand-primary font-mono text-[10px] font-bold tracking-widest uppercase mb-6">
-                  Hackathon
-                </span>
-                <h3 className="font-heading font-bold text-3xl md:text-5xl leading-[1.1] mb-6 text-slate-900 dark:text-white uppercase tracking-tight">
-                  Hack The Future 2024
-                </h3>
-                <p className="font-body text-slate-600 dark:text-slate-400 mb-8 leading-relaxed font-light text-lg">
-                  Join the ultimate 48-hour coding marathon. Build solutions that address real-world challenges using next-gen technologies.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 font-mono text-xs tracking-widest border-t border-slate-200 dark:border-slate-800 pt-8 mb-10 font-medium text-slate-700 dark:text-slate-300 uppercase">
-                <div>
-                  <span className="text-[10px] text-slate-400 block mb-1">DATE</span>
-                  OCT 15-17, 2024
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 block mb-1">TIME</span>
-                  09:00 AM
-                </div>
-                <div className="sm:col-span-2">
-                  <span className="text-[10px] text-slate-400 block mb-1">VENUE</span>
-                  INNOVATION LAB, LPU BLOCK 32
-                </div>
-              </div>
-
-              <button className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-6 py-4 font-mono text-sm font-bold tracking-widest uppercase hover:bg-brand-primary dark:hover:bg-brand-primary dark:hover:text-white transition-colors w-full text-center flex items-center justify-center gap-2 group/btn">
-                View Event
-                <ArrowRight size={16} className="group-hover/btn:translate-x-1 transition-transform" />
-              </button>
-            </div>
-
-            {/* RIGHT: Poster Area */}
-            <div className="col-span-1 lg:col-span-7 relative min-h-[400px] lg:min-h-full overflow-hidden bg-slate-950">
-              <img
-                src="https://images.unsplash.com/photo-1504384308090-c894fdcc538d?q=80&w=2070&auto=format&fit=crop"
-                alt="Hackathon Poster"
-                className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105 opacity-80 mix-blend-luminosity group-hover:mix-blend-normal"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80"></div>
-
-              {/* Play Button Overlay */}
-              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                <div className="w-20 h-20 bg-brand-primary/90 backdrop-blur-sm rounded-full flex items-center justify-center text-white scale-90 group-hover:scale-100 transition-transform duration-500">
-                  <PlayCircle size={32} />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 4: STATISTICS (Editorial Grid) */}
+      {/* SECTION 3: STATISTICS (Editorial Grid) */}
       <section ref={statsSectionRef} className="py-16 border-y border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/20">
         <div className="container mx-auto px-6 md:px-12 max-w-[1440px]">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-0 lg:divide-x divide-slate-200 dark:divide-slate-800" data-reveal="stagger-children">
@@ -395,7 +323,7 @@ export default function Home() {
                 >
                   {stat.value}
                 </div>
-                <div className="stat-label font-mono text-xs font-medium tracking-[0.2em] uppercase text-slate-500">{stat.label}</div>
+                <div className="stat-label font-mono text-xs font-medium tracking-[0.2em] uppercase text-slate-500 dark:text-slate-400">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -417,7 +345,7 @@ export default function Home() {
               { num: '04 / CONNECT', title: 'Meet Innovators', desc: 'Meet students, mentors and industry experts.', icon: <Users size={24} />, weight: 'lg:col-span-3 bg-slate-50 dark:bg-slate-800' }
             ].map((item, i) => (
               <div key={i} className={`p-8 md:p-10 flex flex-col justify-between group hover:scale-[1.02] transition-transform duration-300 border border-transparent hover:border-brand-secondary/30 ${item.weight}`}>
-                <div className={`font-mono text-[10px] font-bold tracking-widest uppercase mb-8 ${i === 1 || i === 2 ? 'text-white/70' : 'text-slate-500'}`}>
+                <div className={`font-mono text-[10px] font-bold tracking-widest uppercase mb-8 ${i === 1 || i === 2 ? 'text-white/70' : 'text-slate-500 dark:text-slate-400'}`}>
                   {item.num}
                 </div>
                 <div>
@@ -468,7 +396,7 @@ export default function Home() {
                 <div>
                   <span className="font-mono text-[10px] font-bold tracking-widest text-brand-secondary uppercase block mb-3">Seminar</span>
                   <h3 className="font-heading font-bold text-xl uppercase tracking-tight text-slate-900 dark:text-white mb-2">Future of Web3</h3>
-                  <div className="font-mono text-[10px] tracking-widest text-slate-500 uppercase">NOV 05 • ONLINE</div>
+                  <div className="font-mono text-[10px] tracking-widest text-slate-500 dark:text-slate-400 uppercase">NOV 05 • ONLINE</div>
                 </div>
                 <ArrowRight size={20} className="text-slate-300 dark:text-slate-700 group-hover:text-brand-primary transition-colors mt-4" />
               </div>
@@ -476,7 +404,7 @@ export default function Home() {
                 <div>
                   <span className="font-mono text-[10px] font-bold tracking-widest text-brand-secondary uppercase block mb-3">Meetup</span>
                   <h3 className="font-heading font-bold text-xl uppercase tracking-tight text-slate-900 dark:text-white mb-2">Founder Connect</h3>
-                  <div className="font-mono text-[10px] tracking-widest text-slate-500 uppercase">NOV 12 • LAB 32</div>
+                  <div className="font-mono text-[10px] tracking-widest text-slate-500 dark:text-slate-400 uppercase">NOV 12 • LAB 32</div>
                 </div>
                 <ArrowRight size={20} className="text-slate-300 dark:text-slate-700 group-hover:text-brand-primary transition-colors mt-4" />
               </div>
@@ -485,7 +413,7 @@ export default function Home() {
             {/* ONE HORIZONTAL EVENT */}
             <div className="md:col-span-12 bg-slate-900 text-white border border-slate-800 p-6 md:p-10 flex flex-col md:flex-row md:items-center justify-between gap-6 group">
               <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-12">
-                <div className="text-5xl font-mono font-black text-slate-700">04</div>
+                <div className="text-5xl font-mono font-black text-slate-600 dark:text-slate-500">04</div>
                 <div>
                   <span className="font-mono text-[10px] font-bold tracking-widest text-brand-accent uppercase block mb-2">Contest</span>
                   <h3 className="font-heading font-bold text-2xl uppercase tracking-tight mb-2">Code Sprint Winter</h3>
@@ -519,22 +447,22 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
             {/* LARGE PORTRAIT */}
             <div className="md:col-span-6 bg-slate-200 dark:bg-slate-800 relative h-[400px] md:h-[600px] group overflow-hidden">
-              <img src="https://images.unsplash.com/photo-1537511446984-935f663eb1f4?q=80&w=2070&auto=format&fit=crop" className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80 group-hover:scale-105 transition-transform duration-700" alt="President" />
+              <img src="/sujal.webp" className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80 group-hover:scale-105 transition-transform duration-700" alt="President" />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80"></div>
               <div className="absolute bottom-8 left-8 text-white">
                 <span className="font-mono text-[10px] font-bold tracking-widest uppercase block mb-2 text-brand-secondary">President</span>
-                <h4 className="font-heading font-bold text-3xl uppercase tracking-tight mb-1">Alex Sharma</h4>
-                <p className="font-mono text-[10px] tracking-widest uppercase text-slate-300">BCA (3rd Year)</p>
+                <h4 className="font-heading font-bold text-3xl uppercase tracking-tight mb-1">Sujal Bhatia</h4>
+                <p className="font-mono text-[10px] tracking-widest uppercase text-slate-300">MCA (2nd Year)</p>
               </div>
             </div>
 
             {/* SMALLER PORTRAITS */}
             <div className="md:col-span-6 grid grid-cols-2 gap-4">
               {[
-                { name: 'Priya Patel', role: 'Technical Head', course: 'B.Tech IT', img: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=1976&auto=format&fit=crop' },
-                { name: 'Rahul Singh', role: 'Event Manager', course: 'BBA', img: 'https://images.unsplash.com/photo-1556157382-97eda2d62296?q=80&w=2070&auto=format&fit=crop' },
-                { name: 'Sarah Khan', role: 'Design Lead', course: 'B.Design', img: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=1961&auto=format&fit=crop' },
-                { name: 'Amit Kumar', role: 'Operations', course: 'BCA/MCA', img: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=1974&auto=format&fit=crop' }
+                { name: 'Ritu Raj', role: 'Vice President', course: 'BCA', img: '/ritu.png' },
+                { name: 'Ansh Bhatia', role: 'Secretary', course: 'MCA (2nd Year)', img: '/ansh.webp' },
+                { name: 'Meharjot Singh', role: 'Head Coordinator', course: 'MCA (2nd Year)', img: '/Meharjot.jpg' },
+                { name: 'Saksham Shakya', role: 'Technical Head', course: 'MCA (2nd Year)', img: 'https://i.ibb.co/PnsgYc4/saksham.png' }
               ].map((person, i) => (
                 <div key={i} className="relative h-[190px] md:h-auto bg-slate-200 dark:bg-slate-800 group overflow-hidden">
                   <img src={person.img} className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80 group-hover:scale-105 transition-transform duration-700" alt={person.name} />

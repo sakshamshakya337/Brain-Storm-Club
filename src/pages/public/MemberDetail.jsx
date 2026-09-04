@@ -17,12 +17,24 @@ export default function MemberDetail() {
     setLoading(false);
   }, [slug]);
 
-  if (loading) return <div className="min-h-screen bg-bg-primary"></div>;
+  if (loading) {
+    return (
+      <div className="w-full bg-white dark:bg-slate-950 min-h-screen text-slate-900 dark:text-slate-300 font-body flex flex-col justify-between">
+        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px] pt-24 pb-32 flex-1 flex flex-col justify-center items-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-8 h-8 border-2 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
+            <span className="font-mono text-xs tracking-widest text-slate-500 dark:text-slate-400 uppercase">LOADING MEMBER DETAILS...</span>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!member) {
     return (
       <div className="min-h-screen bg-white dark:bg-slate-950 flex flex-col items-center justify-center font-body text-slate-900 dark:text-slate-300">
-        <span className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 mb-4 border border-slate-200 dark:border-slate-800 px-3 py-1">ERROR 404</span>
+        <span className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-slate-400 mb-4 border border-slate-200 dark:border-slate-800 px-3 py-1">ERROR 404</span>
         <h1 className="font-heading font-black text-4xl mb-6">MEMBER NOT FOUND</h1>
         <Link to="/members" className="font-mono text-xs font-bold tracking-widest uppercase flex items-center gap-2 hover:text-brand-primary transition-colors">
           <ArrowLeft size={14} /> Back to Members
@@ -42,7 +54,7 @@ export default function MemberDetail() {
         <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]">
           
           {/* Breadcrumb */}
-          <div className="mb-12 font-mono text-[10px] tracking-widest uppercase text-slate-500 font-bold flex flex-wrap items-center gap-2">
+          <div className="mb-12 font-mono text-[10px] tracking-widest uppercase text-slate-500 dark:text-slate-400 font-bold flex flex-wrap items-center gap-2">
             <Link to="/members" className="hover:text-brand-primary transition-colors">Members</Link>
             <span>/</span>
             <span className="text-slate-400">{member.group}</span>
@@ -64,7 +76,7 @@ export default function MemberDetail() {
               </h1>
               
               {member.course && (
-                 <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 mb-8 border border-slate-200 dark:border-slate-800 px-3 py-1.5 inline-block w-max">
+                 <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-slate-400 mb-8 border border-slate-200 dark:border-slate-800 px-3 py-1.5 inline-block w-max">
                    {member.course}
                  </div>
               )}
@@ -116,7 +128,7 @@ export default function MemberDetail() {
                 </div>
                 <div className="relative z-10 font-mono text-[10px] font-bold tracking-widest uppercase text-brand-secondary mb-2">{related.role}</div>
                 <h4 className="relative z-10 font-heading font-bold text-2xl uppercase tracking-tight text-slate-900 dark:text-white mb-6 group-hover:text-brand-primary transition-colors">{related.name}</h4>
-                <div className="relative z-10 border-t border-slate-200 dark:border-slate-800 pt-4 flex justify-between items-center font-mono text-[10px] tracking-widest uppercase text-slate-500 font-bold group-hover:text-brand-primary transition-colors">
+                <div className="relative z-10 border-t border-slate-200 dark:border-slate-800 pt-4 flex justify-between items-center font-mono text-[10px] tracking-widest uppercase text-slate-500 dark:text-slate-400 font-bold group-hover:text-brand-primary transition-colors">
                   VIEW PROFILE <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                 </div>
               </Link>

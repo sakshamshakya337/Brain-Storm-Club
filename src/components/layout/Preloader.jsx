@@ -78,13 +78,13 @@ export default function Preloader({ onComplete }) {
   return (
     <div 
       ref={containerRef} 
-      className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white text-slate-900 overflow-hidden"
+      className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white dark:bg-slate-950 text-slate-900 dark:text-white overflow-hidden transition-colors duration-200"
     >
       <div className="relative flex items-center justify-center mb-8">
         {/* Orbital Ring */}
         <div 
           ref={ringRef}
-          className="absolute w-40 h-40 border border-slate-200 rounded-full border-t-brand-primary border-r-transparent border-b-transparent border-l-transparent mix-blend-multiply"
+          className="absolute w-40 h-40 border border-slate-200 dark:border-slate-800 rounded-full border-t-brand-primary border-r-transparent border-b-transparent border-l-transparent"
         />
         
         {/* Logo */}
@@ -92,20 +92,20 @@ export default function Preloader({ onComplete }) {
           ref={logoRef}
           src="/logo.png" 
           alt="Brainstorm" 
-          className="w-24 h-24 object-contain relative z-10 filter drop-shadow-[0_0_15px_rgba(14,165,233,0.3)]"
+          className="w-24 h-24 object-contain relative z-10 filter drop-shadow-[0_0_15px_rgba(14,165,233,0.3)] dark:brightness-110"
         />
       </div>
 
       {/* Technical Text */}
       <div 
         ref={textRef}
-        className="font-mono text-[10px] tracking-[0.3em] font-bold text-slate-500 uppercase mb-4"
+        className="font-mono text-[10px] tracking-[0.3em] font-bold text-slate-500 dark:text-slate-400 uppercase mb-4"
       >
         INITIALIZING / BRAINSTORM
       </div>
 
       {/* Progress Line */}
-      <div className="w-48 h-[1px] bg-slate-200 overflow-hidden">
+      <div className="w-48 h-[1px] bg-slate-200 dark:bg-slate-800 overflow-hidden">
         <div 
           ref={progressLineRef}
           className="w-full h-full bg-gradient-to-r from-brand-primary to-brand-secondary"

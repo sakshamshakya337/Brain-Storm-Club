@@ -11,6 +11,22 @@ const eventSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Image',
   },
+  coverImage: {
+    url: String,
+    source: { type: String, enum: ['cloudinary', 'external'], default: 'cloudinary' },
+    publicId: String,
+    imageId: { type: mongoose.Schema.Types.ObjectId, ref: 'Image' },
+    alt: String,
+  },
+  images: [{
+    url: String,
+    source: { type: String, enum: ['cloudinary', 'external'], default: 'cloudinary' },
+    publicId: String,
+    imageId: { type: mongoose.Schema.Types.ObjectId, ref: 'Image' },
+    alt: String,
+    order: { type: Number, default: 0 },
+    isCover: { type: Boolean, default: false },
+  }],
   status: { 
     type: String, 
     enum: ['Upcoming', 'Ongoing', 'Completed'],

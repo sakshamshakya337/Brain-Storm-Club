@@ -194,3 +194,75 @@ export const sendIdeaConfirmationEmail = async ({ email, name, title, submission
     return { success: false, error: error.message };
   }
 };
+
+/**
+ * Sends an email reply from an admin to a contact query submitter.
+ * Throws error on failure so caller can prevent updating state.
+ */
+export const sendContactQueryReplyEmail = async ({ toEmail, recipientName, originalSubject, replyMessage }) => {
+  const transporter = createTransporter();
+
+  // Clean subject: "Re: [original subject]"
+  const cleanOriginal = (originalSubject || 'Your query').trim();
+  const subjectPrefix = /^re:\s*/i.test(cleanOriginal) ? '' : 'Re: ';
+  const subject = `Brainstorm Club — ${subjectPrefix}${cleanOriginal}`;
+
+  // Escape HTML in replyMessage and convert line breaks to <br />
+  const escapedReply = String(replyMessage || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+    .replace(/\n/g, '<br />');
+
+  const textContent = `Hello ${recipientName || 'there'},\n\n${replyMessage}\n\nRegards,\nBrainstorm Club Team\nLPU SCA Brainstorm Club`;
+
+  const mailOptions = {
+    from: getFromAddress(),
+    to: toEmail,
+    subject,
+    text: textContent,
+    html: `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+        <div style="background-color: #0f172a; padding: 24px; text-align: center;">
+          <h1 style="color: #ffffff; font-size: 20px; font-weight: 800; letter-spacing: 2px; margin: 0; text-transform: uppercase;">
+            BRAINSTORM CLUB
+          </h1>
+          <p style="color: #94a3b8; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; margin: 6px 0 0 0;">
+            LPU SCA Project & Innovation Community
+          </p>
+        </div>
+        
+        <div style="padding: 32px 24px;">
+          <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">
+            Hello <strong>${recipientName || 'there'}</strong>,
+          </p>
+          
+          <div style="color: #1e293b; font-size: 15px; line-height: 1.7; margin-bottom: 28px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 18px 20px;">
+            ${escapedReply}
+          </div>
+
+          <div style="background-color: #ffffff; border-left: 3px solid #cbd5e1; padding: 10px 14px; margin-bottom: 28px;">
+            <p style="color: #64748b; font-size: 11px; margin: 0 0 4px 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">In response to your query:</p>
+            <p style="color: #475569; font-size: 13px; margin: 0; font-style: italic;">"${cleanOriginal}"</p>
+          </div>
+          
+          <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 28px;">
+            <p style="color: #334155; font-size: 14px; font-weight: 600; margin: 0 0 4px 0;">
+              Regards,<br />
+              Brainstorm Club Team
+            </p>
+            <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+              LPU SCA Brainstorm Club
+            </p>
+          </div>
+        </div>
+      </div>
+    `
+  };
+
+  const info = await transporter.sendMail(mailOptions);
+  console.log(`[SMTP] Contact query reply sent successfully to ${toEmail}. MessageId: ${info.messageId}`);
+  return { success: true, messageId: info.messageId };
+};

@@ -8,6 +8,8 @@ import { useScrollReveal } from '../../hooks/useScrollReveal';
 // Dynamically import compression libs to prevent SSR issues if this was Next.js (fine for Vite)
 import imageCompression from 'browser-image-compression';
 
+const DOMAINS = ['Technical', 'Media', 'Anchor', 'Coordinator'];
+
 const INTERESTS = [
   'Web Development', 'App Development', 'AI / ML', 'Data Science', 
   'Cybersecurity', 'Cloud', 'IoT', 'Blockchain', 'UI/UX', 'Other'
@@ -25,6 +27,7 @@ export default function JoinUs() {
     email: '',
     phone: '',
     whatsapp: '',
+    domain: 'Technical',
     whyJoin: '',
     interests: [],
     profileImage: null
@@ -158,6 +161,7 @@ export default function JoinUs() {
     submitData.append('email', formData.email);
     submitData.append('phone', formData.phone);
     submitData.append('whatsapp', formData.whatsapp);
+    submitData.append('domain', formData.domain);
     submitData.append('whyJoin', formData.whyJoin);
     
     // Append interests array correctly
@@ -402,6 +406,40 @@ export default function JoinUs() {
                           className={`w-full bg-slate-50 dark:bg-[#080D1A] border border-slate-200 dark:border-[#26344D] px-5 py-4 font-body text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-brand-primary dark:focus:border-[#6366F1] transition-colors rounded-sm placeholder-slate-400 dark:placeholder-[#71819B] ${sameAsPhone ? 'opacity-70 cursor-not-allowed' : ''}`}
                         />
                       </div>
+                    </div>
+
+                    {/* Domain Selection */}
+                    <div className="flex flex-col gap-3">
+                      <div className="flex justify-between items-end">
+                        <label className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-[#71819B]">
+                          DESIRED DOMAIN *
+                        </label>
+                        <span className="font-mono text-[9px] text-brand-primary font-bold tracking-wider uppercase">
+                          Selected: {formData.domain}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {DOMAINS.map((dom) => {
+                          const isSelected = formData.domain === dom;
+                          return (
+                            <button
+                              type="button"
+                              key={dom}
+                              onClick={() => setFormData(prev => ({ ...prev, domain: dom }))}
+                              className={`py-3 px-3 border rounded-sm font-mono text-xs font-bold tracking-wider transition-all duration-300 text-center uppercase ${
+                                isSelected
+                                  ? 'bg-brand-primary border-brand-primary text-white shadow-[0_0_15px_rgba(99,102,241,0.25)] scale-[1.02]'
+                                  : 'bg-slate-50 dark:bg-[#080D1A] border-slate-200 dark:border-[#26344D] text-slate-700 dark:text-[#A8B5CC] hover:border-brand-primary/50 dark:hover:border-[#6366F1]/50'
+                              }`}
+                            >
+                              {dom}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <p className="text-[10px] font-mono text-slate-400 dark:text-[#71819B]">
+                        Choose your primary team interest. Leadership positions (Head Coordinator, Technical Head, Social Media Head) are assigned by administrators after review.
+                      </p>
                     </div>
 
                     {/* Interests */}

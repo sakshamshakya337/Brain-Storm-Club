@@ -12,7 +12,9 @@ export const getPublicEvents = async (req, res) => {
     // Only fetch necessary fields for the public list
     const events = await Event.find(filter)
       .populate('posterId', 'imageId')
-      .select('title slug date venue category status registrationOpen posterId')
+      .populate('coverImage.imageId', 'imageId')
+      .populate('images.imageId', 'imageId')
+      .select('title slug date venue category status registrationOpen posterId coverImage images')
       .sort({ date: 1 });
       
     res.status(200).json({ status: 'success', results: events.length, data: { events } });
@@ -25,7 +27,10 @@ export const getPublicEvents = async (req, res) => {
 export const getPublicEventDetails = async (req, res) => {
   try {
     const { slug } = req.params;
-    const event = await Event.findOne({ slug }).populate('posterId', 'imageId');
+    const event = await Event.findOne({ slug })
+      .populate('posterId', 'imageId')
+      .populate('coverImage.imageId', 'imageId')
+      .populate('images.imageId', 'imageId');
     
     if (!event) return res.status(404).json({ message: 'Event not found' });
     

@@ -70,7 +70,7 @@ const getTransformationForVariant = (variant) => {
     case 'member_card':
       return { width: 400, height: 400, crop: 'fill', quality: 'auto', fetch_format: 'auto' };
     case 'event_card':
-      return { width: 800, height: 500, crop: 'fill', quality: 'auto', fetch_format: 'auto' };
+      return { width: 800, crop: 'limit', quality: 'auto', fetch_format: 'auto' };
     case 'event_detail':
       return { width: 1400, crop: 'limit', quality: 'auto', fetch_format: 'auto' };
     case 'gallery_thumb':

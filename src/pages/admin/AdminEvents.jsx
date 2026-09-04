@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, Search, Filter, Plus, Calendar, Clock, MapPin, MoreVertical, Edit, Trash2, Users } from 'lucide-react';
+import { 
+  Loader2, Search, Filter, Plus, Calendar, Clock, MapPin, MoreVertical, 
+  Edit, Trash2, Users, Image as ImageIcon, Upload, ChevronUp, ChevronDown, 
+  Check, Star, AlertCircle, ExternalLink 
+} from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Link } from 'react-router-dom';
 import ProtectedImage from '../../components/common/ProtectedImage';
@@ -27,7 +31,12 @@ export default function AdminEvents() {
     registrationOpen: true
   };
   const [formData, setFormData] = useState(initialFormData);
-  const [posterFile, setPosterFile] = useState(null);
+  
+  // Multi-image gallery state
+  const [imagesList, setImagesList] = useState([]);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [externalUrlInput, setExternalUrlInput] = useState('');
+  const [urlError, setUrlError] = useState('');
 
   useEffect(() => {
     fetchEvents();
@@ -51,7 +60,9 @@ export default function AdminEvents() {
 
   const openCreateModal = () => {
     setFormData(initialFormData);
-    setPosterFile(null);
+    setImagesList([]);
+    setExternalUrlInput('');
+    setUrlError('');
     setIsEditing(false);
     setModalOpen(true);
   };
@@ -68,9 +79,147 @@ export default function AdminEvents() {
       status: event.status,
       registrationOpen: event.registrationOpen
     });
-    setPosterFile(null);
+
+    // Populate imagesList
+    let initialImgs = [];
+    if (Array.isArray(event.images) && event.images.length > 0) {
+      initialImgs = event.images.map((img, idx) => ({
+        source: img.source || (img.url ? 'external' : 'cloudinary'),
+        url: img.url || '',
+        imageId: img.imageId?._id || img.imageId || null,
+        publicId: img.publicId || '',
+        isCover: !!img.isCover,
+        order: typeof img.order === 'number' ? img.order : idx,
+        alt: img.alt || event.title
+      }));
+    } else if (event.coverImage) {
+      initialImgs = [{
+        source: event.coverImage.source || 'cloudinary',
+        url: event.coverImage.url || '',
+        imageId: event.coverImage.imageId?._id || event.coverImage.imageId || null,
+        publicId: event.coverImage.publicId || '',
+        isCover: true,
+        order: 0,
+        alt: event.title
+      }];
+    } else if (event.posterId) {
+      initialImgs = [{
+        source: 'cloudinary',
+        url: '',
+        imageId: event.posterId?._id || event.posterId,
+        publicId: '',
+        isCover: true,
+        order: 0,
+        alt: event.title
+      }];
+    }
+
+    if (initialImgs.length > 0 && !initialImgs.some(i => i.isCover)) {
+      initialImgs[0].isCover = true;
+    }
+
+    setImagesList(initialImgs);
+    setExternalUrlInput('');
+    setUrlError('');
     setIsEditing(true);
     setModalOpen(true);
+  };
+
+  const handleUploadImageFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingImage(true);
+      const fd = new FormData();
+      fd.append('image', file);
+
+      const res = await fetch('/api/admin/events/upload-image', {
+        method: 'POST',
+        body: fd
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Image upload failed');
+
+      const newImg = {
+        source: 'cloudinary',
+        imageId: data.data._id,
+        publicId: data.data.publicId,
+        url: '',
+        isCover: imagesList.length === 0,
+        order: imagesList.length,
+        alt: formData.title || 'Event image'
+      };
+
+      setImagesList(prev => [...prev, newImg]);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setUploadingImage(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleAddExternalUrl = () => {
+    setUrlError('');
+    const trimmed = externalUrlInput.trim();
+    if (!trimmed) return;
+
+    if (!trimmed.startsWith('https://')) {
+      setUrlError('Only secure HTTPS URLs (https://...) are accepted.');
+      return;
+    }
+
+    try {
+      new URL(trimmed);
+    } catch {
+      setUrlError('Invalid URL format.');
+      return;
+    }
+
+    const newImg = {
+      source: 'external',
+      url: trimmed,
+      imageId: null,
+      publicId: '',
+      isCover: imagesList.length === 0,
+      order: imagesList.length,
+      alt: formData.title || 'Event image'
+    };
+
+    setImagesList(prev => [...prev, newImg]);
+    setExternalUrlInput('');
+  };
+
+  const handleSetCover = (index) => {
+    setImagesList(prev => prev.map((img, i) => ({
+      ...img,
+      isCover: i === index
+    })));
+  };
+
+  const handleMoveImage = (index, direction) => {
+    const targetIdx = index + direction;
+    if (targetIdx < 0 || targetIdx >= imagesList.length) return;
+
+    setImagesList(prev => {
+      const copy = [...prev];
+      const temp = copy[index];
+      copy[index] = copy[targetIdx];
+      copy[targetIdx] = temp;
+      return copy.map((img, i) => ({ ...img, order: i }));
+    });
+  };
+
+  const handleRemoveImage = (index) => {
+    setImagesList(prev => {
+      const filtered = prev.filter((_, i) => i !== index);
+      if (prev[index]?.isCover && filtered.length > 0) {
+        filtered[0].isCover = true;
+      }
+      return filtered.map((img, i) => ({ ...img, order: i }));
+    });
   };
 
   const handleSave = async (e) => {
@@ -81,32 +230,30 @@ export default function AdminEvents() {
       const endpoint = isEditing ? `/api/admin/events/${formData._id}` : '/api/admin/events';
       const method = isEditing ? 'PATCH' : 'POST';
       
+      const sanitizedImages = imagesList.map((img, i) => ({
+        ...img,
+        order: i
+      }));
+      if (sanitizedImages.length > 0 && !sanitizedImages.some(img => img.isCover)) {
+        sanitizedImages[0].isCover = true;
+      }
+
+      const payload = {
+        ...formData,
+        images: sanitizedImages
+      };
+
       const res = await fetch(endpoint, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
       
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to save event');
       
-      const savedEventId = data.data.event._id;
-      
-      // If a poster was uploaded, handle the poster upload
-      if (posterFile) {
-        const formDataUpload = new FormData();
-        formDataUpload.append('poster', posterFile);
-        
-        const uploadRes = await fetch(`/api/admin/events/${savedEventId}/poster`, {
-          method: 'POST',
-          body: formDataUpload
-        });
-        
-        if (!uploadRes.ok) throw new Error('Event saved but poster upload failed.');
-      }
-      
       setModalOpen(false);
-      fetchEvents(); // Refresh list to get updated data including poster
+      fetchEvents();
     } catch (err) {
       alert(err.message);
     } finally {
@@ -224,19 +371,36 @@ export default function AdminEvents() {
               {filteredEvents.map((event) => (
                 <div key={event._id} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col group hover:shadow-md transition-shadow">
                   {/* Event Poster Header */}
-                  <div className="h-32 bg-slate-100 relative border-b border-slate-200">
-                    {event.posterId ? (
-                      <ProtectedImage 
-                        imageId={event.posterId?.imageId || event.posterId} 
-                        variant="event_card"
-                        alt={event.title} 
-                        className="absolute inset-0 w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-slate-400">
-                        <Calendar size={32} />
-                      </div>
-                    )}
+                  <div className="h-36 bg-slate-100 relative border-b border-slate-200">
+                    {(() => {
+                      const cover = event.coverImage || (event.images && event.images.find(i => i.isCover)) || (event.images && event.images[0]);
+                      const imgId = cover?.imageId?.imageId || cover?.imageId || event.posterId?.imageId || (typeof event.posterId === 'string' ? event.posterId : null);
+                      const srcUrl = cover?.source === 'external' ? cover.url : null;
+                      const count = event.images?.length || (imgId || srcUrl ? 1 : 0);
+
+                      return (
+                        <>
+                          {imgId || srcUrl ? (
+                            <ProtectedImage 
+                              imageId={imgId} 
+                              src={srcUrl}
+                              variant="event_card"
+                              alt={event.title} 
+                              className="absolute inset-0 w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-slate-400">
+                              <Calendar size={32} />
+                            </div>
+                          )}
+                          {count > 1 && (
+                            <span className="absolute bottom-2 left-2 z-10 bg-slate-900/80 text-white font-mono text-[9px] font-bold px-1.5 py-0.5 rounded border border-white/10 backdrop-blur-sm flex items-center gap-1 shadow-sm">
+                              <ImageIcon size={10} /> {count} images
+                            </span>
+                          )}
+                        </>
+                      );
+                    })()}
                     <div className="absolute top-3 right-3 flex gap-2">
                       <span className={cn("px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase shadow-sm border", getStatusColor(event.status))}>
                         {event.status}
@@ -297,7 +461,7 @@ export default function AdminEvents() {
       {/* Create / Edit Modal */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
               <h3 className="text-lg font-bold text-slate-900">{isEditing ? 'Edit Event' : 'Create New Event'}</h3>
               <button onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-slate-600">
@@ -398,29 +562,163 @@ export default function AdminEvents() {
                   ></textarea>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold font-mono tracking-widest uppercase text-slate-500 mb-1">Event Poster</label>
+                {/* Registration Open Toggle */}
+                <div className="pt-1">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
                     <input 
-                      type="file" 
-                      accept="image/*"
-                      onChange={(e) => setPosterFile(e.target.files[0])}
-                      className="w-full p-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none bg-white file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-brand-primary/10 file:text-brand-primary hover:file:bg-brand-primary/20"
+                      type="checkbox"
+                      checked={formData.registrationOpen}
+                      onChange={(e) => setFormData({...formData, registrationOpen: e.target.checked})}
+                      className="w-4 h-4 text-brand-primary rounded border-slate-300 focus:ring-brand-primary"
                     />
-                    {isEditing && !posterFile && <p className="text-[10px] text-slate-500 mt-1">Leave empty to keep existing poster.</p>}
+                    <span className="text-sm font-medium text-slate-700">Registrations Open (Allow public users to register)</span>
+                  </label>
+                </div>
+
+                {/* Event Media Gallery Manager */}
+                <div className="space-y-3 pt-3 border-t border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="block text-xs font-bold font-mono tracking-widest uppercase text-slate-700">Event Media Gallery</label>
+                      <p className="text-[11px] text-slate-500">Upload images or paste secure HTTPS image links (ImgBB, Cloudinary, Unsplash, etc.). Mark any photo as cover.</p>
+                    </div>
+                    <span className="font-mono text-xs text-slate-600 bg-slate-100 px-2 py-0.5 rounded font-medium border border-slate-200">
+                      {imagesList.length} {imagesList.length === 1 ? 'image' : 'images'}
+                    </span>
                   </div>
-                  
-                  <div className="flex items-center h-full pt-4">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input 
-                        type="checkbox"
-                        checked={formData.registrationOpen}
-                        onChange={(e) => setFormData({...formData, registrationOpen: e.target.checked})}
-                        className="w-4 h-4 text-brand-primary rounded border-slate-300 focus:ring-brand-primary"
-                      />
-                      <span className="text-sm font-medium text-slate-700">Registrations Open</span>
-                    </label>
+
+                  {/* Add Image Controls: File upload + External URL input */}
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 bg-slate-50 p-3.5 rounded-lg border border-slate-200">
+                    {/* File Upload Button */}
+                    <div className="sm:col-span-5">
+                      <label className="block text-[10px] font-bold font-mono uppercase text-slate-500 mb-1">Upload Local Image</label>
+                      <label className={cn(
+                        "flex items-center justify-center gap-2 px-3 py-2 bg-white border border-slate-300 rounded-md text-xs font-medium text-slate-700 hover:bg-slate-100 cursor-pointer transition-colors shadow-sm",
+                        uploadingImage && "opacity-60 pointer-events-none"
+                      )}>
+                        {uploadingImage ? <Loader2 className="animate-spin text-brand-primary" size={14} /> : <Upload size={14} className="text-slate-500" />}
+                        <span>{uploadingImage ? 'Uploading & Processing...' : 'Select image file'}</span>
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          disabled={uploadingImage}
+                          onChange={handleUploadImageFile} 
+                          className="hidden" 
+                        />
+                      </label>
+                    </div>
+
+                    {/* External URL Input */}
+                    <div className="sm:col-span-7">
+                      <label className="block text-[10px] font-bold font-mono uppercase text-slate-500 mb-1">Add Image via HTTPS URL</label>
+                      <div className="flex gap-2">
+                        <input 
+                          type="url" 
+                          placeholder="https://i.ibb.co/... or https://..."
+                          value={externalUrlInput}
+                          onChange={(e) => { setExternalUrlInput(e.target.value); setUrlError(''); }}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddExternalUrl(); } }}
+                          className="flex-1 px-3 py-1.5 border border-slate-300 rounded-md text-xs focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none bg-white"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddExternalUrl}
+                          className="px-3 py-1.5 bg-slate-800 text-white rounded-md text-xs font-medium hover:bg-slate-700 transition-colors shadow-sm shrink-0"
+                        >
+                          Add URL
+                        </button>
+                      </div>
+                      {urlError && <p className="text-[10px] text-red-500 mt-1">{urlError}</p>}
+                    </div>
                   </div>
+
+                  {/* Images List Cards */}
+                  {imagesList.length === 0 ? (
+                    <div className="border border-dashed border-slate-200 rounded-lg p-5 text-center text-slate-400 bg-white">
+                      <ImageIcon size={26} className="mx-auto mb-1 opacity-40" />
+                      <p className="text-xs">No media added yet. Upload an image file or add an external URL above.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                      {imagesList.map((img, idx) => (
+                        <div 
+                          key={idx} 
+                          className={cn(
+                            "flex items-center gap-3 p-2.5 rounded-lg border transition-all bg-white",
+                            img.isCover ? "border-brand-primary ring-1 ring-brand-primary/20 bg-brand-primary/[0.02]" : "border-slate-200 hover:border-slate-300"
+                          )}
+                        >
+                          {/* Thumbnail preview */}
+                          <div className="w-14 h-12 rounded overflow-hidden bg-slate-900 flex-shrink-0 relative border border-slate-200 flex items-center justify-center">
+                            <ProtectedImage 
+                              imageId={img.imageId?.imageId || img.imageId} 
+                              src={img.source === 'external' ? img.url : null} 
+                              variant="event_card" 
+                              className="w-full h-full object-cover" 
+                            />
+                          </div>
+
+                          {/* Details */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className={cn(
+                                "px-1.5 py-0.5 rounded text-[9px] font-mono font-bold tracking-wider uppercase",
+                                img.isCover ? "bg-brand-primary text-white shadow-xs" : "bg-slate-100 text-slate-600"
+                              )}>
+                                {img.isCover ? "COVER" : `PHOTO #${idx + 1}`}
+                              </span>
+                              <span className="text-[10px] font-mono text-slate-400">
+                                {img.source === 'external' ? 'External URL' : 'Cloudinary Upload'}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-600 truncate mt-0.5" title={img.url || img.publicId || (typeof img.imageId === 'string' ? img.imageId : img.imageId?.imageId)}>
+                              {img.source === 'external' ? img.url : (img.publicId || 'Secure storage')}
+                            </p>
+                          </div>
+
+                          {/* Reorder and management buttons */}
+                          <div className="flex items-center gap-1">
+                            {!img.isCover && (
+                              <button
+                                type="button"
+                                onClick={() => handleSetCover(idx)}
+                                className="px-2 py-1 text-[10px] font-medium text-slate-600 hover:text-brand-primary hover:bg-slate-100 rounded transition-colors"
+                                title="Set as event cover poster"
+                              >
+                                Set Cover
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              disabled={idx === 0}
+                              onClick={() => handleMoveImage(idx, -1)}
+                              className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded disabled:opacity-30 disabled:hover:bg-transparent"
+                              title="Move Up"
+                            >
+                              <ChevronUp size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={idx === imagesList.length - 1}
+                              onClick={() => handleMoveImage(idx, 1)}
+                              className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded disabled:opacity-30 disabled:hover:bg-transparent"
+                              title="Move Down"
+                            >
+                              <ChevronDown size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveImage(idx)}
+                              className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                              title="Remove image"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 

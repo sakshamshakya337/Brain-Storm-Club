@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, Search, Filter, Mail, CheckCircle2, MoreVertical, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react';
+import { 
+  Loader2, Search, Filter, Mail, CheckCircle2, MoreVertical, ExternalLink, 
+  ChevronLeft, ChevronRight, Send, Reply, Clock, User, AlertCircle, Calendar, Check 
+} from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 export default function AdminContact() {
@@ -17,6 +20,12 @@ export default function AdminContact() {
   // Modal state
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedQuery, setSelectedQuery] = useState(null);
+
+  // Reply state
+  const [replyText, setReplyText] = useState('');
+  const [sendingReply, setSendingReply] = useState(false);
+  const [replyError, setReplyError] = useState('');
+  const [replySuccessMsg, setReplySuccessMsg] = useState('');
 
   useEffect(() => {
     fetchQueries();
@@ -68,9 +77,61 @@ export default function AdminContact() {
 
   const openQuery = (query) => {
     setSelectedQuery(query);
+    setReplyText('');
+    setReplyError('');
+    setReplySuccessMsg('');
     setViewModalOpen(true);
     if (query.status === 'Unread') {
       updateStatus(query._id, 'Read');
+    }
+  };
+
+  const handleSendReply = async (e) => {
+    e?.preventDefault();
+    if (!selectedQuery) return;
+
+    const trimmed = replyText.trim();
+    if (!trimmed) {
+      setReplyError('Reply message cannot be empty.');
+      return;
+    }
+
+    if (trimmed.length < 5) {
+      setReplyError('Reply message must be at least 5 characters long.');
+      return;
+    }
+
+    if (trimmed.length > 5000) {
+      setReplyError('Reply message exceeds maximum length of 5000 characters.');
+      return;
+    }
+
+    try {
+      setSendingReply(true);
+      setReplyError('');
+      setReplySuccessMsg('');
+
+      const res = await fetch(`/api/admin/contact/${selectedQuery._id}/reply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: trimmed })
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || 'Reply could not be sent.');
+      }
+
+      // Successful delivery: update selected query with new replies array and status
+      const updated = json.data.query;
+      setSelectedQuery(updated);
+      setQueries(qs => qs.map(q => q._id === updated._id ? updated : q));
+      setReplyText('');
+      setReplySuccessMsg(`Reply successfully delivered to ${updated.email}!`);
+    } catch (err) {
+      setReplyError(err.message || 'Reply could not be sent. Please check SMTP configuration.');
+    } finally {
+      setSendingReply(false);
     }
   };
 
@@ -78,6 +139,7 @@ export default function AdminContact() {
     switch (status) {
       case 'Unread': return 'bg-blue-100 text-blue-700 border-blue-200';
       case 'Read': return 'bg-amber-100 text-amber-700 border-amber-200';
+      case 'Replied': return 'bg-purple-100 text-purple-700 border-purple-200';
       case 'Resolved': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
       default: return 'bg-slate-100 text-slate-700 border-slate-200';
     }
@@ -121,6 +183,7 @@ export default function AdminContact() {
               <option value="All">All Statuses</option>
               <option value="Unread">Unread</option>
               <option value="Read">Read</option>
+              <option value="Replied">Replied</option>
               <option value="Resolved">Resolved</option>
             </select>
           </div>
@@ -239,57 +302,205 @@ export default function AdminContact() {
       {/* View Modal */}
       {viewModalOpen && selectedQuery && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900">{selectedQuery.subject}</h3>
-                <p className="text-xs font-mono text-slate-500 mt-1">
-                  Received: {new Date(selectedQuery.createdAt).toLocaleString()}
-                </p>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="p-5 sm:p-6 border-b border-slate-100 flex justify-between items-start bg-slate-50 gap-4">
+              <div className="min-w-0 flex-1">
+                <h3 className="text-lg font-bold text-slate-900 truncate" title={selectedQuery.subject}>
+                  {selectedQuery.subject}
+                </h3>
+                <div className="flex flex-wrap items-center gap-3 text-xs font-mono text-slate-500 mt-1">
+                  <span className="flex items-center gap-1">
+                    <Calendar size={12} className="text-slate-400" />
+                    Received: {new Date(selectedQuery.createdAt).toLocaleString()}
+                  </span>
+                  {selectedQuery.replies?.length > 0 && (
+                    <span className="text-purple-600 font-semibold flex items-center gap-1">
+                      <Reply size={12} />
+                      {selectedQuery.replies.length} {selectedQuery.replies.length === 1 ? 'reply sent' : 'replies sent'}
+                    </span>
+                  )}
+                </div>
               </div>
-              <span className={cn("px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase border", getStatusColor(selectedQuery.status))}>
+              <span className={cn("px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase border shrink-0 shadow-xs", getStatusColor(selectedQuery.status))}>
                 {selectedQuery.status}
               </span>
             </div>
             
-            <div className="p-6 overflow-y-auto flex-1">
-              <div className="flex gap-4 items-start mb-6 pb-6 border-b border-slate-100">
-                <div className="w-12 h-12 rounded-full bg-brand-primary/10 text-brand-primary flex items-center justify-center font-bold text-xl uppercase shrink-0">
+            {/* Modal Body */}
+            <div className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-6">
+              {/* Sender Details */}
+              <div className="flex gap-4 items-center p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                <div className="w-11 h-11 rounded-full bg-brand-primary/10 text-brand-primary flex items-center justify-center font-bold text-lg uppercase shrink-0 border border-brand-primary/20">
                   {selectedQuery.name.charAt(0)}
                 </div>
-                <div>
-                  <div className="font-bold text-slate-900">{selectedQuery.name}</div>
-                  <a href={`mailto:${selectedQuery.email}`} className="text-brand-primary hover:underline text-sm flex items-center gap-1 mt-0.5">
+                <div className="min-w-0 flex-1">
+                  <div className="font-bold text-slate-900 text-sm">{selectedQuery.name}</div>
+                  <a 
+                    href={`mailto:${selectedQuery.email}`} 
+                    className="text-brand-primary hover:underline text-xs flex items-center gap-1 mt-0.5 truncate"
+                    title={selectedQuery.email}
+                  >
+                    <Mail size={12} />
                     {selectedQuery.email}
-                    <ExternalLink size={12} />
+                    <ExternalLink size={11} className="opacity-60" />
                   </a>
                 </div>
               </div>
               
-              <div className="prose prose-sm prose-slate max-w-none">
-                <p className="whitespace-pre-wrap">{selectedQuery.message}</p>
+              {/* Original Query Message */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs font-mono text-slate-500">
+                  <span className="font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <Mail size={13} className="text-slate-400" /> Original Inquiry
+                  </span>
+                  <span className="text-[11px]">{new Date(selectedQuery.createdAt).toLocaleDateString()}</span>
+                </div>
+                <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                  <p className="whitespace-pre-wrap text-sm text-slate-800 leading-relaxed font-body">
+                    {selectedQuery.message}
+                  </p>
+                </div>
+              </div>
+
+              {/* Chronological Reply History */}
+              {Array.isArray(selectedQuery.replies) && selectedQuery.replies.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold font-mono tracking-widest uppercase text-slate-600 flex items-center gap-1.5">
+                    <Clock size={13} className="text-purple-600" />
+                    Conversation History ({selectedQuery.replies.length})
+                  </h4>
+                  <div className="space-y-3">
+                    {selectedQuery.replies.map((rep, idx) => (
+                      <div key={idx} className="bg-purple-50/40 border border-purple-200/80 rounded-lg p-4 space-y-2.5">
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-purple-900 font-mono text-[11px] uppercase tracking-wider flex items-center gap-1">
+                              <User size={12} className="text-purple-600" />
+                              {rep.adminName || 'Brainstorm Admin'}
+                            </span>
+                            <span className="bg-purple-100 text-purple-700 text-[10px] font-mono px-2 py-0.5 rounded font-medium border border-purple-200/60 flex items-center gap-1">
+                              <Check size={10} /> Sent via Email
+                            </span>
+                          </div>
+                          <span className="text-slate-400 text-[11px] font-mono">
+                            {new Date(rep.sentAt).toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="pl-3 border-l-2 border-purple-300">
+                          <p className="whitespace-pre-wrap text-sm text-slate-800 leading-relaxed font-body">
+                            {rep.message}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Compose Email Reply Section */}
+              <div className="border border-slate-200 rounded-lg p-4 bg-white shadow-xs space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-brand-primary/10 text-brand-primary flex items-center justify-center">
+                      <Reply size={13} />
+                    </div>
+                    <h4 className="font-bold text-sm text-slate-900">Send Official Email Reply</h4>
+                  </div>
+                  <span className="text-[11px] font-mono text-slate-500">
+                    Delivered to: <strong className="text-slate-700 font-semibold">{selectedQuery.email}</strong>
+                  </span>
+                </div>
+
+                {replySuccessMsg && (
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-lg flex items-center gap-2 animate-in fade-in duration-200">
+                    <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />
+                    <span className="flex-1 font-medium">{replySuccessMsg}</span>
+                  </div>
+                )}
+
+                {replyError && (
+                  <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg flex items-center gap-2 animate-in fade-in duration-200">
+                    <AlertCircle size={16} className="shrink-0 text-red-600" />
+                    <span className="flex-1 font-medium">{replyError}</span>
+                  </div>
+                )}
+
+                <div className="space-y-1">
+                  <textarea
+                    value={replyText}
+                    onChange={(e) => { setReplyText(e.target.value); setReplyError(''); }}
+                    disabled={sendingReply}
+                    rows={4}
+                    placeholder={`Write your reply to ${selectedQuery.name} here...\n(Line breaks will be preserved in the delivered email)`}
+                    className="w-full p-3 border border-slate-200 rounded-lg text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all disabled:opacity-60 disabled:bg-slate-50 resize-y"
+                  />
+                  <div className="flex justify-between items-center text-[11px] font-mono text-slate-400 px-1">
+                    <span>Min 5 characters</span>
+                    <span className={cn(replyText.length > 5000 ? "text-red-500 font-bold" : "")}>
+                      {replyText.length} / 5000
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => { setReplyText(''); setReplyError(''); }}
+                    disabled={!replyText || sendingReply}
+                    className="text-xs text-slate-500 hover:text-slate-700 font-medium disabled:opacity-40 disabled:hover:text-slate-500 transition-colors"
+                  >
+                    Clear Draft
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSendReply}
+                    disabled={sendingReply || !replyText.trim() || replyText.trim().length < 5 || replyText.trim().length > 5000}
+                    className="flex items-center gap-2 px-4 py-2 bg-brand-primary hover:bg-brand-secondary text-white rounded-lg text-xs font-semibold shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {sendingReply ? (
+                      <>
+                        <Loader2 size={13} className="animate-spin" />
+                        <span>Sending via SMTP...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send size={13} />
+                        <span>Send Email Reply</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
             
-            <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+            {/* Modal Footer */}
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-3">
+              <div>
+                {selectedQuery.status !== 'Resolved' ? (
+                  <button 
+                    onClick={() => {
+                      updateStatus(selectedQuery._id, 'Resolved');
+                      setViewModalOpen(false);
+                    }}
+                    className="px-3 py-2 bg-white border border-emerald-300 text-emerald-700 hover:bg-emerald-50 rounded-lg text-xs font-medium transition-colors shadow-xs flex items-center gap-1.5"
+                  >
+                    <CheckCircle2 size={14} />
+                    Mark as Resolved
+                  </button>
+                ) : (
+                  <span className="text-xs font-mono font-medium text-emerald-700 flex items-center gap-1.5 px-2 py-1 bg-emerald-50 rounded border border-emerald-200">
+                    <CheckCircle2 size={14} /> Query is Resolved
+                  </span>
+                )}
+              </div>
               <button 
                 onClick={() => setViewModalOpen(false)}
                 className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-100 transition-colors"
               >
                 Close
               </button>
-              {selectedQuery.status !== 'Resolved' && (
-                <button 
-                  onClick={() => {
-                    updateStatus(selectedQuery._id, 'Resolved');
-                    setViewModalOpen(false);
-                  }}
-                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors shadow-sm flex items-center gap-2"
-                >
-                  <CheckCircle2 size={16} />
-                  Mark as Resolved
-                </button>
-              )}
             </div>
           </div>
         </div>

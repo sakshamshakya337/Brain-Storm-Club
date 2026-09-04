@@ -68,24 +68,47 @@ export const submitMemberRegistration = async (req, res) => {
 export const submitJoinUs = async (req, res) => {
   try {
     const { registrationNumber } = req.body;
+    if (!registrationNumber || !registrationNumber.trim()) {
+      return res.status(400).json({ message: 'Registration number is required' });
+    }
     const normalizedRegNo = registrationNumber.trim().toUpperCase();
+
+    // Check if student is already a registered member
+    const existingMember = await Member.findOne({ registrationNumber: normalizedRegNo });
+    if (existingMember) {
+      return res.status(409).json({ message: 'You are already an active member of Brainstorm Club.' });
+    }
 
     if (!req.body.protectedImageId) {
       return res.status(400).json({ message: 'Profile image is required' });
     }
 
+    // Controlled domain validation (enforce allowed enum; default to Technical)
+    const ALLOWED_DOMAINS = ['Technical', 'Anchor', 'Media', 'Coordinator'];
+    const domainCandidate = req.body.domain ? req.body.domain.trim() : '';
+    const validDomain = ALLOWED_DOMAINS.includes(domainCandidate) ? domainCandidate : 'Technical';
+
     const joinUsData = { 
-      ...req.body, 
+      fullName: (req.body.fullName || '').trim(),
       registrationNumber: normalizedRegNo,
-      interests: req.body['interests[]'] || req.body.interests,
-      photoId: req.body.protectedImageId
+      course: (req.body.course || '').trim(),
+      section: (req.body.section || '').trim(),
+      email: (req.body.email || '').trim().toLowerCase(),
+      phone: (req.body.phone || '').trim(),
+      whatsapp: (req.body.whatsapp || req.body.phone || '').trim(),
+      whyJoin: (req.body.whyJoin || '').trim(),
+      domain: validDomain,
+      interests: req.body['interests[]'] || req.body.interests || [],
+      photoId: req.body.protectedImageId,
+      status: 'New'
     };
+
     const entry = await JoinUs.create(joinUsData);
 
     await Notification.create({
       type: 'JOIN_US',
       title: 'New Join Us Request',
-      message: `A new Join Us application has been submitted by ${entry.fullName}.`,
+      message: `A new Join Us application has been submitted by ${entry.fullName} (${validDomain} Domain).`,
       entityType: 'JoinUs',
       entityId: entry._id
     }).catch(err => console.error('Failed to create notification', err));
@@ -93,6 +116,7 @@ export const submitJoinUs = async (req, res) => {
     res.status(201).json({ status: 'success', message: 'Application received!', data: { entry } });
   } catch (error) {
     if (error.code === 11000) return res.status(409).json({ message: 'You have already applied.' });
+    console.error('[submitJoinUs error]', error);
     res.status(500).json({ message: 'Error submitting application' });
   }
 };

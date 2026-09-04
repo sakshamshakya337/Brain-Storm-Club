@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Calendar, MapPin, Clock, AlertCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Calendar, MapPin, Clock, AlertCircle } from 'lucide-react';
 import EventStatus from '../../components/events/EventStatus';
 import EventCard from '../../components/events/EventCard';
 import ProtectedImage from '../../components/common/ProtectedImage';
@@ -30,9 +30,35 @@ export default function EventDetail() {
   const [relatedEvents, setRelatedEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   usePageReveal(containerRef, [loading]);
   useScrollReveal(containerRef, [loading]);
+
+  // Reset active image when slug changes
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [slug]);
+
+  // Normalized gallery images array (sorted by order)
+  const galleryImages = React.useMemo(() => {
+    if (!event) return [];
+    if (Array.isArray(event.images) && event.images.length > 0) {
+      return [...event.images].sort((a, b) => (a.order || 0) - (b.order || 0));
+    }
+    if (event.coverImage) {
+      return [event.coverImage];
+    }
+    if (event.posterId) {
+      return [{
+        source: 'cloudinary',
+        imageId: event.posterId,
+        isCover: true,
+        alt: event.title
+      }];
+    }
+    return [];
+  }, [event]);
 
   useEffect(() => {
     // Scroll to top when loading new event
@@ -96,7 +122,7 @@ export default function EventDetail() {
         <div className="container mx-auto px-6 lg:px-12 max-w-[1440px] pt-24 pb-32 flex-1 flex flex-col justify-center items-center">
           <div className="flex flex-col items-center gap-4">
             <div className="w-8 h-8 border-2 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
-            <span className="font-mono text-xs tracking-widest text-slate-500 uppercase">LOADING EVENT DETAILS...</span>
+            <span className="font-mono text-xs tracking-widest text-slate-500 dark:text-slate-400 uppercase">LOADING EVENT DETAILS...</span>
           </div>
         </div>
         <Footer />
@@ -129,7 +155,7 @@ export default function EventDetail() {
     return (
       <div className="w-full bg-white dark:bg-slate-950 min-h-screen text-slate-900 dark:text-slate-300 font-body flex flex-col justify-between">
         <div className="container mx-auto px-6 lg:px-12 max-w-[1440px] pt-24 pb-32 flex-1 flex flex-col items-center justify-center text-center">
-          <span className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 mb-4 border border-slate-200 dark:border-slate-800 px-3 py-1">ERROR 404</span>
+          <span className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-slate-400 mb-4 border border-slate-200 dark:border-slate-800 px-3 py-1">ERROR 404</span>
           <h1 className="font-heading font-black text-4xl mb-6 text-slate-900 dark:text-white">EVENT NOT FOUND</h1>
           <p className="font-body text-slate-600 dark:text-slate-400 max-w-md mb-8 font-light">The event you are looking for may have been removed or does not exist.</p>
           <Link to="/events" className="font-mono text-xs font-bold tracking-widest uppercase flex items-center gap-2 border border-slate-300 dark:border-slate-700 px-6 py-3 hover:text-brand-primary transition-colors">
@@ -152,7 +178,7 @@ export default function EventDetail() {
         <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]">
           
           {/* Breadcrumb */}
-          <div className="reveal-eyebrow mb-12 font-mono text-[10px] tracking-widest uppercase text-slate-500 font-bold flex flex-wrap items-center gap-2">
+          <div className="reveal-eyebrow mb-12 font-mono text-[10px] tracking-widest uppercase text-slate-500 dark:text-slate-400 font-bold flex flex-wrap items-center gap-2">
             <Link to="/events" className="hover:text-brand-primary transition-colors">Events</Link>
             <span>/</span>
             <span className="text-slate-400">{event.category}</span>
@@ -182,19 +208,19 @@ export default function EventDetail() {
               <div className="reveal-meta grid grid-cols-2 gap-y-6 gap-x-4 border-t border-slate-200 dark:border-slate-800 pt-8">
                 {displayDate && (
                   <div>
-                    <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 mb-2">DATE</div>
+                    <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-slate-400 mb-2">DATE</div>
                     <div className="font-body font-medium text-slate-900 dark:text-white">{displayDate}</div>
                   </div>
                 )}
                 {event.time && (
                   <div>
-                    <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 mb-2">TIME</div>
+                    <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-slate-400 mb-2">TIME</div>
                     <div className="font-body font-medium text-slate-900 dark:text-white">{event.time}</div>
                   </div>
                 )}
                 {event.venue && (
                   <div className={!event.time ? "col-span-2" : ""}>
-                    <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 mb-2">LOCATION</div>
+                    <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-slate-400 mb-2">LOCATION</div>
                     <div className="font-body font-medium text-slate-900 dark:text-white">{event.venue}</div>
                   </div>
                 )}
@@ -202,7 +228,7 @@ export default function EventDetail() {
 
               {/* Registration CTA */}
               <div className="mt-12 pt-8 border-t border-slate-200 dark:border-slate-800">
-                <div className="reveal-meta font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 mb-4">REGISTRATION</div>
+                <div className="reveal-meta font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-slate-400 mb-4">REGISTRATION</div>
                 {event.registrationOpen ? (
                   <Link 
                     to={`/events/${event.slug}/register`}
@@ -218,23 +244,112 @@ export default function EventDetail() {
               </div>
             </div>
 
-            {/* RIGHT: Hero Poster */}
-            <div className="reveal-image relative min-w-0 max-w-full flex items-center justify-center">
-              <div className="w-full flex items-center justify-center bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-sm overflow-hidden p-2 sm:p-4 min-h-[260px] sm:min-h-[360px] lg:min-h-[440px] max-h-[620px]">
-                {event.posterId ? (
-                  <ProtectedImage 
-                    imageId={event.posterId?.imageId || (typeof event.posterId === 'string' ? event.posterId : null)} 
-                    variant="event_detail"
-                    alt={event.title} 
-                    className="max-w-full max-h-[580px] w-auto h-auto object-contain block mx-auto rounded-sm shadow-sm"
-                  />
-                ) : (
+            {/* RIGHT: Hero Poster / Gallery */}
+            <div className="reveal-image relative min-w-0 max-w-full flex flex-col items-center justify-center">
+              <div className="relative w-full flex items-center justify-center bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-sm overflow-hidden p-2 sm:p-4 min-h-[260px] sm:min-h-[360px] lg:min-h-[440px] max-h-[620px] group/poster">
+                {galleryImages.length > 0 ? (() => {
+                  const currentImage = galleryImages[activeImageIndex] || galleryImages[0];
+                  const currentImageId = currentImage?.imageId?.imageId || currentImage?.imageId || (typeof currentImage === 'string' ? currentImage : null);
+                  const currentSrc = currentImage?.source === 'external' ? currentImage.url : null;
+
+                  return (
+                    <>
+                      <ProtectedImage 
+                        imageId={currentImageId} 
+                        src={currentSrc}
+                        variant="event_detail"
+                        alt={currentImage?.alt || event.title} 
+                        className="max-w-full max-h-[580px] w-auto h-auto object-contain block mx-auto rounded-sm shadow-sm"
+                      />
+
+                      {/* Multi-image Prev/Next Controls */}
+                      {galleryImages.length > 1 && (
+                        <>
+                          <button
+                            type="button"
+                            aria-label="Previous image"
+                            onClick={() => setActiveImageIndex((prev) => (prev === 0 ? galleryImages.length - 1 : prev - 1))}
+                            className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-slate-900/75 hover:bg-slate-900 text-white flex items-center justify-center transition-all border border-white/20 shadow-lg active:scale-95 sm:opacity-0 sm:group-hover/poster:opacity-100 focus:opacity-100"
+                          >
+                            <ChevronLeft size={20} />
+                          </button>
+                          <button
+                            type="button"
+                            aria-label="Next image"
+                            onClick={() => setActiveImageIndex((prev) => (prev === galleryImages.length - 1 ? 0 : prev + 1))}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-slate-900/75 hover:bg-slate-900 text-white flex items-center justify-center transition-all border border-white/20 shadow-lg active:scale-95 sm:opacity-0 sm:group-hover/poster:opacity-100 focus:opacity-100"
+                          >
+                            <ChevronRight size={20} />
+                          </button>
+
+                          {/* Image Counter Badge */}
+                          <span className="absolute bottom-3 right-3 z-20 font-mono text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded bg-slate-900/80 text-white border border-white/10 backdrop-blur-sm shadow-sm">
+                            {activeImageIndex + 1} / {galleryImages.length}
+                          </span>
+                        </>
+                      )}
+                    </>
+                  );
+                })() : (
                   <div className="w-full h-64 sm:h-80 flex flex-col items-center justify-center text-slate-400 dark:text-slate-600 gap-3">
                     <Calendar size={48} strokeWidth={1.5} className="opacity-40" />
                     <span className="font-mono text-xs tracking-widest uppercase">No Poster Available</span>
                   </div>
                 )}
               </div>
+
+              {/* Gallery Thumbnails (When >1 image) */}
+              {galleryImages.length > 1 && (
+                <div className="w-full mt-3 flex flex-col items-center">
+                  {/* Desktop / Tablet Thumbnail Strip */}
+                  <div className="hidden sm:flex items-center gap-2 overflow-x-auto py-1 px-1 max-w-full scrollbar-thin">
+                    {galleryImages.map((img, idx) => {
+                      const thumbId = img.imageId?.imageId || img.imageId || (typeof img === 'string' ? img : null);
+                      const thumbSrc = img.source === 'external' ? img.url : null;
+                      const isActive = idx === activeImageIndex;
+
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setActiveImageIndex(idx)}
+                          aria-label={`View image ${idx + 1}`}
+                          className={`relative w-16 h-12 rounded-sm overflow-hidden border transition-all flex-shrink-0 bg-slate-900 ${
+                            isActive 
+                              ? 'border-brand-primary ring-2 ring-brand-primary/50 scale-105 opacity-100' 
+                              : 'border-slate-300 dark:border-slate-800 opacity-60 hover:opacity-100'
+                          }`}
+                        >
+                          <ProtectedImage 
+                            imageId={thumbId}
+                            src={thumbSrc}
+                            variant="event_card"
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Mobile Compact Dot Indicators */}
+                  <div className="flex sm:hidden items-center justify-center gap-2 py-2">
+                    {galleryImages.map((_, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setActiveImageIndex(idx)}
+                        aria-label={`Go to slide ${idx + 1}`}
+                        className={`transition-all rounded-full ${
+                          idx === activeImageIndex 
+                            ? 'w-6 h-1.5 bg-brand-primary' 
+                            : 'w-2 h-1.5 bg-slate-400 dark:bg-slate-600'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -245,7 +360,7 @@ export default function EventDetail() {
         <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]" data-reveal="up">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8">
             <div className="col-span-1 lg:col-span-3">
-              <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 sticky top-28 flex items-center gap-3">
+              <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-slate-400 sticky top-28 flex items-center gap-3">
                 <span className="w-8 h-px bg-slate-300 dark:bg-slate-700"></span>
                 OVERVIEW
               </div>
@@ -306,7 +421,7 @@ export default function EventDetail() {
       {event.gallery && event.gallery.length > 0 && (
         <section className="py-16 lg:py-24 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/20">
           <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]" data-reveal="stagger-children">
-             <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 mb-8 flex items-center gap-3">
+             <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-slate-400 mb-8 flex items-center gap-3">
                 <span className="w-8 h-px bg-slate-300 dark:bg-slate-700"></span>
                 GALLERY
               </div>

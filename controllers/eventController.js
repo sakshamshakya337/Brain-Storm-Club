@@ -1,9 +1,95 @@
 import Event from '../models/Event.js';
 
+export const isValidImageUrl = (url) => {
+  if (!url || typeof url !== 'string') return false;
+  const trimmed = url.trim();
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== 'https:' && (process.env.NODE_ENV === 'production' || parsed.protocol !== 'http:')) {
+      return false;
+    }
+    if (process.env.NODE_ENV === 'production') {
+      if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1' || parsed.hostname.endsWith('.local')) {
+        return false;
+      }
+    }
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const processEventPayload = (body) => {
+  const payload = { ...body };
+  
+  if (Array.isArray(payload.images)) {
+    payload.images = payload.images.map((img, idx) => {
+      if (typeof img === 'string') {
+        return {
+          url: img.trim(),
+          source: 'external',
+          order: idx,
+          isCover: idx === 0,
+        };
+      }
+      const rawImageId = img.imageId?._id || img.imageId;
+      return {
+        url: (img.url || '').trim(),
+        source: img.source === 'external' ? 'external' : 'cloudinary',
+        publicId: img.publicId || '',
+        imageId: rawImageId || null,
+        alt: img.alt || '',
+        order: typeof img.order === 'number' ? img.order : idx,
+        isCover: !!img.isCover,
+      };
+    });
+
+    // Validate external URLs
+    for (const img of payload.images) {
+      if (img.source === 'external' && img.url) {
+        if (!isValidImageUrl(img.url)) {
+          throw new Error(`Invalid image URL format: "${img.url}". Only secure HTTPS image URLs are supported.`);
+        }
+      }
+    }
+
+    // Sync cover image
+    const coverItem = payload.images.find(img => img.isCover) || payload.images[0];
+    if (coverItem) {
+      coverItem.isCover = true;
+      const rawCoverImgId = coverItem.imageId?._id || coverItem.imageId;
+      payload.coverImage = {
+        url: coverItem.url,
+        source: coverItem.source,
+        publicId: coverItem.publicId,
+        imageId: rawCoverImgId || null,
+        alt: coverItem.alt,
+      };
+      if (rawCoverImgId) {
+        payload.posterId = rawCoverImgId;
+      }
+    }
+  }
+
+  if (payload.posterId?._id) {
+    payload.posterId = payload.posterId._id;
+  }
+
+  if (payload.coverImage && payload.coverImage.source === 'external' && payload.coverImage.url) {
+    if (!isValidImageUrl(payload.coverImage.url)) {
+      throw new Error(`Invalid cover image URL: "${payload.coverImage.url}"`);
+    }
+  }
+
+  return payload;
+};
+
 export const getAllEventsAdmin = async (req, res) => {
   try {
     const events = await Event.find()
       .populate('posterId')
+      .populate('coverImage.imageId')
+      .populate('images.imageId')
       .sort({ date: -1 });
     res.status(200).json({ status: 'success', data: { events } });
   } catch (error) {
@@ -13,26 +99,31 @@ export const getAllEventsAdmin = async (req, res) => {
 
 export const createEvent = async (req, res) => {
   try {
-    const event = await Event.create(req.body);
+    const payload = processEventPayload(req.body);
+    const event = await Event.create(payload);
     res.status(201).json({ status: 'success', data: { event } });
   } catch (error) {
     if (error.code === 11000) {
       return res.status(400).json({ message: 'Event with this slug already exists' });
     }
-    res.status(500).json({ message: 'Error creating event' });
+    res.status(400).json({ message: error.message || 'Error creating event' });
   }
 };
 
 export const updateEvent = async (req, res) => {
   try {
     const { id } = req.params;
-    const event = await Event.findByIdAndUpdate(id, req.body, { new: true, runValidators: true });
+    const payload = processEventPayload(req.body);
+    const event = await Event.findByIdAndUpdate(id, payload, { new: true, runValidators: true })
+      .populate('posterId')
+      .populate('coverImage.imageId')
+      .populate('images.imageId');
     
     if (!event) return res.status(404).json({ message: 'Event not found' });
     
     res.status(200).json({ status: 'success', data: { event } });
   } catch (error) {
-    res.status(500).json({ message: 'Error updating event' });
+    res.status(400).json({ message: error.message || 'Error updating event' });
   }
 };
 
@@ -42,15 +133,33 @@ export const deleteEvent = async (req, res) => {
     const event = await Event.findById(id);
     if (!event) return res.status(404).json({ message: 'Event not found' });
     
-    // Delete Cloudinary asset if exists
+    // Delete owned Cloudinary assets if exist
+    const Image = (await import('../models/Image.js')).default;
+    const { deleteImageFromCloudinary } = await import('../services/cloudinaryService.js');
+
+    const publicIdsToDelete = new Set();
+    const imageDocIdsToDelete = new Set();
+
     if (event.posterId) {
-      const Image = (await import('../models/Image.js')).default;
-      const { deleteImageFromCloudinary } = await import('../services/cloudinaryService.js');
-      const image = await Image.findById(event.posterId);
-      if (image && image.publicId) {
-        await deleteImageFromCloudinary(image.publicId);
-        await Image.findByIdAndDelete(event.posterId);
+      imageDocIdsToDelete.add(event.posterId.toString());
+      const posterImg = await Image.findById(event.posterId);
+      if (posterImg?.publicId) publicIdsToDelete.add(posterImg.publicId);
+    }
+
+    if (Array.isArray(event.images)) {
+      for (const img of event.images) {
+        if (img.source === 'cloudinary') {
+          if (img.publicId) publicIdsToDelete.add(img.publicId);
+          if (img.imageId) imageDocIdsToDelete.add(img.imageId.toString());
+        }
       }
+    }
+
+    for (const pubId of publicIdsToDelete) {
+      await deleteImageFromCloudinary(pubId).catch(console.error);
+    }
+    for (const docId of imageDocIdsToDelete) {
+      await Image.findByIdAndDelete(docId).catch(console.error);
     }
     
     await Event.findByIdAndDelete(id);
@@ -83,17 +192,144 @@ export const uploadEventPoster = async (req, res) => {
       }
     }
 
+    const Image = (await import('../models/Image.js')).default;
+    const newImageDoc = await Image.findById(req.body.protectedImageId);
+
+    const coverObj = {
+      source: 'cloudinary',
+      imageId: req.body.protectedImageId,
+      publicId: newImageDoc?.publicId || '',
+      isCover: true,
+      order: 0,
+      alt: oldEvent.title
+    };
+
+    let updatedImages = (oldEvent.images || []).map(img => ({
+      ...(img.toObject ? img.toObject() : img),
+      isCover: false
+    }));
+
+    const existingIdx = updatedImages.findIndex(img => 
+      (img.imageId?._id?.toString() || img.imageId?.toString()) === req.body.protectedImageId.toString()
+    );
+
+    if (existingIdx >= 0) {
+      updatedImages[existingIdx] = { ...updatedImages[existingIdx], isCover: true, publicId: newImageDoc?.publicId || updatedImages[existingIdx].publicId };
+    } else {
+      updatedImages.unshift(coverObj);
+    }
+
     const event = await Event.findByIdAndUpdate(
       id, 
-      { posterId: req.body.protectedImageId }, 
+      { 
+        posterId: req.body.protectedImageId,
+        coverImage: coverObj,
+        images: updatedImages
+      }, 
       { new: true }
-    ).populate('posterId');
+    ).populate('posterId').populate('coverImage.imageId').populate('images.imageId');
 
     if (!event) return res.status(404).json({ message: 'Event not found' });
 
     res.status(200).json({ status: 'success', data: { event } });
   } catch (error) {
+    console.error('Error uploading poster:', error);
     res.status(500).json({ message: 'Error uploading poster' });
+  }
+};
+
+export const uploadEventGalleryImage = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!req.body.protectedImageId) {
+      return res.status(400).json({ message: 'No image file provided' });
+    }
+
+    const event = await Event.findById(id);
+    if (!event) return res.status(404).json({ message: 'Event not found' });
+
+    const Image = (await import('../models/Image.js')).default;
+    const imageDoc = await Image.findById(req.body.protectedImageId);
+    if (!imageDoc) return res.status(404).json({ message: 'Image record not found' });
+
+    const isFirst = !event.images || event.images.length === 0;
+    const isCover = req.body.isCover === 'true' || req.body.isCover === true || isFirst;
+
+    if (isCover) {
+      if (event.images) {
+        event.images.forEach(img => { img.isCover = false; });
+      }
+      event.posterId = imageDoc._id;
+      event.coverImage = {
+        source: 'cloudinary',
+        imageId: imageDoc._id,
+        publicId: imageDoc.publicId,
+        isCover: true,
+        order: event.images?.length || 0,
+        alt: req.body.alt || event.title
+      };
+    }
+
+    const newImageItem = {
+      source: 'cloudinary',
+      imageId: imageDoc._id,
+      publicId: imageDoc.publicId,
+      isCover,
+      order: event.images?.length || 0,
+      alt: req.body.alt || event.title
+    };
+
+    if (!event.images) event.images = [];
+    event.images.push(newImageItem);
+
+    await event.save();
+
+    const populated = await Event.findById(id)
+      .populate('posterId')
+      .populate('coverImage.imageId')
+      .populate('images.imageId');
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        event: populated,
+        uploadedImage: {
+          ...newImageItem,
+          imageId: {
+            _id: imageDoc._id,
+            imageId: imageDoc.imageId
+          }
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error uploading gallery image:', error);
+    res.status(500).json({ message: error.message || 'Error uploading gallery image' });
+  }
+};
+
+export const uploadEventImageStandalone = async (req, res) => {
+  try {
+    if (!req.body.protectedImageId) {
+      return res.status(400).json({ message: 'No image file provided' });
+    }
+
+    const Image = (await import('../models/Image.js')).default;
+    const imageDoc = await Image.findById(req.body.protectedImageId);
+    if (!imageDoc) return res.status(404).json({ message: 'Image record not found' });
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        _id: imageDoc._id,
+        imageId: imageDoc.imageId,
+        publicId: imageDoc.publicId,
+        source: 'cloudinary'
+      }
+    });
+  } catch (error) {
+    console.error('Error in standalone image upload:', error);
+    res.status(500).json({ message: error.message || 'Error processing uploaded image' });
   }
 };
 

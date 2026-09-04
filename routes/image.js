@@ -2,7 +2,7 @@ import express from 'express';
 import rateLimit from 'express-rate-limit';
 import slowDown from 'express-slow-down';
 import { getProtectedImage } from '../controllers/imageController.js';
-import { protectAdmin } from '../middleware/auth.js';
+import { protectAdmin, optionalAdminAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -22,14 +22,12 @@ const rateLimiter = rateLimit({
 router.use(speedLimiter);
 router.use(rateLimiter);
 
-// Public route for fetching allowed images (public/protected visibility)
-router.get('/:id', getProtectedImage);
+// Route for fetching images:
+// Public callers can fetch approved/public/protected images.
+// Authenticated admins (via optionalAdminAuth) can also view private and pending images.
+router.get('/:id', optionalAdminAuth, getProtectedImage);
 
-// Admin route for fetching any image including private ones
-// In our updated logic, we pass the JWT via cookies or headers if possible, or just rely on the same endpoint
-// The spec says: "/api/images/:imageId ... allows status: pending when requester holds valid admin JWT"
-// So we can mount it twice or handle it in one route using a soft auth middleware
-// For now, keep the explicit admin route if needed, or just let the main route handle it if protectAdmin is optional
+// Explicit admin route for fetching any image including private ones
 router.get('/admin/:id', protectAdmin, getProtectedImage);
 
 export default router;

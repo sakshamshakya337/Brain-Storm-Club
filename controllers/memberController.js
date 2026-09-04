@@ -101,6 +101,10 @@ export const createMember = async (req, res) => {
     };
 
     const member = await Member.create(memberData);
+    if (protectedImageId) {
+      const Image = (await import('../models/Image.js')).default;
+      await Image.findByIdAndUpdate(protectedImageId, { status: 'approved', visibility: 'protected' });
+    }
     await member.populate('photoId');
 
     return res.status(201).json({ status: 'success', message: 'Member created successfully.', data: { member } });
@@ -143,6 +147,11 @@ export const approveMember = async (req, res) => {
     member.approvedBy = req.admin._id;
     member.approvedAt = Date.now();
     await member.save();
+
+    if (member.photoId) {
+      const Image = (await import('../models/Image.js')).default;
+      await Image.findByIdAndUpdate(member.photoId, { status: 'approved', visibility: 'protected' });
+    }
 
     res.status(200).json({ status: 'success', message: 'Member approved successfully', data: { member } });
   } catch (error) {
