@@ -66,6 +66,22 @@ export default function AdminIdeas() {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [statusNote, setStatusNote]         = useState('');
   const [pendingStatus, setPendingStatus]   = useState('');
+  const [pdfViewerOpen, setPdfViewerOpen]   = useState(false);
+
+  // Close on Escape
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (pdfViewerOpen) {
+          setPdfViewerOpen(false);
+        } else if (selected) {
+          closeDetail();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [pdfViewerOpen, selected]);
 
   // ── Fetch list ─────────────────────────────────────────────────────────────
   const fetchIdeas = useCallback(async () => {
@@ -76,25 +92,22 @@ export default function AdminIdeas() {
       if (activeStatus !== 'All') params.set('status', activeStatus);
       if (search)                 params.set('search', search);
 
-      const res  = await fetch(`/api/admin/ideas?${params}`, { credentials: 'include' });
-      const json = await res.json();
+      const res = await fetch(`/api/admin/ideas?${params}`, { credentials: 'include' });
+      const contentType = res.headers.get('content-type') || '';
+      let json = null;
+      if (contentType.includes('application/json')) {
+        json = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(text || `Request failed with status ${res.status}`);
+      }
 
-      if (!res.ok) throw new Error(json.message || 'Failed to load ideas');
-      setIdeas(json.data.ideas);
-      setPagination(json.data.pagination);
+      if (!res.ok) throw new Error(json?.message || 'Failed to load ideas');
+      setIdeas(json.data.ideas || []);
+      setPagination(json.data.pagination || { page: 1, pages: 1, total: 0 });
 
-      // Build status counts from the full dataset (separate count query)
-      if (page === 1 && !search && activeStatus === 'All') {
-        const counts = {};
-        // Quick stats call — reuse same endpoint with each status
-        await Promise.all(
-          ['New', 'Reviewed', 'Shortlisted', 'Implemented', 'Rejected'].map(async (s) => {
-            const r = await fetch(`/api/admin/ideas?status=${s}&limit=1`, { credentials: 'include' });
-            const d = await r.json();
-            counts[s] = d.data?.pagination?.total ?? 0;
-          })
-        );
-        setStats(counts);
+      if (json.data.statusCounts) {
+        setStats(json.data.statusCounts);
       }
     } catch (e) {
       setError(e.message || 'Something went wrong');
@@ -121,9 +134,16 @@ export default function AdminIdeas() {
     // Fetch fresh copy (includes signed PDF URL)
     setDetailLoading(true);
     try {
-      const res  = await fetch(`/api/admin/ideas/${idea._id}`, { credentials: 'include' });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.message);
+      const res = await fetch(`/api/admin/ideas/${idea._id}`, { credentials: 'include' });
+      const contentType = res.headers.get('content-type') || '';
+      let json = null;
+      if (contentType.includes('application/json')) {
+        json = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(text || `Request failed with status ${res.status}`);
+      }
+      if (!res.ok) throw new Error(json?.message || 'Could not load idea details');
       setSelected(json.data.idea);
       setPendingStatus(json.data.idea.status);
       setStatusNote(json.data.idea.adminNotes || '');
@@ -134,21 +154,32 @@ export default function AdminIdeas() {
     }
   };
 
-  const closeDetail = () => { setSelected(null); setDetailError(''); };
+  const closeDetail = () => {
+    setSelected(null);
+    setDetailError('');
+    setPdfViewerOpen(false);
+  };
 
   // ── Update status ──────────────────────────────────────────────────────────
   const handleStatusUpdate = async () => {
     if (!selected) return;
     setUpdatingStatus(true);
     try {
-      const res  = await fetch(`/api/admin/ideas/${selected._id}`, {
+      const res = await fetch(`/api/admin/ideas/${selected._id}`, {
         method: 'PATCH',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: pendingStatus, adminNotes: statusNote }),
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.message);
+      const contentType = res.headers.get('content-type') || '';
+      let json = null;
+      if (contentType.includes('application/json')) {
+        json = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(text || `Request failed with status ${res.status}`);
+      }
+      if (!res.ok) throw new Error(json?.message || 'Failed to update status');
 
       // Update in list
       setIdeas(prev => prev.map(i => i._id === selected._id ? { ...i, status: pendingStatus, adminNotes: statusNote } : i));
@@ -322,9 +353,19 @@ export default function AdminIdeas() {
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       {idea.pdfPublicId ? (
-                        <span className="inline-flex items-center gap-1 text-brand-primary font-mono text-[10px] font-bold">
-                          <FileText size={12} /> PDF
-                        </span>
+                        <div className="flex flex-col">
+                          <span className="inline-flex items-center gap-1.5 text-brand-primary font-mono text-[10px] font-bold">
+                            <FileText size={12} />
+                            <span className="max-w-[130px] truncate" title={idea.pdfOriginalName?.toLowerCase().endsWith('.pdf') ? idea.pdfOriginalName : `${idea.pdfOriginalName || 'document'}.pdf`}>
+                              {idea.pdfOriginalName?.toLowerCase().endsWith('.pdf') ? idea.pdfOriginalName : `${idea.pdfOriginalName || 'document'}.pdf`}
+                            </span>
+                          </span>
+                          {idea.pdfSizeBytes && (
+                            <span className="text-[9px] text-slate-400 font-mono ml-4">
+                              {fmtSize(idea.pdfSizeBytes)}
+                            </span>
+                          )}
+                        </div>
                       ) : (
                         <span className="text-slate-300 text-xs">—</span>
                       )}
@@ -359,7 +400,8 @@ export default function AdminIdeas() {
               <button
                 disabled={page <= 1}
                 onClick={() => setPage(p => p - 1)}
-                className="p-1.5 rounded-md border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="p-1.5 rounded border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                aria-label="Previous page"
               >
                 <ChevronLeft size={14} />
               </button>
@@ -384,7 +426,8 @@ export default function AdminIdeas() {
               <button
                 disabled={page >= pagination.pages}
                 onClick={() => setPage(p => p + 1)}
-                className="p-1.5 rounded-md border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="p-1.5 rounded border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                aria-label="Next page"
               >
                 <ChevronRight size={14} />
               </button>
@@ -474,22 +517,25 @@ export default function AdminIdeas() {
                         <FileText size={16} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-900 truncate">{selected.pdfOriginalName || 'document.pdf'}</p>
+                        <p className="text-sm font-medium text-slate-900 truncate">
+                          {selected.pdfOriginalName?.toLowerCase().endsWith('.pdf') ? selected.pdfOriginalName : `${selected.pdfOriginalName || 'document'}.pdf`}
+                        </p>
                         {selected.pdfSizeBytes && (
                           <p className="text-xs text-slate-500 font-mono">{fmtSize(selected.pdfSizeBytes)}</p>
                         )}
                       </div>
-                      {selected.pdfSignedUrl ? (
-                        <a
-                          href={selected.pdfSignedUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-bold tracking-wider uppercase bg-brand-primary text-white rounded-sm hover:bg-brand-primary/80 transition-colors"
-                        >
-                          <Download size={12} /> View PDF
-                        </a>
+                      {detailLoading && !selected.pdfSignedUrl ? (
+                        <span className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 text-xs text-slate-400 font-mono">
+                          <RefreshCw size={12} className="animate-spin" /> Loading…
+                        </span>
                       ) : (
-                        <span className="shrink-0 text-xs text-slate-400 font-mono">Link expired</span>
+                        <button
+                          type="button"
+                          onClick={() => setPdfViewerOpen(true)}
+                          className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-bold tracking-wider uppercase bg-brand-primary text-white rounded-sm hover:bg-brand-primary/80 transition-colors cursor-pointer shadow-sm"
+                        >
+                          <Eye size={12} /> View PDF
+                        </button>
                       )}
                     </div>
                   </div>
@@ -559,6 +605,94 @@ export default function AdminIdeas() {
           </aside>
         </>
       )}
+
+      {/* ── IN-PAGE PDF VIEWER MODAL ────────────────────────────────────────── */}
+      {pdfViewerOpen && selected && (selected.pdfSignedUrl || selected.pdfPublicId) && (() => {
+        const viewerUrl = selected.pdfSignedUrl || `/api/admin/ideas/${selected._id}/pdf`;
+        const displayName = selected.pdfOriginalName?.toLowerCase().endsWith('.pdf')
+          ? selected.pdfOriginalName
+          : `${selected.pdfOriginalName || 'document'}.pdf`;
+
+        return (
+          <div 
+            className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 md:p-6 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200"
+            role="dialog"
+            aria-modal="true"
+            aria-label="PDF Document Viewer"
+          >
+            {/* Backdrop click to close */}
+            <div className="absolute inset-0" onClick={() => setPdfViewerOpen(false)} />
+
+            {/* Modal Container */}
+            <div className="relative z-10 w-full max-w-5xl h-[92vh] max-h-[900px] bg-white rounded-lg shadow-2xl border border-slate-200 flex flex-col overflow-hidden">
+              
+              {/* Viewer Toolbar */}
+              <div className="flex items-center justify-between px-4 py-3 bg-slate-900 text-white border-b border-slate-800 shrink-0">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded bg-brand-primary/20 flex items-center justify-center text-brand-primary shrink-0">
+                    <FileText size={16} />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-heading font-bold text-sm text-white truncate">
+                      {displayName}
+                    </h3>
+                    <div className="flex items-center gap-3 text-[11px] font-mono text-slate-400">
+                      <span>{fmtSize(selected.pdfSizeBytes)}</span>
+                      <span>•</span>
+                      <span className="text-brand-primary uppercase truncate max-w-[200px]">{selected.title}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  {/* Download button with proper .pdf filename */}
+                  <a
+                    href={`/api/admin/ideas/${selected._id}/pdf?download=1`}
+                    download={displayName}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-bold tracking-wider uppercase text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded transition-colors"
+                    title={`Download ${displayName}`}
+                  >
+                    <Download size={13} />
+                    <span className="hidden sm:inline">Download</span>
+                  </a>
+
+                  {/* Fallback open in new tab */}
+                  <a
+                    href={viewerUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-bold tracking-wider uppercase text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded transition-colors"
+                    title="Open in new tab"
+                  >
+                    <ExternalLink size={13} />
+                    <span className="hidden sm:inline">New Tab</span>
+                  </a>
+
+                  {/* Close Button */}
+                  <button
+                    type="button"
+                    onClick={() => setPdfViewerOpen(false)}
+                    className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors cursor-pointer"
+                    aria-label="Close PDF viewer (Esc)"
+                    title="Close (Esc)"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Viewer Body */}
+              <div className="flex-1 w-full bg-slate-100 relative overflow-hidden">
+                <iframe
+                  src={`${viewerUrl}#toolbar=1&navpanes=1`}
+                  className="w-full h-full border-0"
+                  title={displayName}
+                />
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

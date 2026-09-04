@@ -1,34 +1,69 @@
 import mongoose from 'mongoose';
 
 const memberSchema = new mongoose.Schema({
-  fullName: { type: String, required: true },
-  registrationNumber: { 
-    type: String, 
-    required: true, 
-    unique: true, // Crucial: Unique index enforced
-    trim: true,
-    uppercase: true
+  // ── Member type ──────────────────────────────────────────────────────────
+  memberType: {
+    type: String,
+    enum: ['student', 'faculty'],
+    default: 'student',
   },
-  course: { type: String, required: true },
-  section: { type: String, required: true },
-  email: { type: String, required: true, lowercase: true },
-  phone: { type: String, required: true },
-  whatsapp: { type: String, required: true },
-  role: { type: String, required: true },
+
+  // ── Core identity ─────────────────────────────────────────────────────────
+  fullName: { type: String, required: true, trim: true },
+
+  // registrationNumber: required for students, optional for faculty.
+  registrationNumber: {
+    type: String,
+    trim: true,
+    uppercase: true,
+  },
+
+  // ── Academic (student) fields ─────────────────────────────────────────────
+  course:  { type: String, default: '' },
+  section: { type: String, default: '' },
+
+  // ── Faculty-specific fields ───────────────────────────────────────────────
+  employeeId:   { type: String, trim: true },
+  department:   { type: String, default: '' },   // e.g. "School of Computer Applications"
+  designation:  { type: String, default: '' },   // e.g. "Assistant Professor"
+
+  // ── Contact ───────────────────────────────────────────────────────────────
+  email:    { type: String, default: '', lowercase: true, trim: true },
+  phone:    { type: String, default: '' },
+  whatsapp: { type: String, default: '' },
+
+  // ── Domain & Role / position ───────────────────────────────────────────────
+  domain: { type: String, trim: true, default: '' },
+  role:   { type: String, required: true, trim: true },
+
+  // ── Photo ─────────────────────────────────────────────────────────────────
   photoId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Image',
-    required: true,
-  }, // URL path
-  status: { 
-    type: String, 
-    enum: ['Pending', 'Approved', 'Rejected'],
-    default: 'Pending'
+    default: null,
   },
-  approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' },
-  approvedAt: { type: Date },
+
+  // ── Workflow ──────────────────────────────────────────────────────────────
+  status: {
+    type: String,
+    enum: ['Pending', 'Approved', 'Rejected'],
+    default: 'Pending',
+  },
+  approvedBy:      { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' },
+  approvedAt:      { type: Date },
   rejectionReason: { type: String },
-  consentGivenAt: { type: Date, required: true, default: Date.now },
+  consentGivenAt:  { type: Date, default: Date.now },
 }, { timestamps: true });
+
+// ── Indexes ──────────────────────────────────────────────────────────────────
+// Unique on registrationNumber and employeeId only when non-empty string.
+memberSchema.index(
+  { registrationNumber: 1 },
+  { unique: true, partialFilterExpression: { registrationNumber: { $type: 'string' } } }
+);
+memberSchema.index(
+  { employeeId: 1 },
+  { unique: true, partialFilterExpression: { employeeId: { $type: 'string' } } }
+);
 
 export default mongoose.model('Member', memberSchema);

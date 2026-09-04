@@ -7,14 +7,13 @@ import { usePageReveal } from '../../hooks/usePageReveal';
 import { useScrollReveal } from '../../hooks/useScrollReveal';
 
 // ─── Role Configuration ────────────────────────────────────────────────────────
-// Defines the display order and canonical display names for each role key.
-// Roles in DB are matched case-insensitively against these keys.
-// Roles NOT in this list still appear — they are appended alphabetically at the end.
+// ─── Role Configuration ────────────────────────────────────────────────────────
+// Hierarchy order: Faculty -> President -> Vice President -> Secretary -> Leadership -> Team roles
 const ROLE_ORDER = [
-  'HOS',
   'Faculty',
   'President',
   'Vice President',
+  'Secretary',
   'Head Coordinator',
   'Technical Head',
   'Social Media Head',
@@ -24,22 +23,57 @@ const ROLE_ORDER = [
   'Anchor',
 ];
 
+const FACULTY_KEYWORDS = [
+  'faculty',
+  'cos',
+  'chief of school',
+  'hos',
+  'head of school',
+  'dean',
+  'associate dean',
+  'faculty advisor',
+  'faculty coordinator',
+  'faculty member',
+  'faculty mentor',
+  'professor',
+];
+
 /**
- * Normalise a raw role string so that minor capitalisation differences
- * ("technical team" vs "Technical Team") resolve to the same bucket.
+ * Normalise a member's role to a canonical public section title.
+ * All faculty members (by memberType or role) are grouped into the top "Faculty" section.
+ * Student roles are mapped to their specific official role.
  */
-const normaliseRole = (rawRole) => {
+const normaliseRole = (rawRole, memberType) => {
+  if (memberType === 'faculty') return 'Faculty';
   if (!rawRole) return 'Member';
   const trimmed = rawRole.trim();
-  // Try to find a canonical match (case-insensitive)
-  const canonical = ROLE_ORDER.find(
-    (r) => r.toLowerCase() === trimmed.toLowerCase()
-  );
-  return canonical || trimmed; // If unknown, preserve as-is (with original casing)
+  const lower = trimmed.toLowerCase();
+
+  // Any faculty role belongs in the Faculty section
+  if (FACULTY_KEYWORDS.some(k => lower.includes(k))) return 'Faculty';
+
+  // Exact canonical match
+  const canonical = ROLE_ORDER.find(r => r.toLowerCase() === lower);
+  if (canonical) return canonical;
+
+  // Specific role variations
+  if (lower.includes('president') && !lower.includes('vice')) return 'President';
+  if (lower.includes('vice president') || lower.includes('vice-president') || lower === 'vp') return 'Vice President';
+  if (lower.includes('secretary')) return 'Secretary';
+  if (lower.includes('head coordinator') || lower.includes('lead coordinator')) return 'Head Coordinator';
+  if (lower.includes('technical head') || lower.includes('tech head')) return 'Technical Head';
+  if ((lower.includes('media') || lower.includes('social')) && lower.includes('head')) return 'Social Media Head';
+  if (lower.includes('technical') && (lower.includes('team') || lower.includes('member'))) return 'Technical Team';
+  if (lower.includes('media') && (lower.includes('team') || lower.includes('member'))) return 'Media Team';
+  if (lower.includes('anchor')) return 'Anchor';
+  if (lower.includes('coordinator')) return 'Coordinator';
+
+  return trimmed;
 };
 
 /**
- * Sort role names according to ROLE_ORDER; unknowns go at the end alphabetically.
+ * Sort role sections strictly according to ROLE_ORDER:
+ * Faculty (0) -> President (1) -> Vice President (2) -> Secretary (3) -> then others.
  */
 const sortRoles = (roleA, roleB) => {
   const ia = ROLE_ORDER.findIndex((r) => r.toLowerCase() === roleA.toLowerCase());
@@ -51,16 +85,75 @@ const sortRoles = (roleA, roleB) => {
 };
 
 /**
- * Group members by their normalised role.
+ * Sort all members by hierarchy:
+ * 1. Faculty on top (internally ordered COS -> Dean -> HOS -> Advisor -> Coordinator -> Faculty)
+ * 2. President
+ * 3. Vice President
+ * 4. Secretary
+ * 5. Other roles in ROLE_ORDER
+ */
+const sortMembersByHierarchy = (memberList) => {
+  const isFac = (m) =>
+    m.memberType === 'faculty' ||
+    FACULTY_KEYWORDS.some((kw) => (m.role || '').toLowerCase().includes(kw));
+
+  return [...memberList].sort((a, b) => {
+    const aFac = isFac(a);
+    const bFac = isFac(b);
+
+    if (aFac && !bFac) return -1;
+    if (!aFac && bFac) return 1;
+
+    // Both are faculty — sort by faculty seniority: COS -> Dean -> HOS -> Advisor -> Coordinator
+    if (aFac && bFac) {
+      const facSeniority = ['cos', 'chief of school', 'dean', 'hos', 'advisor', 'coordinator'];
+      const aScore = facSeniority.findIndex((k) => (a.role || '').toLowerCase().includes(k));
+      const bScore = facSeniority.findIndex((k) => (b.role || '').toLowerCase().includes(k));
+      const sa = aScore === -1 ? 99 : aScore;
+      const sb = bScore === -1 ? 99 : bScore;
+      if (sa !== sb) return sa - sb;
+      return (a.fullName || '').localeCompare(b.fullName || '');
+    }
+
+    // Both are students — sort according to ROLE_ORDER
+    const roleA = normaliseRole(a.role, a.memberType);
+    const roleB = normaliseRole(b.role, b.memberType);
+    const ia = ROLE_ORDER.findIndex((r) => r.toLowerCase() === roleA.toLowerCase());
+    const ib = ROLE_ORDER.findIndex((r) => r.toLowerCase() === roleB.toLowerCase());
+
+    const rankA = ia === -1 ? 999 : ia;
+    const rankB = ib === -1 ? 999 : ib;
+    if (rankA !== rankB) return rankA - rankB;
+
+    return (a.fullName || '').localeCompare(b.fullName || '');
+  });
+};
+
+/**
+ * Group members by their normalised role section.
  * Returns an array of [roleName, members[]] pairs sorted by ROLE_ORDER.
  */
 const groupMembersByRole = (members) => {
   const map = {};
   members.forEach((m) => {
-    const role = normaliseRole(m.role);
+    const role = normaliseRole(m.role, m.memberType);
     if (!map[role]) map[role] = [];
     map[role].push(m);
   });
+
+  // Sort within the Faculty group by seniority
+  if (map['Faculty']) {
+    const facRank = ['hos', 'advisor', 'coordinator'];
+    map['Faculty'].sort((a, b) => {
+      const ra = facRank.findIndex(r => (a.role || '').toLowerCase().includes(r));
+      const rb = facRank.findIndex(r => (b.role || '').toLowerCase().includes(r));
+      const idxA = ra === -1 ? 99 : ra;
+      const idxB = rb === -1 ? 99 : rb;
+      if (idxA !== idxB) return idxA - idxB;
+      return (a.fullName || '').localeCompare(b.fullName || '');
+    });
+  }
+
   return Object.entries(map).sort(([a], [b]) => sortRoles(a, b));
 };
 
@@ -90,10 +183,18 @@ function MemberCard({ member }) {
         <h3 className="font-heading font-bold text-xl uppercase tracking-tight text-slate-900 dark:text-white mb-1 group-hover:text-brand-primary transition-colors leading-tight">
           {member.fullName}
         </h3>
-        {member.course && (
+        {member.memberType === 'faculty' ? (
           <span className="font-body text-sm font-light text-slate-500">
-            {member.course}
+            {member.designation
+              ? (member.department ? `${member.designation} • ${member.department}` : member.designation)
+              : (member.department || 'Faculty')}
           </span>
+        ) : (
+          member.course && (
+            <span className="font-body text-sm font-light text-slate-500">
+              {member.course}{member.section ? ` • Sec ${member.section}` : ''}
+            </span>
+          )
         )}
       </div>
     </div>
@@ -153,8 +254,9 @@ export default function Members() {
       .then((data) => {
         if (data.status === 'success') {
           const raw = data.data.members || [];
-          setMembers(raw);
-          setGroupedMembers(groupMembersByRole(raw));
+          const sorted = sortMembersByHierarchy(raw);
+          setMembers(sorted);
+          setGroupedMembers(groupMembersByRole(sorted));
         } else {
           setError(data.message || 'Failed to load members');
         }

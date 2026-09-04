@@ -136,6 +136,7 @@ function AppContent() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/join-us" element={<JoinUs />} />
             <Route path="/ideas" element={<Ideas />} />
+            <Route path="/submit-idea" element={<Ideas />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/connect" element={<Connect />} />
 

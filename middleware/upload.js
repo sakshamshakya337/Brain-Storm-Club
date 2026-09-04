@@ -112,7 +112,9 @@ export const processAndProtectImage = (visibility = 'protected') => async (req, 
 // ─── PDF Upload Middleware ────────────────────────────────────────────────────
 
 const pdfFilter = (req, file, cb) => {
-  if (file.mimetype === 'application/pdf') {
+  const isPdfMime = file.mimetype === 'application/pdf';
+  const hasPdfExt = /\.pdf$/i.test(file.originalname || '');
+  if (isPdfMime || hasPdfExt) {
     cb(null, true);
   } else {
     cb(new Error('Only PDF files are accepted.'), false);
@@ -126,9 +128,9 @@ export const uploadPdf = multer({
 });
 
 /**
- * Validates the PDF buffer size and uploads to Cloudinary.
- * Attaches req.pdfPublicId, req.pdfOriginalName, req.pdfSizeBytes on success.
- * Responds with 400 if the final file exceeds 2 MB.
+ * Validates the PDF buffer size, authenticates PDF magic bytes, and uploads to Cloudinary.
+ * Attaches req.pdfPublicId, req.pdfOriginalName (with .pdf), req.pdfSizeBytes, req.pdfMimeType on success.
+ * Responds with 400 if the final file exceeds 2 MB or is not a genuine PDF.
  */
 export const processPdfUpload = async (req, res, next) => {
   // No file attached — optional field, skip
@@ -136,19 +138,35 @@ export const processPdfUpload = async (req, res, next) => {
 
   const MAX_BYTES = 2 * 1024 * 1024; // 2 MB
 
+  // 1. Enforce 2 MB limit
   if (req.file.size > MAX_BYTES) {
     return res.status(400).json({
       message: `PDF file is ${(req.file.size / (1024 * 1024)).toFixed(2)} MB. Maximum allowed size is 2 MB. Please upload a smaller PDF.`
     });
   }
 
+  // 2. Validate PDF magic bytes (%PDF-) to reject renamed non-PDF files
+  const isPdfHeader = req.file.buffer && req.file.buffer.length >= 4 && req.file.buffer.toString('utf8', 0, 4) === '%PDF';
+  if (!isPdfHeader) {
+    return res.status(400).json({
+      message: 'Invalid file content. Uploaded file is not a valid PDF document.'
+    });
+  }
+
   try {
-    const originalName = req.file.originalname.replace(/\.pdf$/i, '');
-    const result = await uploadPdfToCloudinary(req.file.buffer, 'brainstorm/ideas', originalName);
+    // Ensure filename strictly preserves .pdf extension
+    let originalName = req.file.originalname || 'document.pdf';
+    if (!/\.pdf$/i.test(originalName)) {
+      originalName = `${originalName}.pdf`;
+    }
+
+    const baseName = originalName.replace(/\.pdf$/i, '');
+    const result = await uploadPdfToCloudinary(req.file.buffer, 'brainstorm/ideas', baseName);
 
     req.pdfPublicId     = result.public_id;
-    req.pdfOriginalName = req.file.originalname;
+    req.pdfOriginalName = originalName;
     req.pdfSizeBytes    = req.file.size;
+    req.pdfMimeType     = 'application/pdf';
 
     next();
   } catch (err) {

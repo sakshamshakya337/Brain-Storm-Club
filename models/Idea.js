@@ -5,6 +5,7 @@ const ideaSchema = new mongoose.Schema({
   course:      { type: String, required: true, trim: true },
   section:     { type: String, required: true, trim: true },
   contact:     { type: String, required: true, trim: true },
+  email:       { type: String, trim: true, lowercase: true },
   title:       { type: String, required: true, trim: true },
   description: { type: String, required: true, trim: true },
   outcome:     { type: String, required: true, trim: true },
@@ -14,6 +15,7 @@ const ideaSchema = new mongoose.Schema({
   pdfPublicId:       { type: String, default: null },
   pdfOriginalName:   { type: String, default: null },
   pdfSizeBytes:      { type: Number, default: null },
+  pdfMimeType:       { type: String, default: 'application/pdf' },
   pdfSecureUrl:      { type: String, default: null },  // signed on-demand, not stored permanently
 
   status: {

@@ -18,9 +18,12 @@ const joinUsSchema = new mongoose.Schema({
   interests: [{ type: String }],
   status: {
     type: String,
-    enum: ['New', 'Contacted', 'Onboarded', 'Rejected'],
+    enum: ['New', 'Pending', 'Contacted', 'Approved', 'Onboarded', 'Rejected'],
     default: 'New'
   },
+  approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' },
+  approvedAt: { type: Date },
+  rejectionReason: { type: String },
   photoId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Image',

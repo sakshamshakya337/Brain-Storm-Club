@@ -74,18 +74,23 @@ export default function Ideas() {
     setPdfError('');
     setPdf({ status: 'LOADING', file, originalSizeMB: null, finalSizeMB: null, bytes: null });
 
-    // 1. Validate MIME
-    if (file.type !== 'application/pdf') {
-      setPdfError('Only PDF files are accepted. Please choose a .pdf file.');
+    // 1. Validate MIME and extension
+    const isMimePdf = file.type === 'application/pdf';
+    const isExtPdf = file.name.toLowerCase().endsWith('.pdf');
+    if (!isMimePdf && !isExtPdf) {
+      setPdfError('Only PDF files are accepted. Please choose a valid .pdf file.');
       setPdf(null);
       return;
     }
 
+    // Ensure the filename always preserves .pdf extension
+    const properFileName = isExtPdf ? file.name : `${file.name}.pdf`;
     const originalSizeMB = +(file.size / (1024 * 1024)).toFixed(2);
 
     // 2. Already under 2 MB — accept as-is
     if (file.size <= MAX_PDF_BYTES) {
-      setPdf({ status: 'READY', file, originalSizeMB, finalSizeMB: originalSizeMB, bytes: null });
+      const normalizedFile = new File([file], properFileName, { type: 'application/pdf' });
+      setPdf({ status: 'READY', file: normalizedFile, originalSizeMB, finalSizeMB: originalSizeMB, bytes: null });
       return;
     }
 
@@ -106,8 +111,8 @@ export default function Ideas() {
         return;
       }
 
-      // Wrap Uint8Array back into a File so we can send it via FormData
-      const compressedFile = new File([compressed], file.name, { type: 'application/pdf' });
+      // Wrap Uint8Array back into a File with proper .pdf filename
+      const compressedFile = new File([compressed], properFileName, { type: 'application/pdf' });
       setPdf({ status: 'READY', file: compressedFile, originalSizeMB, finalSizeMB, bytes: compressed });
     } catch (err) {
       console.error('[PDF compress error]', err);
@@ -151,6 +156,10 @@ export default function Ideas() {
 
     const fd = new FormData();
     Object.entries(formData).forEach(([k, v]) => fd.append(k, v.trim()));
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (emailRegex.test(formData.contact.trim())) {
+      fd.append('email', formData.contact.trim().toLowerCase());
+    }
     if (pdf?.file) fd.append('pdf', pdf.file);
 
     try {

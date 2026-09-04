@@ -7,6 +7,7 @@ import Event from '../models/Event.js';
 import Notification from '../models/Notification.js';
 import SystemSettings from '../models/SystemSettings.js';
 import { getMaintenanceState } from '../middleware/maintenance.js';
+import { sendIdeaConfirmationEmail } from '../utils/email.js';
 
 const getSystemSettings = async () => {
   try {
@@ -123,11 +124,19 @@ export const submitIdea = async (req, res) => {
       return res.status(400).json({ message: 'All required fields must be filled in.' });
     }
 
+    // Extract submitter email from req.body.email or contact if it matches email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    let submitterEmail = (req.body.email || '').trim().toLowerCase();
+    if (!submitterEmail && emailRegex.test(contact.trim())) {
+      submitterEmail = contact.trim().toLowerCase();
+    }
+
     const ideaData = {
       name: name.trim(),
       course: course.trim(),
       section: section.trim(),
       contact: contact.trim(),
+      email: submitterEmail || undefined,
       title: title.trim(),
       description: description.trim(),
       outcome: outcome.trim(),
@@ -139,6 +148,7 @@ export const submitIdea = async (req, res) => {
       ideaData.pdfPublicId     = req.pdfPublicId;
       ideaData.pdfOriginalName = req.pdfOriginalName;
       ideaData.pdfSizeBytes    = req.pdfSizeBytes;
+      ideaData.pdfMimeType     = req.pdfMimeType || 'application/pdf';
     }
 
     const idea = await Idea.create(ideaData);
@@ -150,6 +160,21 @@ export const submitIdea = async (req, res) => {
       entityType: 'Idea',
       entityId: idea._id
     }).catch(err => console.error('Failed to create notification:', err));
+
+    // Send confirmation email asynchronously (only after successful DB save & file storage)
+    if (submitterEmail && emailRegex.test(submitterEmail)) {
+      sendIdeaConfirmationEmail({
+        email: submitterEmail,
+        name: idea.name,
+        title: idea.title,
+        submissionDate: idea.createdAt,
+        referenceId: idea._id.toString(),
+        hasPdf: !!idea.pdfPublicId,
+        pdfName: idea.pdfOriginalName
+      }).catch(mailErr => {
+        console.error('[submitIdea] Email notification error:', mailErr.message);
+      });
+    }
 
     res.status(201).json({ status: 'success', message: 'Idea submitted successfully.', data: { id: idea._id } });
   } catch (error) {

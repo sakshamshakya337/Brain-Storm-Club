@@ -20,9 +20,11 @@ export const exportData = async (req, res) => {
         const members = await Member.find(memberFilter).sort({ createdAt: -1 });
         columns = [
           { header: 'Full Name', key: 'fullName', width: 25 },
-          { header: 'Reg Number', key: 'registrationNumber', width: 15 },
-          { header: 'Course', key: 'course', width: 15 },
-          { header: 'Section', key: 'section', width: 10 },
+          { header: 'Member Type', key: 'memberType', width: 14 },
+          { header: 'ID (Reg / Emp)', key: 'identifier', width: 18 },
+          { header: 'Course / Dept', key: 'academic', width: 25 },
+          { header: 'Section / Desig', key: 'subAcademic', width: 22 },
+          { header: 'Domain', key: 'domain', width: 16 },
           { header: 'Role', key: 'role', width: 20 },
           { header: 'Email', key: 'email', width: 25 },
           { header: 'Phone', key: 'phone', width: 15 },
@@ -31,13 +33,15 @@ export const exportData = async (req, res) => {
         ];
         data = members.map(m => ({
           fullName: m.fullName,
-          registrationNumber: m.registrationNumber,
-          course: m.course,
-          section: m.section,
+          memberType: m.memberType === 'faculty' ? 'Faculty' : 'Student',
+          identifier: m.memberType === 'faculty' ? (m.employeeId || '-') : (m.registrationNumber || '-'),
+          academic: m.memberType === 'faculty' ? (m.department || '-') : (m.course || '-'),
+          subAcademic: m.memberType === 'faculty' ? (m.designation || '-') : (m.section || '-'),
+          domain: m.domain || (m.memberType === 'faculty' ? 'Faculty' : '-'),
           role: m.role,
-          email: m.email,
-          phone: m.phone,
-          whatsapp: m.whatsapp,
+          email: m.email || '-',
+          phone: m.phone || '-',
+          whatsapp: m.whatsapp || '-',
           status: m.status
         }));
         break;

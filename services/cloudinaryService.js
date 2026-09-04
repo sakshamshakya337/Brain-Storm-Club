@@ -124,16 +124,20 @@ export const uploadPdfToCloudinary = async (buffer, folder, filename) => {
       reject(new Error('Cloudinary PDF upload timed out after 25 seconds'));
     }, 25000);
 
-    const sanitized = (filename || 'idea-pdf')
+    const baseName = (filename || 'idea-document')
+      .replace(/\.pdf$/i, '')
       .replace(/[^a-zA-Z0-9_-]/g, '_')
       .substring(0, 80);
+
+    // Explicitly append .pdf to the public_id so Cloudinary raw storage preserves extension
+    const publicIdWithExt = `${baseName}_${Date.now()}.pdf`;
 
     const uploadStream = cloudinary.uploader.upload_stream(
       {
         folder,
         resource_type: 'raw',
         type: 'authenticated',
-        public_id: `${sanitized}_${Date.now()}`,
+        public_id: publicIdWithExt,
         timeout: 25000,
       },
       (error, result) => {
@@ -153,7 +157,7 @@ export const uploadPdfToCloudinary = async (buffer, folder, filename) => {
 };
 
 /**
- * Generates a signed download URL for an authenticated raw (PDF) asset
+ * Generates a signed view/download URL for an authenticated raw (PDF) asset
  * @param {String} publicId  Cloudinary public_id
  * @returns {String|null}
  */
@@ -164,6 +168,7 @@ export const generateSignedPdfUrl = (publicId) => {
       resource_type: 'raw',
       type: 'authenticated',
       expires_at: Math.floor(Date.now() / 1000) + 3600, // 1 hour
+      attachment: false, // Allows inline display in browser/iframe
     });
   } catch (err) {
     console.error('Error generating signed PDF URL:', err);

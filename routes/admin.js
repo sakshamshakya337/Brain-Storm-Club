@@ -5,10 +5,13 @@ import {
   getDashboardStats, 
   getJoinRequests, 
   updateJoinRequestStatus,
+  updateJoinRequest,
+  deleteJoinRequest,
   getContactQueries,
   updateContactQueryStatus,
   getIdeas,
   getIdeaById,
+  getIdeaPdf,
   updateIdeaStatus
 } from '../controllers/adminController.js';
 import { 
@@ -16,7 +19,8 @@ import {
   approveMember, 
   rejectMember, 
   updateMember, 
-  deleteMember 
+  deleteMember,
+  createMember
 } from '../controllers/memberController.js';
 import {
   getAllEventsAdmin,
@@ -53,7 +57,9 @@ router.get('/stats', getDashboardStats);
 router.route('/join-us')
   .get(getJoinRequests);
 router.route('/join-us/:id')
-  .patch(updateJoinRequestStatus);
+  .patch(updateJoinRequestStatus)
+  .put(updateJoinRequest)
+  .delete(deleteJoinRequest);
 
 // Contact Queries
 router.route('/contact')
@@ -63,7 +69,12 @@ router.route('/contact/:id')
 
 // Members
 router.route('/members')
-  .get(getAllMembersAdmin);
+  .get(getAllMembersAdmin)
+  .post(
+    uploadImage.single('profileImage'),
+    processAndProtectImage('protected'),
+    createMember
+  );
 
 router.route('/members/:id')
   .patch(updateMember)
@@ -129,8 +140,9 @@ router.route('/notifications')
 router.patch('/notifications/read-all', markAllAsRead);
 router.patch('/notifications/:id/read', markAsRead);
 
-export default router;
-
 // Ideas
 router.route('/ideas').get(getIdeas);
 router.route('/ideas/:id').get(getIdeaById).patch(updateIdeaStatus);
+router.route('/ideas/:id/pdf').get(getIdeaPdf);
+
+export default router;

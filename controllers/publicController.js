@@ -47,8 +47,38 @@ export const getPublicMembers = async (req, res) => {
     // Project ONLY public safe fields (EXCLUDE phone, whatsapp, email)
     const members = await Member.find(filter)
       .populate('photoId', 'imageId')
-      .select('fullName course section role photoId')
-      .sort({ createdAt: 1 }); // Sort logic could be enhanced for hierarchy
+      .select('fullName course section role photoId memberType designation department domain');
+
+    // Hierarchy sort: Faculty -> President -> Vice President -> Secretary -> Core Heads -> Coordinators -> Team members
+    const ROLE_RANK = [
+      'president',
+      'vice president',
+      'vice-president',
+      'secretary',
+      'head coordinator',
+      'technical head',
+      'social media head',
+      'coordinator',
+      'technical team',
+      'media team',
+      'anchor'
+    ];
+
+    const getMemberRank = (m) => {
+      if (m.memberType === 'faculty' || ['hos', 'faculty advisor', 'faculty coordinator', 'faculty'].includes((m.role || '').toLowerCase())) {
+        return -1; // Top priority: Faculty
+      }
+      const roleStr = (m.role || '').trim().toLowerCase();
+      const idx = ROLE_RANK.indexOf(roleStr);
+      return idx === -1 ? 999 : idx;
+    };
+
+    members.sort((a, b) => {
+      const rA = getMemberRank(a);
+      const rB = getMemberRank(b);
+      if (rA !== rB) return rA - rB;
+      return (a.fullName || '').localeCompare(b.fullName || '');
+    });
       
     res.status(200).json({ status: 'success', results: members.length, data: { members } });
   } catch (error) {

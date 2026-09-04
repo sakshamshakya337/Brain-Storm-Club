@@ -104,3 +104,93 @@ export const sendAdminLoginOTP = async (adminEmail, rawOtp) => {
     throw error;
   }
 };
+
+/**
+ * Sends a confirmation email to the submitter after their idea is saved.
+ * Safe error handling: does not throw, records failure.
+ */
+export const sendIdeaConfirmationEmail = async ({ email, name, title, submissionDate, referenceId, hasPdf, pdfName }) => {
+  try {
+    const transporter = createTransporter();
+    
+    const formattedDate = new Date(submissionDate || Date.now()).toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    const mailOptions = {
+      from: getFromAddress(),
+      to: email,
+      subject: 'Your Brainstorm Idea Has Been Received',
+      html: `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+          <div style="background-color: #0f172a; padding: 24px; text-align: center;">
+            <h1 style="color: #ffffff; font-size: 20px; font-weight: 800; letter-spacing: 2px; margin: 0; text-transform: uppercase;">
+              BRAINSTORM CLUB
+            </h1>
+            <p style="color: #94a3b8; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; margin: 6px 0 0 0;">
+              LPU SCA Project & Innovation Community
+            </p>
+          </div>
+          
+          <div style="padding: 32px 24px;">
+            <h2 style="color: #0f172a; font-size: 18px; margin-top: 0; margin-bottom: 16px;">
+              Idea Submission Received
+            </h2>
+            
+            <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">
+              Hello <strong>${name}</strong>,
+            </p>
+            
+            <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 24px;">
+              Thank you for submitting your idea to Brainstorm Club. We have received your submission and our team will review it.
+            </p>
+            
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 20px; margin-bottom: 24px;">
+              <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                <tr>
+                  <td style="padding: 6px 0; color: #64748b; font-weight: 600; width: 140px; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">Idea Title:</td>
+                  <td style="padding: 6px 0; color: #0f172a; font-weight: bold;">${title}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #64748b; font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">Submitted On:</td>
+                  <td style="padding: 6px 0; color: #334155;">${formattedDate}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #64748b; font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">Reference ID:</td>
+                  <td style="padding: 6px 0; color: #334155; font-family: monospace;">${referenceId}</td>
+                </tr>
+                ${hasPdf ? `
+                <tr>
+                  <td style="padding: 6px 0; color: #64748b; font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">Attachment:</td>
+                  <td style="padding: 6px 0; color: #334155; font-family: monospace;">${pdfName || 'Document.pdf'}</td>
+                </tr>
+                ` : ''}
+              </table>
+            </div>
+
+            <p style="color: #475569; font-size: 14px; line-height: 1.6; margin-bottom: 24px;">
+              The best ideas get pitched, prototyped, and brought to life. We will keep you updated as your idea progresses.
+            </p>
+
+            <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 32px;">
+              <p style="color: #94a3b8; font-size: 12px; line-height: 1.5; margin: 0;">
+                This is an automated confirmation from the Brainstorm Club portal.
+              </p>
+            </div>
+          </div>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`[SMTP] Idea confirmation email sent successfully to ${email}`);
+    return { success: true };
+  } catch (error) {
+    console.error('[SMTP] Idea confirmation email delivery failed:', error.message);
+    return { success: false, error: error.message };
+  }
+};
