@@ -38,7 +38,7 @@ const DOMAIN_METADATA = {
     leadBadge: 'President',
   },
   Secretariat: {
-    title: 'Secretary & Head Coordinator',
+    title: 'Secretariat',
     badge: 'Executive',
     leadBadge: 'Secretary',
   },
@@ -103,8 +103,6 @@ const DOMAIN_LEAD_PRIORITIES = {
   ],
   Secretariat: [
     'secretary',
-    'head coordinator',
-    'head coord',
   ],
   Technical: [
     'technical head',
@@ -125,14 +123,14 @@ const DOMAIN_LEAD_PRIORITIES = {
   ],
   Anchor: ['anchor head', 'lead anchor', 'anchor'],
   Coordinator: [
-    'lead coordinator',
-    'senior coordinator',
+    'head coordinator',
+    'head coord',
     'coordinator',
   ],
 };
 
 /**
- * shouldShowTag — single source of truth for upper image tag visibility.
+ * shouldShowTag — single source of truth for upper image tag visibility and featured eligibility.
  * Returns true ONLY for:
  *   - Faculty members (memberType === 'faculty') with a qualifying head/lead role
  *   - Student members whose role matches a head/lead keyword
@@ -141,20 +139,34 @@ const shouldShowTag = (member) => {
   const role = (member.role || '').trim().toLowerCase();
   if (!role) return false;
 
+  // STRICT RULE: Regular coordinators can NEVER be featured/tagged.
   if (
-    member.memberType === 'faculty' ||
-    FACULTY_KEYWORDS.some((k) => role.includes(k))
+    role === 'coordinator' ||
+    role === 'senior coordinator' ||
+    role === 'lead coordinator' ||
+    role === 'event coordinator'
   ) {
-    return true;
+    return false;
+  }
+
+  // STRICT RULE: Regular anchors can NEVER be featured/tagged.
+  if (role === 'anchor') {
+    return false;
+  }
+
+  if (member.memberType === 'faculty') {
+    const LEADERSHIP_FACULTY_KEYWORDS = [
+      'hos', 'head of school', 'cos', 'chief of school', 'founder',
+      'dean', 'associate dean', 'faculty advisor', 'faculty coordinator'
+    ];
+    return LEADERSHIP_FACULTY_KEYWORDS.some((k) => role.includes(k));
   }
 
   const HEAD_ROLE_KEYWORDS = [
     'president', 'vice president', 'vp', 'secretary', 'head coordinator', 'head coord',
     'technical head', 'tech head', 'technical lead', 'tech lead',
     'social media head', 'media head', 'creative head', 'media lead',
-    'anchor head', 'lead anchor', 'lead coordinator', 'senior coordinator',
-    'hos', 'head of school', 'cos', 'chief of school', 'founder', 'dean', 'associate dean',
-    'faculty advisor', 'faculty coordinator',
+    'anchor head', 'lead anchor'
   ];
 
   return HEAD_ROLE_KEYWORDS.some((k) => role.includes(k));
@@ -190,11 +202,9 @@ const resolveMemberDomain = (member) => {
     return 'President';
   }
 
-  // 3. Secretariat — Secretary + Head Coordinator
+  // 3. Secretariat — Secretary only
   if (
     role.includes('secretary') ||
-    role.includes('head coordinator') ||
-    role.includes('head coord') ||
     domain === 'secretariat' ||
     domain === 'executive'
   ) {
@@ -288,17 +298,25 @@ const groupAndRankMembers = (members) => {
 
   const domainSections = [];
 
-  Object.entries(domainMap).forEach(([domainKey, domainMemberList]) => {
-    // Sort members within this domain so the primary Lead/Head is at index 0
-    const sorted = [...domainMemberList].sort((a, b) => {
-      const scoreA = getDomainLeadScore(a, domainKey);
-      const scoreB = getDomainLeadScore(b, domainKey);
-      if (scoreA !== scoreB) return scoreA - scoreB;
+  Object.entries(domainMap).forEach(([domainKey, list]) => {
+    const sorted = [...list].sort((a, b) => {
+      const sa = getDomainLeadScore(a, domainKey);
+      const sb = getDomainLeadScore(b, domainKey);
+      if (sa !== sb) return sa - sb;
       return (a.fullName || '').localeCompare(b.fullName || '');
     });
 
-    const leadMember = sorted[0];
-    const supportingMembers = sorted.slice(1);
+    let lead = null;
+    let supporting = [];
+
+    const potentialLead = sorted[0];
+    if (potentialLead && shouldShowTag(potentialLead)) {
+      lead = potentialLead;
+      supporting = sorted.slice(1);
+    } else {
+      lead = null;
+      supporting = sorted;
+    }
 
     const meta = DOMAIN_METADATA[domainKey] || {
       title: `${domainKey} Team`,
@@ -311,8 +329,8 @@ const groupAndRankMembers = (members) => {
       title: meta.title,
       badge: meta.badge,
       leadBadge: meta.leadBadge,
-      leadMember,
-      supportingMembers,
+      leadMember: lead,
+      supportingMembers: supporting,
       totalCount: sorted.length,
     });
   });
@@ -465,8 +483,12 @@ function DomainSection({ domain, index }) {
   useScrollReveal(sectionRef);
 
   const { title, badge, leadBadge, leadMember, supportingMembers, totalCount } = domain;
-  const isSolo = supportingMembers.length === 0;
-  const isPair = supportingMembers.length === 1;
+  const hasLead = !!leadMember;
+
+  const countText = `${totalCount} ${totalCount === 1 ? 'Member' : 'Members'}`;
+  const compositionText = hasLead 
+    ? `• 1 Lead${supportingMembers.length > 0 ? ` + ${supportingMembers.length} Supporting` : ''}` 
+    : '';
 
   return (
     <div ref={sectionRef} className="mb-16 md:mb-20 last:mb-0">
@@ -487,26 +509,29 @@ function DomainSection({ domain, index }) {
           </h2>
         </div>
         <div className="font-mono text-[10px] tracking-widest text-slate-500 dark:text-slate-400 font-bold uppercase flex items-center gap-2">
-          <span>
-            {totalCount} {totalCount === 1 ? 'Member' : 'Members'}
-          </span>
-          {!isSolo && (
-            <span className="text-brand-primary">
-              • 1 Lead + {supportingMembers.length} Supporting
-            </span>
+          <span>{countText}</span>
+          {compositionText && (
+            <span className="text-brand-primary hidden sm:inline">{compositionText}</span>
           )}
         </div>
       </div>
 
-      {/* ── Case A: 1 member in this domain (Solo) ── */}
-      {isSolo && (
+      {!hasLead ? (
+        <div
+          data-reveal="stagger-children"
+          className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 max-w-[1440px]"
+        >
+          {supportingMembers.map((member) => (
+            <div key={member._id || member.id} className="h-full">
+              <SupportingMemberCard member={member} />
+            </div>
+          ))}
+        </div>
+      ) : supportingMembers.length === 0 ? (
         <div data-reveal="up" className="max-w-[320px]">
           <FeaturedMemberCard member={leadMember} isSolo={true} leadBadge={leadBadge} />
         </div>
-      )}
-
-      {/* ── Case B: 2 members (1 Featured Lead + 1 Supporting Member) ── */}
-      {isPair && (
+      ) : supportingMembers.length === 1 ? (
         <div
           data-reveal="up"
           className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 max-w-[580px] items-start"
@@ -518,10 +543,7 @@ function DomainSection({ domain, index }) {
             <SupportingMemberCard member={supportingMembers[0]} />
           </div>
         </div>
-      )}
-
-      {/* ── Case C: 3 or more members (Lead + 2+ Supporting) ── */}
-      {!isSolo && !isPair && (
+      ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start max-w-[1240px]">
           {/* Left: Featured Head Card */}
           <div

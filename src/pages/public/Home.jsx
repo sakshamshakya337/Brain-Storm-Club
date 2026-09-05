@@ -9,6 +9,7 @@ import IdeasFlow from '../../components/sections/IdeasFlow';
 import { usePageReveal } from '../../hooks/usePageReveal';
 import { useScrollReveal } from '../../hooks/useScrollReveal';
 import { useMagneticButton } from '../../hooks/useMagneticButton';
+import ProtectedImage from '../../components/common/ProtectedImage';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -19,6 +20,72 @@ export default function Home() {
 
   const ctaRef = useMagneticButton(0.4);
   const statsSectionRef = useRef(null);
+
+  // Live Members API Integration
+  const [liveMembers, setLiveMembers] = useState([]);
+  const [isMembersLoading, setIsMembersLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    fetch('/api/public/members')
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to fetch');
+        return res.json();
+      })
+      .then((data) => {
+        if (mounted && data.status === 'success') {
+          setLiveMembers(data.data.members || []);
+        }
+      })
+      .catch((err) => console.error('Members fetch error:', err))
+      .finally(() => {
+        if (mounted) setIsMembersLoading(false);
+      });
+    return () => { mounted = false; };
+  }, []);
+
+  const getHomepageMembers = () => {
+    const getRole = (m) => (m.role || '').toLowerCase();
+    
+    // Sort by status to prefer 'approved' or active if duplicates exist (assuming API returns sorted/approved)
+    const members = [...liveMembers];
+
+    const president = members.find(m => {
+      const r = getRole(m);
+      return r === 'president' || (r.includes('president') && !r.includes('vice'));
+    });
+
+    const vp = members.find(m => {
+      const r = getRole(m);
+      return r.includes('vice president') || r === 'vp';
+    });
+
+    const mediaHead = members.find(m => {
+      const r = getRole(m);
+      return r.includes('media head') || r.includes('social media head');
+    });
+
+    const headCoord = members.find(m => {
+      const r = getRole(m);
+      return r.includes('head coord') || r.includes('head coordinator');
+    });
+
+    const techHead = members.find(m => {
+      const r = getRole(m);
+      return r.includes('technical head') || r.includes('tech head') || r.includes('technical lead');
+    });
+
+    return { president, vp, mediaHead, headCoord, techHead };
+  };
+
+  const { president, vp, mediaHead, headCoord, techHead } = getHomepageMembers();
+
+  const supportingSlots = [
+    { roleLabel: 'Vice President', member: vp },
+    { roleLabel: 'Media Head', member: mediaHead },
+    { roleLabel: 'Head Coordinator', member: headCoord },
+    { roleLabel: 'Technical Head', member: techHead }
+  ].filter(slot => slot.member); // Safely omit missing roles
 
   // Stats Counter Animation
   useGSAP(() => {
@@ -444,38 +511,53 @@ export default function Home() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-            {/* LARGE PORTRAIT */}
-            <div className="md:col-span-6 bg-slate-200 dark:bg-slate-800 relative h-[400px] md:h-[600px] group overflow-hidden">
-              <img src="/sujal.png" className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80 group-hover:scale-105 transition-transform duration-700" alt="President" />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80"></div>
-              <div className="absolute bottom-8 left-8 text-white">
-                <span className="font-mono text-[10px] font-bold tracking-widest uppercase block mb-2 text-brand-secondary">President</span>
-                <h4 className="font-heading font-bold text-3xl uppercase tracking-tight mb-1">Sujal Bhatia</h4>
-                <p className="font-mono text-[10px] tracking-widest uppercase text-slate-300">MCA (2nd Year)</p>
-              </div>
-            </div>
-
-            {/* SMALLER PORTRAITS */}
-            <div className="md:col-span-6 grid grid-cols-2 gap-4">
-              {[
-                { name: 'Ritu Raj', role: 'Vice President', course: 'BCA', img: '/ritu.png' },
-                { name: 'Satyam Shakti', role: 'Media Head', course: 'MCA (2nd Year)', img: '/satyam.jpeg' },
-                { name: 'Meharjot Singh', role: 'Head Coordinator', course: 'MCA (2nd Year)', img: '/Meharjot.jpg' },
-                { name: 'Saksham Shakya', role: 'Technical Head', course: 'MCA (2nd Year)', img: '/saksham.png' }
-              ].map((person, i) => (
-                <div key={i} className="relative h-[190px] md:h-auto bg-slate-200 dark:bg-slate-800 group overflow-hidden">
-                  <img src={person.img} className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80 group-hover:scale-105 transition-transform duration-700" alt={person.name} />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-90"></div>
-                  <div className="absolute bottom-4 left-4 text-white">
-                    <span className="font-mono text-[9px] font-bold tracking-widest uppercase block mb-1 text-brand-primary">{person.role}</span>
-                    <h4 className="font-heading font-bold text-lg uppercase tracking-tight mb-0.5">{person.name}</h4>
-                    <p className="font-mono text-[9px] tracking-widest uppercase text-slate-400">{person.course}</p>
+          {!isMembersLoading && liveMembers.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+              {/* LARGE PORTRAIT (President) */}
+              {president && (
+                <div className="md:col-span-6 bg-slate-200 dark:bg-slate-800 relative h-[400px] md:h-[600px] group overflow-hidden">
+                  <ProtectedImage 
+                    imageId={president.photoId?.imageId} 
+                    alt={president.fullName} 
+                    variant="member_card"
+                    className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80 group-hover:scale-105 transition-transform duration-700" 
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80"></div>
+                  <div className="absolute bottom-8 left-8 text-white z-10">
+                    <span className="font-mono text-[10px] font-bold tracking-widest uppercase block mb-2 text-brand-secondary">President</span>
+                    <h4 className="font-heading font-bold text-3xl uppercase tracking-tight mb-1">{president.fullName}</h4>
+                    <p className="font-mono text-[10px] tracking-widest uppercase text-slate-300">
+                      {president.course} {president.year ? `(${president.year})` : ''}
+                    </p>
                   </div>
                 </div>
-              ))}
+              )}
+
+              {/* SMALLER PORTRAITS */}
+              {supportingSlots.length > 0 && (
+                <div className="md:col-span-6 grid grid-cols-2 gap-4">
+                  {supportingSlots.map((slot, i) => (
+                    <div key={slot.member._id || i} className="relative h-[190px] md:h-auto bg-slate-200 dark:bg-slate-800 group overflow-hidden">
+                      <ProtectedImage 
+                        imageId={slot.member.photoId?.imageId} 
+                        alt={slot.member.fullName} 
+                        variant="member_card"
+                        className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80 group-hover:scale-105 transition-transform duration-700" 
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-90"></div>
+                      <div className="absolute bottom-4 left-4 text-white z-10">
+                        <span className="font-mono text-[9px] font-bold tracking-widest uppercase block mb-1 text-brand-primary">{slot.roleLabel}</span>
+                        <h4 className="font-heading font-bold text-lg uppercase tracking-tight mb-0.5">{slot.member.fullName}</h4>
+                        <p className="font-mono text-[9px] tracking-widest uppercase text-slate-400">
+                          {slot.member.course} {slot.member.year ? `(${slot.member.year})` : ''}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
+          )}
         </div>
       </section>
 
