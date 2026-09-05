@@ -1,0 +1,30 @@
+# robots.txt for LPU SCA Brainstorm Club
+# https://sca-brainstorm.lpu.in
+
+User-agent: *
+
+# Disallow administrative control panel and authentication
+Disallow: /control/
+Disallow: /control
+
+# Disallow internal backend API endpoints
+Disallow: /api/
+
+# Disallow internal or hidden onboarding links
+Disallow: /member/register
+Disallow: /members/register
+
+# Allow public content
+Allow: /
+Allow: /events
+Allow: /members
+Allow: /about
+Allow: /contact
+Allow: /join-us
+Allow: /ideas
+Allow: /privacy-policy
+Allow: /terms
+Allow: /security
+
+# Canonical Sitemap location
+Sitemap: https://sca-brainstorm.lpu.in/sitemap.xml

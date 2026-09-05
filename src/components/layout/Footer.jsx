@@ -101,9 +101,15 @@ export default function Footer() {
           <p className="font-mono text-[10px] tracking-widest text-slate-400 uppercase">
             &copy; {new Date().getFullYear()} LPU SCA Brainstorm Club
           </p>
-          <div className="flex items-center gap-6">
+          <div className="flex flex-wrap items-center justify-center md:justify-end gap-x-6 gap-y-2">
+            <Link to="/terms" className="font-mono text-[10px] tracking-widest text-slate-400 uppercase hover:text-slate-200 transition-colors">
+              Terms
+            </Link>
             <Link to="/privacy-policy" className="font-mono text-[10px] tracking-widest text-slate-400 uppercase hover:text-slate-200 transition-colors">
-              Privacy Policy
+              Privacy
+            </Link>
+            <Link to="/security" className="font-mono text-[10px] tracking-widest text-slate-400 uppercase hover:text-slate-200 transition-colors">
+              Security
             </Link>
             <div className="flex items-center gap-2 font-mono text-[10px] tracking-widest text-slate-400 uppercase">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>

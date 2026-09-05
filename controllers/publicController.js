@@ -70,7 +70,7 @@ export const getPublicMembers = async (req, res) => {
     ];
 
     const getMemberRank = (m) => {
-      if (m.memberType === 'faculty' || ['hos', 'faculty advisor', 'faculty coordinator', 'faculty'].includes((m.role || '').toLowerCase())) {
+      if (m.memberType === 'faculty' || ['hos', 'cos', 'founder', 'faculty advisor', 'faculty coordinator', 'faculty', 'dean'].some(k => (m.role || '').toLowerCase().includes(k))) {
         return -1; // Top priority: Faculty
       }
       const roleStr = (m.role || '').trim().toLowerCase();

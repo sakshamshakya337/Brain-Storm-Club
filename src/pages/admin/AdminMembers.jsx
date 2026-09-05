@@ -2,13 +2,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Loader2, Search, Filter, Edit, Trash2, Eye, Mail, Phone,
   Download, UserPlus, X, Upload, CheckCircle2, AlertCircle,
-  Users, GraduationCap
+  Users, GraduationCap, Crop
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Link } from 'react-router-dom';
+import imageCompression from 'browser-image-compression';
+import MemberPhotoEditor from '../../components/common/MemberPhotoEditor';
 
 // ─── Role constants (mirrors backend + public ROLE_ORDER) ─────────────────────
-const FACULTY_ROLES     = ['COS', 'HOS', 'Dean', 'Associate Dean', 'Faculty Advisor', 'Faculty Coordinator', 'Faculty'];
+const FACULTY_ROLES     = ['HOS', 'COS', 'Founder', 'Dean', 'Associate Dean', 'Faculty Advisor', 'Faculty Coordinator', 'Faculty'];
 const LEADERSHIP_ROLES  = ['President', 'Vice President', 'Secretary', 'Head Coordinator', 'Technical Head', 'Social Media Head'];
 const TEAM_ROLES        = ['Technical Team', 'Media Team', 'Anchor', 'Coordinator'];
 const ALL_ROLES         = [...FACULTY_ROLES, ...LEADERSHIP_ROLES, ...TEAM_ROLES];
@@ -37,6 +39,9 @@ function AddMemberModal({ onClose, onCreated }) {
   const [error, setError]                 = useState('');
   const [imageFile, setImageFile]         = useState(null);
   const [imagePreview, setImagePreview]   = useState(null);
+  const [rawImageForCrop, setRawImageForCrop] = useState(null);
+  const [rawFileName, setRawFileName]     = useState('');
+  const [cropModalOpen, setCropModalOpen] = useState(false);
   const [imageProcessing, setImageProcessing] = useState(false);
   const [isCustomRole, setIsCustomRole]   = useState(false);
   const [customRoleText, setCustomRoleText] = useState('');
@@ -51,6 +56,13 @@ function AddMemberModal({ onClose, onCreated }) {
 
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
+  useEffect(() => {
+    return () => {
+      if (imagePreview) URL.revokeObjectURL(imagePreview);
+      if (rawImageForCrop) URL.revokeObjectURL(rawImageForCrop);
+    };
+  }, []);
+
   // Escape key
   useEffect(() => {
     const fn = (e) => { if (e.key === 'Escape') onClose(); };
@@ -63,30 +75,57 @@ function AddMemberModal({ onClose, onCreated }) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (e.target) e.target.value = '';
-    if (!file.type.startsWith('image/')) {
+
+    const isImg = file.type.startsWith('image/') || /\.(jpe?g|png|webp|heic)$/i.test(file.name);
+    if (!isImg) {
       setError('Only image files are accepted for the profile photo.');
       return;
     }
     setImageProcessing(true);
     setError('');
     try {
-      let processed = file;
-      if (file.size > 5 * 1024 * 1024) {
-        const imageCompression = (await import('browser-image-compression')).default;
-        processed = await imageCompression(file, { maxSizeMB: 4.8, maxWidthOrHeight: 2048, useWebWorker: true });
+      let fileToProcess = file;
+      if (file.name.toLowerCase().endsWith('.heic') || file.type === 'image/heic') {
+        const heic2any = (await import('heic2any')).default;
+        const convertedBlob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 });
+        const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+        fileToProcess = new File([blob], file.name.replace(/\.heic$/i, '.jpg'), { type: 'image/jpeg' });
       }
-      setImageFile(processed);
-      setImagePreview(URL.createObjectURL(processed));
-    } catch {
-      setError('Image processing failed. Please try a different image.');
+      if (rawImageForCrop) URL.revokeObjectURL(rawImageForCrop);
+      const previewUrl = URL.createObjectURL(fileToProcess);
+      setRawImageForCrop(previewUrl);
+      setRawFileName(fileToProcess.name);
+      setCropModalOpen(true);
+    } catch (err) {
+      setError(err.message || 'Image processing failed. Please try a different image.');
+    } finally {
+      setImageProcessing(false);
+    }
+  };
+
+  const handleCropConfirm = async (croppedBlob, croppedFile) => {
+    setImageProcessing(true);
+    try {
+      const options = { maxSizeMB: 2.0, maxWidthOrHeight: 1200, useWebWorker: true };
+      const compressedFile = await imageCompression(croppedFile, options);
+      if (imagePreview) URL.revokeObjectURL(imagePreview);
+      setImageFile(compressedFile);
+      setImagePreview(URL.createObjectURL(compressedFile));
+      setCropModalOpen(false);
+      setError('');
+    } catch (err) {
+      setError(err.message || 'Failed to process cropped photo.');
     } finally {
       setImageProcessing(false);
     }
   };
 
   const removeImage = () => {
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    if (rawImageForCrop) URL.revokeObjectURL(rawImageForCrop);
     setImageFile(null);
     setImagePreview(null);
+    setRawImageForCrop(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -370,32 +409,61 @@ function AddMemberModal({ onClose, onCreated }) {
               {/* 04 Profile Image */}
               <SectionHeader label="04 / Profile Image (optional)" />
               {!imagePreview ? (
-                <div className="relative border-2 border-dashed border-slate-200 rounded-lg bg-slate-50 hover:border-brand-primary/50 transition-colors cursor-pointer flex flex-col items-center justify-center py-8 gap-2">
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="relative border-2 border-dashed border-slate-200 rounded-lg bg-slate-50 hover:border-brand-primary/50 transition-colors cursor-pointer flex flex-col items-center justify-center py-8 gap-2"
+                >
                   <input
                     ref={fileInputRef}
                     type="file"
                     accept=".jpg,.jpeg,.png,.heic,image/*"
                     onChange={handleImage}
-                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    className="hidden"
                     aria-label="Upload profile photo"
                   />
                   {imageProcessing
                     ? <Loader2 size={20} className="animate-spin text-brand-primary" />
                     : <Upload size={20} className="text-slate-400" />
                   }
-                  <p className="text-sm text-slate-500 font-medium">
-                    {imageProcessing ? 'Processing…' : 'Click or drag to upload photo'}
+                  <p className="text-sm text-slate-600 font-medium">
+                    {imageProcessing ? 'Processing…' : 'Click to select & crop photo'}
                   </p>
-                  <p className="text-[10px] text-slate-400 font-mono uppercase tracking-wider">PNG · JPG · HEIC · Max 5 MB</p>
+                  <p className="text-[10px] text-slate-400 font-mono uppercase tracking-wider">PNG · JPG · HEIC · Max 5 MB (Auto 4:5 Card Ratio)</p>
                 </div>
               ) : (
                 <div className="flex items-center gap-3 p-3 border border-slate-200 rounded-lg bg-slate-50">
-                  <img src={imagePreview} alt="Preview" className="w-14 h-14 rounded-lg object-cover border border-slate-200 shrink-0" />
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.heic,image/*"
+                    onChange={handleImage}
+                    className="hidden"
+                  />
+                  <div className="w-14 h-17 aspect-[4/5] rounded-lg overflow-hidden border border-slate-300 bg-slate-100 shrink-0">
+                    <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                  </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-900 truncate">{imageFile?.name}</p>
+                    <p className="text-sm font-medium text-slate-900 truncate">{imageFile?.name || 'profile.jpg'}</p>
                     <p className="text-xs text-emerald-600 font-mono font-bold mt-0.5 flex items-center gap-1">
-                      <CheckCircle2 size={10} /> Ready ({(imageFile?.size / (1024 * 1024)).toFixed(2)} MB)
+                      <CheckCircle2 size={10} /> Cropped & Ready ({(imageFile?.size / (1024 * 1024)).toFixed(2)} MB)
                     </p>
+                    <div className="flex items-center gap-3 mt-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setCropModalOpen(true)}
+                        className="text-[11px] font-mono font-bold text-brand-primary hover:underline uppercase flex items-center gap-1"
+                      >
+                        <Crop size={11} /> Adjust Crop
+                      </button>
+                      <span className="text-slate-300">•</span>
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="text-[11px] font-mono font-bold text-slate-500 hover:text-slate-800 uppercase"
+                      >
+                        Change Photo
+                      </button>
+                    </div>
                   </div>
                   <button type="button" onClick={removeImage} aria-label="Remove image" className="p-1.5 rounded-full bg-red-100 text-red-500 hover:bg-red-200 transition-colors shrink-0">
                     <X size={12} />
@@ -452,6 +520,18 @@ function AddMemberModal({ onClose, onCreated }) {
           </form>
         )}
       </div>
+
+      {/* Add Member Crop Modal */}
+      <MemberPhotoEditor
+        isOpen={cropModalOpen}
+        imageSrc={rawImageForCrop || imagePreview}
+        fileName={rawFileName}
+        aspect={4 / 5}
+        onConfirm={handleCropConfirm}
+        onCancel={() => setCropModalOpen(false)}
+        theme="light"
+        title="Adjust Profile Photo"
+      />
     </div>
   );
 }
@@ -471,8 +551,24 @@ export default function AdminMembers() {
   const [editCustomRole, setEditCustomRole] = useState(false);
   const [saving, setSaving]                 = useState(false);
 
+  // Edit photo states
+  const [editPhotoFile, setEditPhotoFile]             = useState(null);
+  const [editPhotoPreview, setEditPhotoPreview]       = useState(null);
+  const [editRawImageForCrop, setEditRawImageForCrop] = useState(null);
+  const [editRawFileName, setEditRawFileName]         = useState('');
+  const [editCropModalOpen, setEditCropModalOpen]     = useState(false);
+  const [editImageProcessing, setEditImageProcessing] = useState(false);
+  const editFileInputRef                              = useRef(null);
+
   // Add member modal
   const [addModalOpen, setAddModalOpen] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (editPhotoPreview) URL.revokeObjectURL(editPhotoPreview);
+      if (editRawImageForCrop) URL.revokeObjectURL(editRawImageForCrop);
+    };
+  }, []);
 
   useEffect(() => { fetchMembers(); }, []);
 
@@ -491,9 +587,74 @@ export default function AdminMembers() {
   };
 
   const openEditModal = (member) => {
+    if (editPhotoPreview) URL.revokeObjectURL(editPhotoPreview);
+    if (editRawImageForCrop) URL.revokeObjectURL(editRawImageForCrop);
+    setEditPhotoFile(null);
+    setEditPhotoPreview(null);
+    setEditRawImageForCrop(null);
+    setEditRawFileName('');
+    setEditCropModalOpen(false);
+    setEditImageProcessing(false);
     setEditCustomRole(!ALL_ROLES.includes(member.role));
     setEditingMember({ ...member });
     setEditModalOpen(true);
+  };
+
+  const closeEditModal = () => {
+    if (editPhotoPreview) URL.revokeObjectURL(editPhotoPreview);
+    if (editRawImageForCrop) URL.revokeObjectURL(editRawImageForCrop);
+    setEditPhotoFile(null);
+    setEditPhotoPreview(null);
+    setEditRawImageForCrop(null);
+    setEditCropModalOpen(false);
+    setEditModalOpen(false);
+  };
+
+  const handleEditImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (e.target) e.target.value = '';
+
+    const isImg = file.type.startsWith('image/') || /\.(jpe?g|png|webp|heic)$/i.test(file.name);
+    if (!isImg) {
+      alert('Only image files are accepted for the profile photo.');
+      return;
+    }
+    setEditImageProcessing(true);
+    try {
+      let fileToProcess = file;
+      if (file.name.toLowerCase().endsWith('.heic') || file.type === 'image/heic') {
+        const heic2any = (await import('heic2any')).default;
+        const convertedBlob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 });
+        const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+        fileToProcess = new File([blob], file.name.replace(/\.heic$/i, '.jpg'), { type: 'image/jpeg' });
+      }
+      if (editRawImageForCrop) URL.revokeObjectURL(editRawImageForCrop);
+      const previewUrl = URL.createObjectURL(fileToProcess);
+      setEditRawImageForCrop(previewUrl);
+      setEditRawFileName(fileToProcess.name);
+      setEditCropModalOpen(true);
+    } catch (err) {
+      alert(err.message || 'Image processing failed. Please try a different image.');
+    } finally {
+      setEditImageProcessing(false);
+    }
+  };
+
+  const handleEditCropConfirm = async (croppedBlob, croppedFile) => {
+    setEditImageProcessing(true);
+    try {
+      const options = { maxSizeMB: 2.0, maxWidthOrHeight: 1200, useWebWorker: true };
+      const compressedFile = await imageCompression(croppedFile, options);
+      if (editPhotoPreview) URL.revokeObjectURL(editPhotoPreview);
+      setEditPhotoFile(compressedFile);
+      setEditPhotoPreview(URL.createObjectURL(compressedFile));
+      setEditCropModalOpen(false);
+    } catch (err) {
+      alert(err.message || 'Failed to process cropped photo.');
+    } finally {
+      setEditImageProcessing(false);
+    }
   };
 
   const handleEditSave = async (e) => {
@@ -501,28 +662,52 @@ export default function AdminMembers() {
     try {
       setSaving(true);
       const isFaculty = (editingMember.memberType || 'student') === 'faculty';
-      const res = await fetch(`/api/admin/members/${editingMember._id}`, {
-        method: 'PATCH',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fullName:    editingMember.fullName,
-          course:      editingMember.course      || '',
-          section:     editingMember.section     || '',
-          domain:      editingMember.domain      || (isFaculty ? 'Faculty' : ''),
-          department:  editingMember.department  || '',
-          designation: editingMember.designation || '',
-          employeeId:  isFaculty ? (editingMember.employeeId || undefined) : undefined,
-          role:        editingMember.role,
-          phone:       editingMember.phone       || '',
-          whatsapp:    editingMember.whatsapp    || '',
-          email:       editingMember.email       || '',
-        }),
-      });
+      
+      let res;
+      if (editPhotoFile) {
+        const fd = new FormData();
+        fd.append('fullName', editingMember.fullName);
+        fd.append('course', editingMember.course || '');
+        fd.append('section', editingMember.section || '');
+        fd.append('domain', editingMember.domain || (isFaculty ? 'Faculty' : ''));
+        fd.append('department', editingMember.department || '');
+        fd.append('designation', editingMember.designation || '');
+        if (isFaculty && editingMember.employeeId) fd.append('employeeId', editingMember.employeeId);
+        fd.append('role', editingMember.role);
+        fd.append('phone', editingMember.phone || '');
+        fd.append('whatsapp', editingMember.whatsapp || '');
+        fd.append('email', editingMember.email || '');
+        fd.append('profileImage', editPhotoFile);
+
+        res = await fetch(`/api/admin/members/${editingMember._id}`, {
+          method: 'PATCH',
+          credentials: 'include',
+          body: fd,
+        });
+      } else {
+        res = await fetch(`/api/admin/members/${editingMember._id}`, {
+          method: 'PATCH',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fullName:    editingMember.fullName,
+            course:      editingMember.course      || '',
+            section:     editingMember.section     || '',
+            domain:      editingMember.domain      || (isFaculty ? 'Faculty' : ''),
+            department:  editingMember.department  || '',
+            designation: editingMember.designation || '',
+            employeeId:  isFaculty ? (editingMember.employeeId || undefined) : undefined,
+            role:        editingMember.role,
+            phone:       editingMember.phone       || '',
+            whatsapp:    editingMember.whatsapp    || '',
+            email:       editingMember.email       || '',
+          }),
+        });
+      }
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to update member');
       setMembers(members.map(m => m._id === editingMember._id ? data.data.member : m));
-      setEditModalOpen(false);
+      closeEditModal();
     } catch (err) {
       alert(err.message);
     } finally {
@@ -697,7 +882,11 @@ export default function AdminMembers() {
                     <tr key={member._id} className="hover:bg-slate-50 transition-colors group">
                       {/* Photo */}
                       <td className="px-6 py-4">
-                        <div className="w-10 h-10 rounded-full bg-slate-100 overflow-hidden border border-slate-200">
+                        <div 
+                          onClick={() => openEditModal(member)}
+                          className="w-10 h-10 rounded-full bg-slate-100 overflow-hidden border border-slate-200 cursor-pointer hover:ring-2 hover:ring-brand-primary transition-all"
+                          title="Click to view/edit member photo"
+                        >
                           {member.photoId ? (
                             <img
                               src={`/api/images/${member.photoId?.imageId || member.photoId}?variant=member_card`}
@@ -800,7 +989,10 @@ export default function AdminMembers() {
 
       {/* ── Edit Modal ─────────────────────────────────────────────────────── */}
       {editModalOpen && editingMember && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={e => { if (e.target === e.currentTarget) closeEditModal(); }}
+        >
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
               <div>
@@ -816,6 +1008,106 @@ export default function AdminMembers() {
 
             <form onSubmit={handleEditSave}>
               <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+
+                {/* Profile Photo */}
+                <div>
+                  <label className="block text-xs font-bold font-mono tracking-widest uppercase text-slate-500 mb-1.5">
+                    Profile Photo
+                  </label>
+                  <input
+                    ref={editFileInputRef}
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.heic,image/*"
+                    onChange={handleEditImageUpload}
+                    className="hidden"
+                  />
+                  <div className="flex items-center gap-4 p-3 border border-slate-200 rounded-lg bg-slate-50">
+                    <div className="w-16 h-20 aspect-[4/5] rounded-lg overflow-hidden border border-slate-300 bg-slate-200 shrink-0 flex items-center justify-center">
+                      {editPhotoPreview ? (
+                        <img src={editPhotoPreview} alt="Pending Crop" className="w-full h-full object-cover" />
+                      ) : editingMember.photoId ? (
+                        <img
+                          src={`/api/images/${editingMember.photoId?.imageId || editingMember.photoId}?variant=member_card`}
+                          alt={editingMember.fullName}
+                          className="w-full h-full object-cover"
+                          crossOrigin="use-credentials"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
+                          <Users size={20} />
+                          <span className="text-[10px] font-mono mt-1">No Photo</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      {editPhotoPreview ? (
+                        <>
+                          <p className="text-xs font-bold text-slate-900 truncate">
+                            {editPhotoFile?.name || 'New photo selected'}
+                          </p>
+                          <p className="text-[11px] text-amber-600 font-mono font-bold mt-0.5 flex items-center gap-1">
+                            <CheckCircle2 size={11} className="text-emerald-500" />
+                            Pending save ({(editPhotoFile?.size / (1024 * 1024)).toFixed(2)} MB)
+                          </p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <button
+                              type="button"
+                              onClick={() => setEditCropModalOpen(true)}
+                              className="text-[11px] font-mono font-bold text-brand-primary hover:underline uppercase flex items-center gap-1"
+                            >
+                              <Crop size={11} /> Adjust Crop
+                            </button>
+                            <span className="text-slate-300">•</span>
+                            <button
+                              type="button"
+                              onClick={() => editFileInputRef.current?.click()}
+                              className="text-[11px] font-mono font-bold text-slate-600 hover:text-slate-900 uppercase"
+                            >
+                              Change
+                            </button>
+                            <span className="text-slate-300">•</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (editPhotoPreview) URL.revokeObjectURL(editPhotoPreview);
+                                setEditPhotoFile(null);
+                                setEditPhotoPreview(null);
+                              }}
+                              className="text-[11px] font-mono font-bold text-red-500 hover:underline uppercase"
+                            >
+                              Revert
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-xs font-semibold text-slate-800">
+                            {editingMember.photoId ? 'Current profile photo active' : 'No photo uploaded yet'}
+                          </p>
+                          <p className="text-[10px] text-slate-400 font-mono uppercase mt-0.5">
+                            4:5 card aspect ratio crop
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => editFileInputRef.current?.click()}
+                            disabled={editImageProcessing}
+                            className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:border-brand-primary text-slate-700 hover:text-brand-primary rounded-md text-xs font-medium font-mono uppercase tracking-wider transition-colors"
+                          >
+                            {editImageProcessing ? (
+                              <>
+                                <Loader2 size={12} className="animate-spin text-brand-primary" /> Processing...
+                              </>
+                            ) : (
+                              <>
+                                <Upload size={12} /> {editingMember.photoId ? 'Replace Photo' : 'Upload Photo'}
+                              </>
+                            )}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
 
                 <div>
                   <label className="block text-xs font-bold font-mono tracking-widest uppercase text-slate-500 mb-1">Full Name</label>
@@ -991,7 +1283,7 @@ export default function AdminMembers() {
               <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
                 <button
                   type="button"
-                  onClick={() => setEditModalOpen(false)}
+                  onClick={closeEditModal}
                   className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-100 transition-colors"
                 >
                   Cancel
@@ -1007,6 +1299,18 @@ export default function AdminMembers() {
               </div>
             </form>
           </div>
+
+          {/* Edit Member Photo Crop Modal */}
+          <MemberPhotoEditor
+            isOpen={editCropModalOpen}
+            imageSrc={editRawImageForCrop || editPhotoPreview}
+            fileName={editRawFileName}
+            aspect={4 / 5}
+            onConfirm={handleEditCropConfirm}
+            onCancel={() => setEditCropModalOpen(false)}
+            theme="light"
+            title="Adjust Member Photo"
+          />
         </div>
       )}
 

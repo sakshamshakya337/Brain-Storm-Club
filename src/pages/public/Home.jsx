@@ -109,10 +109,10 @@ export default function Home() {
   // Carousel State
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const showcaseImages = [
-    { src: 'https://i.ibb.co/fdnpG2jd/IMG-9328.jpg', label: '01 / THINK', type: 'EVENT', title: 'WORKSHOP' },
-    { src: '/build.jpg', label: '02 / BUILD', type: 'BRAINSTORM', title: 'SESSION' },
-    { src: 'https://i.ibb.co/4wmHXZfg/IMG-1202.avif', label: '03 / CONNECT', type: 'HACKATHON', title: 'PROJECTS' },
-    { src: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?q=80&w=2070&auto=format&fit=crop', label: '04 / IMPACT', type: 'COMMUNITY', title: 'MEETUP' }
+    { src: '/workshop.jpg', label: '01 / THINK', type: 'EVENT', title: 'WORKSHOP' },
+    { src: '/session.jpg', label: '02 / BUILD', type: 'BRAINSTORM', title: 'SESSION' },
+    { src: '/build.jpg', label: '03 / CONNECT', type: 'HACKATHON', title: 'PROJECTS' },
+    { src: '/meetup.jpg', label: '04 / IMPACT', type: 'COMMUNITY', title: 'MEETUP' }
   ];
 
   useEffect(() => {
@@ -460,7 +460,7 @@ export default function Home() {
             <div className="md:col-span-6 grid grid-cols-2 gap-4">
               {[
                 { name: 'Ritu Raj', role: 'Vice President', course: 'BCA', img: '/ritu.png' },
-                { name: 'Ansh Bhatia', role: 'Secretary', course: 'MCA (2nd Year)', img: '/ansh.webp' },
+                { name: 'Satyam Shakti', role: 'Media Head', course: 'MCA (2nd Year)', img: '/satyam.jpeg' },
                 { name: 'Meharjot Singh', role: 'Head Coordinator', course: 'MCA (2nd Year)', img: '/Meharjot.jpg' },
                 { name: 'Saksham Shakya', role: 'Technical Head', course: 'MCA (2nd Year)', img: 'https://i.ibb.co/PnsgYc4/saksham.png' }
               ].map((person, i) => (

@@ -398,7 +398,7 @@ export const replyToContactQuery = async (req, res) => {
 
 // ─── Ideas ────────────────────────────────────────────────────────────────────
 import Idea from '../models/Idea.js';
-import { generateSignedPdfUrl } from '../services/cloudinaryService.js';
+import { generateSignedPdfUrl, deletePdfFromCloudinary } from '../services/cloudinaryService.js';
 
 export const getIdeas = async (req, res) => {
   try {
@@ -552,3 +552,29 @@ export const updateIdeaStatus = async (req, res) => {
     res.status(500).json({ success: false, message: 'Error updating idea status' });
   }
 };
+
+export const deleteIdea = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const idea = await Idea.findById(id);
+    if (!idea) {
+      return res.status(404).json({ success: false, message: 'Idea not found' });
+    }
+
+    // Clean up Cloudinary PDF asset if present
+    if (idea.pdfPublicId) {
+      await deletePdfFromCloudinary(idea.pdfPublicId);
+    }
+
+    await Idea.findByIdAndDelete(id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Idea deleted successfully'
+    });
+  } catch (error) {
+    console.error('[deleteIdea error]', error);
+    res.status(500).json({ success: false, message: 'Error deleting idea' });
+  }
+};
+

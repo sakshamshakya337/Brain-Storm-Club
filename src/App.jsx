@@ -18,8 +18,11 @@ import JoinUs from './pages/public/JoinUs';
 import Ideas from './pages/public/Ideas';
 import MemberRegistration from './pages/public/MemberRegistration';
 import PrivacyPolicy from './pages/public/PrivacyPolicy';
+import SecurityPolicy from './pages/public/SecurityPolicy';
+import Terms from './pages/public/Terms';
 import Connect from './pages/public/Connect';
 import MaintenancePage from './pages/public/MaintenancePage';
+import NotFound from './pages/public/NotFound';
 
 // Admin Pages
 import AdminLogin from './pages/admin/AdminLogin';
@@ -139,6 +142,11 @@ function AppContent() {
             <Route path="/ideas" element={<Ideas />} />
             <Route path="/submit-idea" element={<Ideas />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/security" element={<SecurityPolicy />} />
+            <Route path="/security-policy" element={<SecurityPolicy />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/terms-of-service" element={<Terms />} />
+            <Route path="/terms-and-conditions" element={<Terms />} />
             <Route path="/connect" element={<Connect />} />
 
             {/* Admin Auth Routes */}
@@ -162,6 +170,9 @@ function AppContent() {
               <Route path="/control/settings" element={<AdminSettings />} />
               <Route path="/control/notifications" element={<AdminNotifications />} />
             </Route>
+
+            {/* 404 Catch-All Route */}
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
       </div>

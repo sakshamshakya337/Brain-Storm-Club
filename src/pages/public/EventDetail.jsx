@@ -43,20 +43,47 @@ export default function EventDetail() {
   // Normalized gallery images array (sorted by order)
   const galleryImages = React.useMemo(() => {
     if (!event) return [];
-    if (Array.isArray(event.images) && event.images.length > 0) {
-      return [...event.images].sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    // 1. Check images array for valid images
+    const validImages = Array.isArray(event.images)
+      ? event.images.filter((img) => img && (img.imageId || img.url || (typeof img === 'string' && img.length > 0)))
+      : [];
+
+    if (validImages.length > 0) {
+      return [...validImages].sort((a, b) => (a.order || 0) - (b.order || 0));
     }
-    if (event.coverImage) {
+
+    // 2. Check coverImage - ONLY if it actually has an imageId or a url!
+    const hasValidCover = event.coverImage && (
+      event.coverImage.imageId || 
+      event.coverImage.url || 
+      (typeof event.coverImage === 'string' && event.coverImage.length > 0)
+    );
+
+    if (hasValidCover) {
       return [event.coverImage];
     }
+
+    // 3. Fall back to posterId
     if (event.posterId) {
       return [{
         source: 'cloudinary',
         imageId: event.posterId,
         isCover: true,
-        alt: event.title
+        alt: event.title,
       }];
     }
+
+    // 4. Fall back to legacy poster or image field
+    if (event.poster || event.image) {
+      return [{
+        source: 'cloudinary',
+        imageId: event.poster || event.image,
+        isCover: true,
+        alt: event.title,
+      }];
+    }
+
     return [];
   }, [event]);
 
@@ -249,8 +276,8 @@ export default function EventDetail() {
               <div className="relative w-full flex items-center justify-center bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-sm overflow-hidden p-2 sm:p-4 min-h-[260px] sm:min-h-[360px] lg:min-h-[440px] max-h-[620px] group/poster">
                 {galleryImages.length > 0 ? (() => {
                   const currentImage = galleryImages[activeImageIndex] || galleryImages[0];
-                  const currentImageId = currentImage?.imageId?.imageId || currentImage?.imageId || (typeof currentImage === 'string' ? currentImage : null);
-                  const currentSrc = currentImage?.source === 'external' ? currentImage.url : null;
+                  const currentImageId = currentImage?.imageId?.imageId || (typeof currentImage?.imageId === 'string' ? currentImage.imageId : null) || currentImage?.imageId?._id || (typeof currentImage === 'string' ? currentImage : null);
+                  const currentSrc = currentImage?.source === 'external' ? currentImage.url : (currentImage?.url || null);
 
                   return (
                     <>

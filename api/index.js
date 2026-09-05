@@ -74,6 +74,9 @@ const ensureDB = async (req, res, next) => {
 const createApp = () => {
   const app = express();
 
+  // Security: Disable Express fingerprinting header
+  app.disable('x-powered-by');
+
   // URL Normalization: handle Vercel rewrite headers (x-matched-path)
   app.use((req, res, next) => {
     const matchedPath = req.headers['x-matched-path'];
@@ -87,8 +90,20 @@ const createApp = () => {
 
   app.use(helmet({
     contentSecurityPolicy: false,
-    crossOriginEmbedderPolicy: false
+    crossOriginEmbedderPolicy: false,
+    xFrameOptions: { action: 'deny' },
+    xContentTypeOptions: true,
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
   }));
+
+  // Additional defense-in-depth security headers
+  app.use((req, res, next) => {
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    next();
+  });
 
   // Allow explicit CORS_ORIGIN, CLIENT_URL, and any *.vercel.app domain
   const allowedOrigins = [

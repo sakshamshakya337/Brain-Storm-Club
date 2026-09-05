@@ -13,7 +13,8 @@ import {
   getIdeas,
   getIdeaById,
   getIdeaPdf,
-  updateIdeaStatus
+  updateIdeaStatus,
+  deleteIdea
 } from '../controllers/adminController.js';
 import { 
   getAllMembersAdmin, 
@@ -81,7 +82,11 @@ router.route('/members')
   );
 
 router.route('/members/:id')
-  .patch(updateMember)
+  .patch(
+    uploadImage.single('profileImage'),
+    processAndProtectImage('protected'),
+    updateMember
+  )
   .delete(deleteMember);
 
 router.patch('/members/:id/approve', approveMember);
@@ -160,7 +165,7 @@ router.patch('/notifications/:id/read', markAsRead);
 
 // Ideas
 router.route('/ideas').get(getIdeas);
-router.route('/ideas/:id').get(getIdeaById).patch(updateIdeaStatus);
+router.route('/ideas/:id').get(getIdeaById).patch(updateIdeaStatus).delete(deleteIdea);
 router.route('/ideas/:id/pdf').get(getIdeaPdf);
 
 export default router;

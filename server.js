@@ -24,11 +24,42 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = process.env.PORT || 5000;
 
+// Security: Disable Express fingerprinting header
+app.disable('x-powered-by');
+
 // Middleware
 app.use(helmet({
   contentSecurityPolicy: false, // disabled for dev, needs strict config for prod
-  crossOriginEmbedderPolicy: false
+  crossOriginEmbedderPolicy: false,
+  xFrameOptions: { action: 'deny' },
+  xContentTypeOptions: true,
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
 }));
+
+// Additional defense-in-depth security headers
+app.use((req, res, next) => {
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  next();
+});
+
+// Explicit routes for crawler and vulnerability disclosure files
+app.get('/robots.txt', (req, res) => {
+  res.type('text/plain');
+  res.sendFile(path.join(__dirname, 'public', 'robots.txt'));
+});
+
+app.get('/sitemap.xml', (req, res) => {
+  res.type('application/xml');
+  res.sendFile(path.join(__dirname, 'public', 'sitemap.xml'));
+});
+
+app.get(['/.well-known/security.txt', '/security.txt'], (req, res) => {
+  res.type('text/plain');
+  res.sendFile(path.join(__dirname, 'public', '.well-known', 'security.txt'));
+});
 
 app.use(cors({
   origin: process.env.CORS_ORIGIN || 'http://localhost:5000',

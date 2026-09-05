@@ -183,14 +183,58 @@ export const rejectMember = async (req, res) => {
 export const updateMember = async (req, res) => {
   try {
     const { id } = req.params;
-    // Prevent updating sensitive fields like registrationNumber via this general route if needed
-    const updatedMember = await Member.findByIdAndUpdate(id, req.body, { new: true, runValidators: true });
-    
-    if (!updatedMember) return res.status(404).json({ message: 'Member not found' });
+    const member = await Member.findById(id);
+    if (!member) return res.status(404).json({ message: 'Member not found' });
+
+    const updateData = { ...req.body };
+
+    // If socialLinks was sent as JSON string via FormData, safely parse it
+    if (typeof updateData.socialLinks === 'string') {
+      try {
+        updateData.socialLinks = JSON.parse(updateData.socialLinks);
+      } catch (e) {}
+    }
+
+    const newProtectedImageId = req.body.protectedImageId || req.file?.protectedImageId;
+
+    if (newProtectedImageId) {
+      const Image = (await import('../models/Image.js')).default;
+      await Image.findByIdAndUpdate(newProtectedImageId, { status: 'approved', visibility: 'protected' });
+
+      // Clean up old photo if different
+      if (member.photoId && member.photoId.toString() !== newProtectedImageId.toString()) {
+        try {
+          const { deleteImageFromCloudinary } = await import('../services/cloudinaryService.js');
+          const oldImage = await Image.findById(member.photoId);
+          if (oldImage?.publicId) {
+            await deleteImageFromCloudinary(oldImage.publicId);
+          }
+          await Image.findByIdAndDelete(member.photoId);
+        } catch (cleanupErr) {
+          console.warn('[updateMember] Failed to delete old photo:', cleanupErr?.message);
+        }
+      }
+
+      updateData.photoId = newProtectedImageId;
+    }
+
+    // Remove protectedImageId from updateData so it doesn't try to store unrecognized field
+    delete updateData.protectedImageId;
+
+    const updatedMember = await Member.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    ).populate('photoId');
     
     res.status(200).json({ status: 'success', data: { member: updatedMember } });
   } catch (error) {
-    res.status(500).json({ message: 'Error updating member' });
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern || {})[0] || 'field';
+      return res.status(409).json({ message: `Duplicate value for ${field}. This record already exists.` });
+    }
+    console.error('[updateMember error]', error);
+    res.status(500).json({ message: error.message || 'Error updating member' });
   }
 };
 

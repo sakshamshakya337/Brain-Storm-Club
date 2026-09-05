@@ -1,0 +1,9 @@
+# RFC 9116 Vulnerability Disclosure Information
+# LPU SCA Brainstorm Club
+
+Contact: mailto:sakshamshakya319@gmail.com
+Expires: 2027-12-31T23:59:59.000Z
+Preferred-Languages: en
+Canonical: https://sca-brainstorm.lpu.in/.well-known/security.txt
+Policy: https://sca-brainstorm.lpu.in/security
+Acknowledgments: https://sca-brainstorm.lpu.in/security

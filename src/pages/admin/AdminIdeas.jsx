@@ -3,7 +3,7 @@ import {
   Lightbulb, Search, Filter, ChevronLeft, ChevronRight,
   X, FileText, ExternalLink, CheckCircle, Clock, Star,
   Zap, XCircle, ChevronDown, RefreshCw, Eye, AlertCircle,
-  Download, Calendar, User, BookOpen, Phone
+  Download, Calendar, User, BookOpen, Phone, Trash2
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -68,11 +68,21 @@ export default function AdminIdeas() {
   const [pendingStatus, setPendingStatus]   = useState('');
   const [pdfViewerOpen, setPdfViewerOpen]   = useState(false);
 
+  // Delete state
+  const [deleteTarget, setDeleteTarget]     = useState(null); // idea to delete
+  const [deleting, setDeleting]             = useState(false);
+  const [deleteError, setDeleteError]       = useState('');
+
   // Close on Escape
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
-        if (pdfViewerOpen) {
+        if (deleteTarget) {
+          if (!deleting) {
+            setDeleteTarget(null);
+            setDeleteError('');
+          }
+        } else if (pdfViewerOpen) {
           setPdfViewerOpen(false);
         } else if (selected) {
           closeDetail();
@@ -81,7 +91,7 @@ export default function AdminIdeas() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [pdfViewerOpen, selected]);
+  }, [deleteTarget, deleting, pdfViewerOpen, selected]);
 
   // ── Fetch list ─────────────────────────────────────────────────────────────
   const fetchIdeas = useCallback(async () => {
@@ -188,6 +198,53 @@ export default function AdminIdeas() {
       setDetailError(e.message || 'Failed to update status');
     } finally {
       setUpdatingStatus(false);
+    }
+  };
+
+  // ── Delete idea ────────────────────────────────────────────────────────────
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      const res = await fetch(`/api/admin/ideas/${deleteTarget._id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const contentType = res.headers.get('content-type') || '';
+      let json = null;
+      if (contentType.includes('application/json')) {
+        json = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(text || `Request failed with status ${res.status}`);
+      }
+      if (!res.ok) throw new Error(json?.message || 'Failed to delete idea');
+
+      // If the deleted idea is currently open in detail panel, close it
+      if (selected && selected._id === deleteTarget._id) {
+        closeDetail();
+      }
+
+      // Remove from list
+      setIdeas(prev => prev.filter(i => i._id !== deleteTarget._id));
+
+      // Update pagination count
+      setPagination(prev => ({ ...prev, total: Math.max(0, prev.total - 1) }));
+
+      // Decrement status count in stats
+      if (deleteTarget.status && stats[deleteTarget.status] !== undefined) {
+        setStats(prev => ({
+          ...prev,
+          [deleteTarget.status]: Math.max(0, (prev[deleteTarget.status] || 1) - 1)
+        }));
+      }
+
+      setDeleteTarget(null);
+    } catch (e) {
+      setDeleteError(e.message || 'Failed to delete idea');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -299,7 +356,7 @@ export default function AdminIdeas() {
           <table className="min-w-full divide-y divide-slate-100">
             <thead className="bg-slate-50">
               <tr>
-                {['Title', 'Submitted By', 'Course', 'Category', 'PDF', 'Status', 'Date', ''].map(h => (
+                {['Title', 'Submitted By', 'Course', 'Category', 'PDF', 'Status', 'Date', 'Actions'].map(h => (
                   <th key={h} className="px-4 py-3 text-left font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 whitespace-nowrap">
                     {h}
                   </th>
@@ -375,13 +432,28 @@ export default function AdminIdeas() {
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-xs text-slate-500">{fmtDate(idea.createdAt)}</td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <button
-                        onClick={e => { e.stopPropagation(); openDetail(idea); }}
-                        className="p-1.5 rounded-md text-slate-400 hover:text-brand-primary hover:bg-brand-primary/5 transition-colors"
-                        aria-label="View idea"
-                      >
-                        <Eye size={15} />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={e => { e.stopPropagation(); openDetail(idea); }}
+                          className="p-1.5 rounded-md text-slate-400 hover:text-brand-primary hover:bg-brand-primary/5 transition-colors"
+                          aria-label="View idea details"
+                          title="View Details"
+                        >
+                          <Eye size={15} />
+                        </button>
+                        <button
+                          onClick={e => {
+                            e.stopPropagation();
+                            setDeleteError('');
+                            setDeleteTarget(idea);
+                          }}
+                          className="p-1.5 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                          aria-label="Delete idea"
+                          title="Delete Idea"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -455,13 +527,28 @@ export default function AdminIdeas() {
                 </div>
                 <h2 className="font-heading font-bold text-lg text-slate-900 truncate">{selected.title}</h2>
               </div>
-              <button
-                onClick={closeDetail}
-                className="shrink-0 p-2 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-                aria-label="Close panel"
-              >
-                <X size={18} />
-              </button>
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDeleteError('');
+                    setDeleteTarget(selected);
+                  }}
+                  className="p-2 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                  aria-label="Delete idea"
+                  title="Delete Idea"
+                >
+                  <Trash2 size={18} />
+                </button>
+                <button
+                  type="button"
+                  onClick={closeDetail}
+                  className="p-2 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                  aria-label="Close panel"
+                >
+                  <X size={18} />
+                </button>
+              </div>
             </div>
 
             {detailLoading ? (
@@ -603,6 +690,23 @@ export default function AdminIdeas() {
                       <>Save Changes</>
                     )}
                   </button>
+
+                  {/* Danger Zone */}
+                  <div className="mt-8 pt-5 border-t border-slate-200">
+                    <p className="font-mono text-[10px] font-bold tracking-widest uppercase text-red-500 mb-2">
+                      DANGER ZONE
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDeleteError('');
+                        setDeleteTarget(selected);
+                      }}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-mono font-bold tracking-wider uppercase text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 border border-red-200 rounded-sm transition-colors cursor-pointer"
+                    >
+                      <Trash2 size={14} /> Delete Idea Submission
+                    </button>
+                  </div>
                 </div>
 
               </div>
@@ -615,6 +719,103 @@ export default function AdminIdeas() {
       {pdfViewerOpen && selected && (selected.pdfSignedUrl || selected.pdfPublicId) && (
         <PdfViewerModal idea={selected} onClose={() => setPdfViewerOpen(false)} />
       )}
+
+      {/* ── DELETE CONFIRMATION MODAL ────────────────────────────────────── */}
+      {deleteTarget && (
+        <DeleteModal
+          idea={deleteTarget}
+          deleting={deleting}
+          error={deleteError}
+          onClose={() => {
+            if (!deleting) {
+              setDeleteTarget(null);
+              setDeleteError('');
+            }
+          }}
+          onConfirm={handleDelete}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── Delete Modal Component ──────────────────────────────────────────────────
+function DeleteModal({ idea, deleting, error, onClose, onConfirm }) {
+  const displayName = idea.pdfOriginalName?.toLowerCase().endsWith('.pdf')
+    ? idea.pdfOriginalName
+    : (idea.pdfOriginalName ? `${idea.pdfOriginalName}.pdf` : null);
+
+  return (
+    <div
+      className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-150"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Confirm Delete Idea"
+    >
+      {/* Backdrop */}
+      <div className="absolute inset-0" onClick={onClose} />
+
+      {/* Modal Dialog */}
+      <div className="relative z-10 w-full max-w-md bg-white rounded-lg shadow-2xl border border-slate-200 overflow-hidden">
+        <div className="p-6">
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+              <Trash2 size={20} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-heading font-bold text-base text-slate-900 mb-1">
+                Delete Idea Submission
+              </h3>
+              <p className="text-sm text-slate-600 leading-relaxed font-body">
+                Are you sure you want to permanently delete <strong className="text-slate-900 font-semibold">{idea.title}</strong> submitted by <strong className="text-slate-900 font-semibold">{idea.name}</strong>?
+              </p>
+
+              {idea.pdfPublicId && (
+                <div className="mt-3 flex items-center gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800">
+                  <FileText size={14} className="shrink-0 text-amber-600" />
+                  <span className="truncate">The attached PDF ({displayName || 'document'}) will also be permanently deleted from storage.</span>
+                </div>
+              )}
+
+              {error && (
+                <div className="mt-3 flex items-center gap-2 p-2.5 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+                  <AlertCircle size={14} className="shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-6 flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+            <button
+              type="button"
+              disabled={deleting}
+              onClick={onClose}
+              className="px-4 py-2 text-xs font-mono font-bold tracking-wider uppercase text-slate-700 bg-white border border-slate-200 rounded-sm hover:bg-slate-50 transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={deleting}
+              onClick={onConfirm}
+              className="flex items-center gap-2 px-4 py-2 text-xs font-mono font-bold tracking-wider uppercase text-white bg-red-600 rounded-sm hover:bg-red-700 transition-colors disabled:opacity-50 cursor-pointer shadow-sm"
+            >
+              {deleting ? (
+                <>
+                  <RefreshCw size={13} className="animate-spin" />
+                  <span>Deleting...</span>
+                </>
+              ) : (
+                <>
+                  <Trash2 size={13} />
+                  <span>Delete Permanently</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

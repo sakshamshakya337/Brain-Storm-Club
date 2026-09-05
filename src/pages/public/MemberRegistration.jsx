@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CheckCircle2, Upload, X, FileWarning, AlertCircle, ShieldAlert } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Upload, X, FileWarning, AlertCircle, ShieldAlert, Crop } from 'lucide-react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Footer from '../../components/layout/Footer';
 import imageCompression from 'browser-image-compression';
+import MemberPhotoEditor from '../../components/common/MemberPhotoEditor';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -39,11 +40,22 @@ export default function MemberRegistration() {
 
   const [sameAsPhone, setSameAsPhone] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
+  const [rawImageForCrop, setRawImageForCrop] = useState(null);
+  const [rawFileName, setRawFileName] = useState('');
+  const [cropModalOpen, setCropModalOpen] = useState(false);
   const [imageProcessing, setImageProcessing] = useState(false);
   const [imageError, setImageError] = useState('');
 
   const heroRef = useRef(null);
   const contentRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (imagePreview) URL.revokeObjectURL(imagePreview);
+      if (rawImageForCrop) URL.revokeObjectURL(rawImageForCrop);
+    };
+  }, []);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -80,53 +92,84 @@ export default function MemberRegistration() {
   };
 
   const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
+
+    if (e.target) e.target.value = '';
 
     setImageError('');
     setImageProcessing(true);
 
     try {
+      const isImage = file.type.startsWith('image/') || /\.(jpe?g|png|webp|heic)$/i.test(file.name);
+      if (!isImage) {
+        throw new Error('Only image files (JPG, PNG, WebP, HEIC) are accepted.');
+      }
+
       let fileToProcess = file;
-      
-      // HEIC conversion
+
+      // Handle HEIC conversion
       if (file.name.toLowerCase().endsWith('.heic') || file.type === 'image/heic') {
         const heic2any = (await import('heic2any')).default;
-        const convertedBlob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.8 });
+        const convertedBlob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 });
         const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
         fileToProcess = new File([blob], file.name.replace(/\.heic$/i, '.jpg'), { type: 'image/jpeg' });
       }
 
-      if (fileToProcess.size <= 5 * 1024 * 1024 && fileToProcess.type.startsWith('image/')) {
-         setFormData(prev => ({ ...prev, profileImage: fileToProcess }));
-         setImagePreview(URL.createObjectURL(fileToProcess));
-         setImageProcessing(false);
-         return;
-      }
+      if (rawImageForCrop) URL.revokeObjectURL(rawImageForCrop);
 
-      const options = {
-        maxSizeMB: 4.8,
-        maxWidthOrHeight: 2048,
-        useWebWorker: true
-      };
-
-      const compressedFile = await imageCompression(fileToProcess, options);
-      
-      if (compressedFile.size > 5 * 1024 * 1024) {
-        throw new Error('Unable to compress image under 5MB. Please choose a different image.');
-      }
-
-      setFormData(prev => ({ ...prev, profileImage: compressedFile }));
-      setImagePreview(URL.createObjectURL(compressedFile));
-
+      const previewUrl = URL.createObjectURL(fileToProcess);
+      setRawImageForCrop(previewUrl);
+      setRawFileName(fileToProcess.name);
+      setCropModalOpen(true);
     } catch (err) {
-      console.error(err);
-      setImageError(err.message || 'Error processing image. Please try another file (JPG, PNG).');
-      setFormData(prev => ({ ...prev, profileImage: null }));
-      setImagePreview(null);
+      console.error('Image selection error:', err);
+      setImageError(err.message || 'Failed to process selected image.');
     } finally {
       setImageProcessing(false);
     }
+  };
+
+  const handleCropConfirm = async (croppedBlob, croppedFile) => {
+    setImageProcessing(true);
+    try {
+      const options = {
+        maxSizeMB: 2.0,
+        maxWidthOrHeight: 1200,
+        useWebWorker: true,
+      };
+
+      const compressedFile = await imageCompression(croppedFile, options);
+
+      if (compressedFile.size > 5 * 1024 * 1024) {
+        throw new Error('Compressed image exceeds 5MB limit. Please choose a different crop.');
+      }
+
+      if (imagePreview) URL.revokeObjectURL(imagePreview);
+
+      setFormData((prev) => ({ ...prev, profileImage: compressedFile }));
+      setImagePreview(URL.createObjectURL(compressedFile));
+      setCropModalOpen(false);
+      setImageError('');
+    } catch (err) {
+      console.error('Crop compression error:', err);
+      setImageError(err.message || 'Failed to compress cropped image.');
+    } finally {
+      setImageProcessing(false);
+    }
+  };
+
+  const handleCropCancel = () => {
+    setCropModalOpen(false);
+  };
+
+  const removeImage = () => {
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    if (rawImageForCrop) URL.revokeObjectURL(rawImageForCrop);
+    setFormData((prev) => ({ ...prev, profileImage: null }));
+    setImagePreview(null);
+    setRawImageForCrop(null);
+    setImageError('');
   };
 
   const handleSubmit = (e) => {
@@ -489,12 +532,16 @@ export default function MemberRegistration() {
                         <label className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-[#71819B]">PROFILE IMAGE * (PNG, JPG, HEIC)</label>
                         
                         {!imagePreview ? (
-                          <div className="relative w-full border-2 border-dashed border-slate-300 dark:border-[#26344D] bg-slate-50 dark:bg-[#080D1A] hover:bg-slate-100 dark:hover:bg-[#151F33] hover:border-brand-primary/50 dark:hover:border-[#6366F1]/50 transition-all rounded-sm flex flex-col items-center justify-center p-12 group cursor-pointer">
+                          <div 
+                            onClick={() => fileInputRef.current?.click()}
+                            className="relative w-full border-2 border-dashed border-slate-300 dark:border-[#26344D] bg-slate-50 dark:bg-[#080D1A] hover:bg-slate-100 dark:hover:bg-[#151F33] hover:border-brand-primary/50 dark:hover:border-[#6366F1]/50 transition-all rounded-sm flex flex-col items-center justify-center p-12 group cursor-pointer"
+                          >
                             <input 
+                              ref={fileInputRef}
                               type="file" 
-                              accept=".jpg,.jpeg,.png,.heic,image/jpeg,image/png,image/heic"
+                              accept=".jpg,.jpeg,.png,.heic,image/jpeg,image/png,image/heic,image/webp"
                               onChange={handleImageUpload}
-                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                              className="hidden" 
                             />
                             <div className="w-12 h-12 rounded-full bg-brand-primary/10 dark:bg-[#151F33] flex items-center justify-center text-brand-primary mb-4 group-hover:scale-110 transition-transform">
                               {imageProcessing ? (
@@ -503,39 +550,61 @@ export default function MemberRegistration() {
                                  <Upload size={20} />
                               )}
                             </div>
-                            <span className="font-heading font-bold text-slate-900 dark:text-[#F8FAFC] mb-2">
-                              {imageProcessing ? 'PROCESSING...' : 'UPLOAD PROFILE IMAGE'}
+                            <span className="font-heading font-bold text-slate-900 dark:text-[#F8FAFC] mb-2 text-center">
+                              {imageProcessing ? 'PROCESSING...' : 'CHOOSE PHOTO & ADJUST CROP'}
                             </span>
-                            <span className="font-mono text-[10px] text-slate-500 dark:text-[#71819B] tracking-widest uppercase">
-                              MAX FINAL SIZE: 5 MB (Auto-compressed)
+                            <span className="font-mono text-[10px] text-slate-500 dark:text-[#71819B] tracking-widest uppercase text-center">
+                              PNG · JPG · HEIC · Max 5 MB (Auto-cropped to 4:5 Card Ratio)
                             </span>
                             
                             {imageError && (
-                              <div className="absolute bottom-4 text-red-500 text-xs font-mono font-bold mt-2 flex items-center gap-1 z-20">
+                              <div className="absolute bottom-3 text-red-500 text-xs font-mono font-bold flex items-center gap-1 z-20">
                                 <FileWarning size={12} /> {imageError}
                               </div>
                             )}
                           </div>
                         ) : (
                           <div className="w-full border border-slate-200 dark:border-[#26344D] bg-slate-50 dark:bg-[#080D1A] p-4 flex items-center gap-4 rounded-sm relative group overflow-hidden">
-                            <div className="w-16 h-16 rounded-sm overflow-hidden bg-slate-200 dark:bg-[#151F33] flex-shrink-0">
-                              <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                            <input 
+                              ref={fileInputRef}
+                              type="file" 
+                              accept=".jpg,.jpeg,.png,.heic,image/jpeg,image/png,image/heic,image/webp"
+                              onChange={handleImageUpload}
+                              className="hidden" 
+                            />
+                            <div className="w-16 h-20 aspect-[4/5] rounded-sm overflow-hidden bg-slate-200 dark:bg-[#151F33] flex-shrink-0 border border-slate-300 dark:border-slate-700">
+                              <img src={imagePreview} alt="Crop Preview" className="w-full h-full object-cover" />
                             </div>
                             <div className="flex flex-col flex-grow min-w-0 pr-8">
                               <span className="font-body text-sm font-bold text-slate-900 dark:text-[#F8FAFC] truncate">
-                                {formData.profileImage.name}
+                                {formData.profileImage?.name || 'profile.jpg'}
                               </span>
-                              <span className="font-mono text-[10px] text-slate-500 dark:text-[#71819B] tracking-widest uppercase mt-1 flex items-center gap-2">
-                                <CheckCircle2 size={10} className="text-brand-primary" />
-                                READY ({(formData.profileImage.size / (1024 * 1024)).toFixed(2)} MB)
+                              <span className="font-mono text-[10px] text-emerald-600 dark:text-emerald-400 tracking-widest uppercase mt-1 flex items-center gap-1.5 font-bold">
+                                <CheckCircle2 size={11} />
+                                CROPPED & READY ({(formData.profileImage.size / (1024 * 1024)).toFixed(2)} MB)
                               </span>
+                              <div className="flex items-center gap-3 mt-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setCropModalOpen(true)}
+                                  className="font-mono text-[10px] font-bold text-brand-primary hover:underline uppercase flex items-center gap-1"
+                                >
+                                  <Crop size={12} />
+                                  Adjust Crop
+                                </button>
+                                <span className="text-slate-300 dark:text-slate-700">•</span>
+                                <button
+                                  type="button"
+                                  onClick={() => fileInputRef.current?.click()}
+                                  className="font-mono text-[10px] font-bold text-slate-500 hover:text-slate-900 dark:hover:text-white uppercase"
+                                >
+                                  Change Photo
+                                </button>
+                              </div>
                             </div>
                             <button 
                               type="button"
-                              onClick={() => {
-                                setFormData(prev => ({ ...prev, profileImage: null }));
-                                setImagePreview(null);
-                              }}
+                              onClick={removeImage}
                               className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-500 flex items-center justify-center transition-colors"
                               title="Remove image"
                             >
@@ -575,6 +644,18 @@ export default function MemberRegistration() {
           </div>
         </div>
       </section>
+
+      {/* ── Photo Crop Modal ── */}
+      <MemberPhotoEditor
+        isOpen={cropModalOpen}
+        imageSrc={rawImageForCrop || imagePreview}
+        fileName={rawFileName}
+        aspect={4 / 5}
+        onConfirm={handleCropConfirm}
+        onCancel={handleCropCancel}
+        theme="auto"
+        title="Adjust Profile Photo"
+      />
 
       <div className="dark:bg-[#050914] dark:border-t dark:border-[#26344D]">
         <Footer />

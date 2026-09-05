@@ -175,3 +175,21 @@ export const generateSignedPdfUrl = (publicId) => {
     return null;
   }
 };
+
+/**
+ * Deletes a raw PDF resource from Cloudinary
+ * @param {String} publicId The Cloudinary public_id
+ */
+export const deletePdfFromCloudinary = async (publicId) => {
+  try {
+    if (!publicId) return;
+    const result = await cloudinary.uploader.destroy(publicId, {
+      resource_type: 'raw',
+      type: 'authenticated',
+    });
+    return result;
+  } catch (error) {
+    console.error('Error deleting PDF from Cloudinary:', error);
+  }
+};
+
