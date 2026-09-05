@@ -373,8 +373,8 @@ function FeaturedMemberCard({ member, isSolo = false, leadBadge }) {
 
   return (
     <div
-      className={`bg-white dark:bg-slate-900 border-2 border-brand-primary/40 dark:border-brand-primary/30 flex flex-col group hover:border-brand-primary dark:hover:border-brand-primary transition-all duration-500 shadow-lg dark:shadow-2xl dark:shadow-brand-primary/5 rounded-sm relative overflow-hidden w-full max-w-[310px] sm:max-w-[330px] ${
-        isSolo ? 'mx-auto sm:mx-0' : ''
+      className={`bg-white dark:bg-slate-900 border-2 border-brand-primary/40 dark:border-brand-primary/30 flex flex-col group hover:border-brand-primary dark:hover:border-brand-primary transition-all duration-500 shadow-lg dark:shadow-2xl dark:shadow-brand-primary/5 rounded-sm relative overflow-hidden w-full sm:max-w-[310px] md:max-w-[330px] ${
+        isSolo ? 'sm:mx-auto lg:mx-0' : ''
       }`}
     >
       {/* Top Banner Accent */}
@@ -436,7 +436,7 @@ function SupportingMemberCard({ member }) {
   const showTag = shouldShowTag(member);
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col group hover:border-brand-primary/60 dark:hover:bg-slate-900/90 transition-all duration-300 shadow-sm dark:shadow-none rounded-sm relative overflow-hidden h-full max-w-[240px]">
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col group hover:border-brand-primary/60 dark:hover:bg-slate-900/90 transition-all duration-300 shadow-sm dark:shadow-none rounded-sm relative overflow-hidden w-full sm:max-w-[240px]">
       <div className="absolute inset-0 bg-gradient-to-br from-brand-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10" />
 
       {/* Image Block */}
@@ -522,7 +522,7 @@ function DomainSection({ domain, index }) {
           className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 max-w-[1440px]"
         >
           {supportingMembers.map((member) => (
-            <div key={member._id || member.id} className="h-full">
+            <div key={member._id || member.id}>
               <SupportingMemberCard member={member} />
             </div>
           ))}
@@ -544,23 +544,23 @@ function DomainSection({ domain, index }) {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start max-w-[1240px]">
-          {/* Left: Featured Head Card */}
+        <div className="flex flex-col lg:grid lg:grid-cols-12 gap-6 lg:gap-8 items-start max-w-[1240px]">
+          {/* Featured Head Card */}
           <div
             data-reveal="up"
-            className="lg:col-span-4 xl:col-span-3 lg:sticky lg:top-24 max-w-[320px]"
+            className="w-full lg:col-span-4 xl:col-span-3 lg:sticky lg:top-24 lg:max-w-[320px]"
           >
             <FeaturedMemberCard member={leadMember} leadBadge={leadBadge} />
           </div>
 
           {/* Right: Supporting Members Grid */}
-          <div className="lg:col-span-8 xl:col-span-9 max-w-[900px]">
+          <div className="w-full lg:col-span-8 xl:col-span-9 lg:max-w-[900px]">
             <div
               data-reveal="stagger-children"
               className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4"
             >
               {supportingMembers.map((member) => (
-                <div key={member._id || member.id} className="h-full">
+                <div key={member._id || member.id}>
                   <SupportingMemberCard member={member} />
                 </div>
               ))}
