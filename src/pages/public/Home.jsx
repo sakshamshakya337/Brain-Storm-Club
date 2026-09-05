@@ -378,8 +378,8 @@ export default function Home() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-0 lg:divide-x divide-slate-200 dark:divide-slate-800" data-reveal="stagger-children">
             {[
               { num: '01', value: '45+', label: 'EVENTS HOSTED' },
-              { num: '02', value: '1.2K', label: 'ACTIVE MEMBERS' },
-              { num: '03', value: '300+', label: 'IDEAS PITCHED' },
+              { num: '02', value: '30+', label: 'ACTIVE MEMBERS' },
+              { num: '03', value: '250+', label: 'IDEAS PITCHED' },
               { num: '04', value: '50+', label: 'LIVE PROJECTS' }
             ].map((stat, i) => (
               <div key={i} className="stat-card flex flex-col lg:px-10">
