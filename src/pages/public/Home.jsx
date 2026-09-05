@@ -571,27 +571,27 @@ export default function Home() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 auto-rows-[200px] md:auto-rows-[300px]" data-reveal="stagger-children">
             {/* Large */}
             <div className="col-span-2 row-span-2 bg-slate-100 dark:bg-slate-900 relative group overflow-hidden cursor-crosshair">
-              <img src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=2070&auto=format&fit=crop" className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80 group-hover:scale-105 group-hover:mix-blend-normal transition-all duration-700" alt="Gallery" />
+              <img src="/build.jpg" className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80 group-hover:scale-105 group-hover:mix-blend-normal transition-all duration-700" alt="Gallery" />
             </div>
             {/* Small */}
             <div className="col-span-1 row-span-1 bg-slate-100 dark:bg-slate-900 relative group overflow-hidden cursor-crosshair">
-              <img src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?q=80&w=2070&auto=format&fit=crop" className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80 group-hover:scale-105 group-hover:mix-blend-normal transition-all duration-700" alt="Gallery" />
+              <img src="https://i.ibb.co/Q7RCV1Pm/home3.jpg" className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80 group-hover:scale-105 group-hover:mix-blend-normal transition-all duration-700" alt="Gallery" />
             </div>
             {/* Tall */}
             <div className="col-span-1 row-span-2 bg-slate-100 dark:bg-slate-900 relative group overflow-hidden cursor-crosshair">
-              <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=2070&auto=format&fit=crop" className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80 group-hover:scale-105 group-hover:mix-blend-normal transition-all duration-700" alt="Gallery" />
+              <img src="https://i.ibb.co/fdSKSrtM/IMG-9328.jpg" className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80 group-hover:scale-105 group-hover:mix-blend-normal transition-all duration-700" alt="Gallery" />
             </div>
             {/* Small */}
             <div className="col-span-1 row-span-1 bg-slate-100 dark:bg-slate-900 relative group overflow-hidden cursor-crosshair">
-              <img src="https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?q=80&w=2070&auto=format&fit=crop" className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80 group-hover:scale-105 group-hover:mix-blend-normal transition-all duration-700" alt="Gallery" />
+              <img src="/home2.jpg" className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80 group-hover:scale-105 group-hover:mix-blend-normal transition-all duration-700" alt="Gallery" />
             </div>
             {/* Horizontal */}
             <div className="col-span-2 row-span-1 bg-slate-100 dark:bg-slate-900 relative group overflow-hidden cursor-crosshair">
-              <img src="https://images.unsplash.com/photo-1531482615713-2afd69097998?q=80&w=2070&auto=format&fit=crop" className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80 group-hover:scale-105 group-hover:mix-blend-normal transition-all duration-700" alt="Gallery" />
+              <img src="https://i.ibb.co/HLyJY5vd/IMG-2302.jpg" className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80 group-hover:scale-105 group-hover:mix-blend-normal transition-all duration-700" alt="Gallery" />
             </div>
             {/* Small */}
             <div className="col-span-2 row-span-1 bg-slate-100 dark:bg-slate-900 relative group overflow-hidden cursor-crosshair">
-              <img src="https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=2070&auto=format&fit=crop" className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80 group-hover:scale-105 group-hover:mix-blend-normal transition-all duration-700" alt="Gallery" />
+              <img src="https://i.ibb.co/d4SMztF1/IMG-7797.jpg" className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80 group-hover:scale-105 group-hover:mix-blend-normal transition-all duration-700" alt="Gallery" />
             </div>
           </div>
         </div>
