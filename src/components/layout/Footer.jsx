@@ -96,12 +96,29 @@ export default function Footer() {
 
         </div>
         
-        {/* BOTTOM: Copyright */}
+        {/* BOTTOM: Copyright & Attribution */}
         <div className="pt-8 border-t border-slate-900 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="font-mono text-[10px] tracking-widest text-slate-400 uppercase">
-            &copy; {new Date().getFullYear()} LPU SCA Brainstorm Club
-          </p>
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left">
+            <p className="font-mono text-[10px] tracking-widest text-slate-400 uppercase">
+              &copy; {new Date().getFullYear()} Brain Storm Club, SCA. All Rights Reserved.
+            </p>
+            <span className="hidden sm:inline text-slate-700">|</span>
+            <p className="font-mono text-[10px] tracking-widest text-slate-400 uppercase">
+              Developed by{' '}
+              <a
+                href="https://sakshamshakya.tech"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-brand-secondary hover:text-white hover:underline transition-colors font-bold"
+              >
+                Saksham Shakya
+              </a>
+            </p>
+          </div>
           <div className="flex flex-wrap items-center justify-center md:justify-end gap-x-6 gap-y-2">
+            <Link to="/about" className="font-mono text-[10px] tracking-widest text-slate-400 uppercase hover:text-slate-200 transition-colors">
+              About Us
+            </Link>
             <Link to="/terms" className="font-mono text-[10px] tracking-widest text-slate-400 uppercase hover:text-slate-200 transition-colors">
               Terms
             </Link>

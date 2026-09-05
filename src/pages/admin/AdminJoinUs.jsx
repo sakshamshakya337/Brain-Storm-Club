@@ -68,7 +68,7 @@ function ActionMenu({ req, onView, onEdit, onApprove, onStatus, onDelete, proces
   const toggleOpen = () => {
     if (!open && btnRef.current) {
       const rect = btnRef.current.getBoundingClientRect();
-      setCoords({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+      setCoords({ top: rect.bottom + 4, right: Math.max(8, window.innerWidth - rect.right) });
     }
     setOpen(v => !v);
   };
@@ -700,8 +700,8 @@ export default function AdminJoinUs() {
           </div>
         )}
 
-        {/* Table */}
-        <div className="overflow-x-auto">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-slate-200 font-mono text-[10px] uppercase tracking-wider text-slate-500 bg-white">
               <tr>
@@ -783,6 +783,124 @@ export default function AdminJoinUs() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Card Grid View */}
+        <div className="md:hidden p-3.5 space-y-3">
+          {loading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-3 animate-pulse">
+                <div className="flex justify-between items-start">
+                  <div className="h-5 bg-slate-200 rounded w-1/2" />
+                  <div className="h-5 bg-slate-200 rounded w-16" />
+                </div>
+                <div className="h-4 bg-slate-100 rounded w-3/4" />
+                <div className="h-4 bg-slate-100 rounded w-1/3" />
+              </div>
+            ))
+          ) : requests.length === 0 ? (
+            <div className="py-12 px-4 text-center bg-slate-50 border border-dashed border-slate-200 rounded-xl">
+              <p className="font-mono text-xs font-bold tracking-widest uppercase mb-1 text-slate-500">No submissions found</p>
+              <p className="text-sm text-slate-400">Try adjusting your search or filter</p>
+            </div>
+          ) : (
+            requests.map(req => {
+              const isActive = !['Onboarded', 'Rejected'].includes(req.status);
+              return (
+                <div
+                  key={req._id}
+                  className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-sm space-y-3"
+                >
+                  {/* Card Header: Student Name + Status Badge */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <h4 className="font-semibold text-slate-900 text-sm leading-snug break-words">
+                        {req.fullName}
+                      </h4>
+                      <p className="text-xs font-mono text-slate-500 mt-0.5">
+                        {req.registrationNumber}
+                      </p>
+                    </div>
+                    <div className="shrink-0 flex items-center gap-1.5">
+                      <StatusBadge status={req.status} />
+                    </div>
+                  </div>
+
+                  {/* Academic & Domain Info */}
+                  <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
+                    <span className="font-medium text-slate-800">
+                      {req.course} · Sec {req.section}
+                    </span>
+                    <span className="inline-block font-mono text-[9px] font-bold tracking-wider uppercase text-brand-primary bg-brand-primary/5 border border-brand-primary/20 px-1.5 py-0.5 rounded">
+                      {req.domain || 'Technical'}
+                    </span>
+                    <span className="text-slate-400 text-[11px] font-mono ml-auto">
+                      {fmt(req.createdAt)}
+                    </span>
+                  </div>
+
+                  {/* Contact Info */}
+                  <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
+                    {req.phone && (
+                      <a href={`tel:${req.phone}`} className="flex items-center gap-1 text-slate-700 hover:text-brand-primary transition-colors font-mono">
+                        <PhoneCall size={12} className="text-slate-400 shrink-0" /> {req.phone}
+                      </a>
+                    )}
+                    {req.email && (
+                      <a href={`mailto:${req.email}`} className="flex items-center gap-1 text-slate-500 hover:text-brand-primary transition-colors truncate max-w-full">
+                        <span className="truncate">{req.email}</span>
+                      </a>
+                    )}
+                  </div>
+
+                  {/* Interests tags */}
+                  {req.interests && req.interests.length > 0 && (
+                    <div className="flex flex-wrap gap-1 pt-1">
+                      {req.interests.map((int, i) => (
+                        <span key={i} className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full border border-slate-200">
+                          {int}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Mobile Actions Footer */}
+                  <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <button
+                      onClick={() => setViewReq(req)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+                    >
+                      <Eye size={13} /> View
+                    </button>
+
+                    <div className="flex items-center gap-2">
+                      {isActive && (
+                        <button
+                          onClick={() => setApproveReq(req)}
+                          disabled={!!processing[req._id]}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-lg transition-colors"
+                        >
+                          <CheckCircle2 size={13} /> Approve
+                        </button>
+                      )}
+                      <ActionMenu
+                        req={req}
+                        processing={processing[req._id]}
+                        onView={() => setViewReq(req)}
+                        onEdit={() => setEditReq(req)}
+                        onApprove={() => setApproveReq(req)}
+                        onStatus={(status, needsReason) => {
+                          if (needsReason) { setRejectReq(req); }
+                          else { doStatusUpdate(req._id, status); }
+                        }}
+                        onDelete={() => setDeleteReq(req)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
 
         {/* Pagination */}

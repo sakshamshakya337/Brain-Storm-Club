@@ -135,11 +135,11 @@ export default function AdminNotifications() {
                   </div>
                   
                   <div className="flex-1">
-                    <div className="flex justify-between items-start mb-1">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-1 mb-1">
                       <h4 className={cn("text-sm", !notification.isRead ? "font-bold text-slate-900" : "font-medium text-slate-700")}>
                         {notification.title}
                       </h4>
-                      <span className="text-[10px] font-mono tracking-widest text-slate-400 uppercase shrink-0 ml-4">
+                      <span className="text-[10px] font-mono tracking-widest text-slate-400 uppercase shrink-0">
                         {new Date(notification.createdAt).toLocaleString()}
                       </span>
                     </div>
@@ -147,11 +147,11 @@ export default function AdminNotifications() {
                       {notification.message}
                     </p>
                     
-                    <div className="flex items-center gap-4">
+                    <div className="flex flex-wrap items-center gap-3 sm:gap-4 pt-1">
                       <Link 
                         to={getLink(notification)}
                         onClick={() => { if (!notification.isRead) markAsRead(notification._id); }}
-                        className="text-xs font-bold font-mono tracking-widest text-brand-primary hover:text-brand-secondary uppercase transition-colors"
+                        className="inline-flex items-center gap-1 text-xs font-bold font-mono tracking-widest text-brand-primary hover:text-brand-secondary uppercase transition-colors"
                       >
                         View Details →
                       </Link>
@@ -159,7 +159,7 @@ export default function AdminNotifications() {
                       {!notification.isRead && (
                         <button 
                           onClick={() => markAsRead(notification._id)}
-                          className="text-xs font-bold font-mono tracking-widest text-slate-400 hover:text-slate-900 uppercase transition-colors"
+                          className="text-xs font-bold font-mono tracking-widest text-slate-500 hover:text-slate-900 uppercase transition-colors"
                         >
                           Mark as Read
                         </button>

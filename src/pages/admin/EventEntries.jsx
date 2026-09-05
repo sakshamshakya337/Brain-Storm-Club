@@ -265,8 +265,8 @@ export default function EventEntries() {
           </div>
         </div>
 
-        {/* Table View */}
-        <div className="overflow-x-auto min-h-[400px]">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto min-h-[400px]">
           {loading ? (
             <div className="flex flex-col items-center justify-center h-64 text-slate-400">
               <Loader2 className="animate-spin mb-4" size={32} />
@@ -344,6 +344,96 @@ export default function EventEntries() {
                 ))}
               </tbody>
             </table>
+          )}
+        </div>
+
+        {/* Mobile Card Grid View */}
+        <div className="md:hidden p-3.5 space-y-3">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+              <Loader2 className="animate-spin mb-3" size={28} />
+              <p className="text-sm">Loading registrations...</p>
+            </div>
+          ) : error ? (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-center text-sm text-red-600">
+              <p>{error}</p>
+              <button onClick={fetchEntries} className="mt-2 text-brand-primary underline font-medium">Try Again</button>
+            </div>
+          ) : entries.length === 0 ? (
+            <div className="py-12 px-4 text-center bg-slate-50 border border-dashed border-slate-200 rounded-xl">
+              <FileText className="mx-auto text-slate-300 mb-2" size={32} />
+              <p className="text-sm font-semibold text-slate-700">No Registrations Found</p>
+              <p className="text-xs text-slate-400 mt-1">There are no entries matching your current filters.</p>
+            </div>
+          ) : (
+            entries.map((entry) => (
+              <div
+                key={entry._id}
+                className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-sm space-y-3"
+              >
+                {/* Header: Name + Status Badge */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <h4 className="font-semibold text-slate-900 text-sm leading-snug break-words">
+                      {entry.fullName}
+                    </h4>
+                    <p className="text-xs font-mono text-slate-500 mt-0.5">
+                      {entry.registrationNumber}
+                    </p>
+                  </div>
+                  <span className={cn("px-2.5 py-1 text-xs font-medium rounded-md border shrink-0", getStatusColor(entry.status))}>
+                    {entry.status}
+                  </span>
+                </div>
+
+                {/* Academic & Date */}
+                <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
+                  <div>
+                    <span className="font-medium text-slate-800">{entry.course}</span>
+                    {entry.section && <span className="text-slate-500 ml-1">({entry.section})</span>}
+                  </div>
+                  <span className="text-slate-400 font-mono text-[11px]">
+                    {new Date(entry.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+
+                {/* Contact details */}
+                <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
+                  {entry.email && (
+                    <a href={`mailto:${entry.email}`} className="text-slate-600 hover:text-brand-primary transition-colors truncate max-w-full">
+                      {entry.email}
+                    </a>
+                  )}
+                  {entry.phone && (
+                    <a href={`tel:${entry.phone}`} className="text-slate-700 hover:text-brand-primary transition-colors font-mono">
+                      {entry.phone}
+                    </a>
+                  )}
+                </div>
+
+                {/* Actions: Direct View button + Direct Status Selector */}
+                <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                  <button 
+                    onClick={() => { setSelectedEntry(entry); setDetailsModalOpen(true); }}
+                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-semibold transition-colors"
+                  >
+                    View Details
+                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-mono uppercase text-slate-400">Status:</span>
+                    <select 
+                      value={entry.status}
+                      onChange={(e) => handleUpdateStatus(entry._id, e.target.value)}
+                      className="px-2 py-1.5 bg-white border border-slate-200 text-slate-800 rounded-lg text-xs font-medium focus:ring-1 focus:ring-brand-primary outline-none cursor-pointer"
+                    >
+                      <option value="Registered">Registered</option>
+                      <option value="Participated">Participated</option>
+                      <option value="No-show">No-show</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            ))
           )}
         </div>
 

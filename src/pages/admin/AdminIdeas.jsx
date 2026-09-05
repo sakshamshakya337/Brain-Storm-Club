@@ -352,7 +352,8 @@ export default function AdminIdeas() {
 
       {/* ── Table ─────────────────────────────────────────────────────────── */}
       <div className="bg-white border border-slate-200 rounded-md shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-100">
             <thead className="bg-slate-50">
               <tr>
@@ -460,6 +461,106 @@ export default function AdminIdeas() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Card Grid View */}
+        <div className="md:hidden p-3.5 space-y-3">
+          {loading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-3 animate-pulse">
+                <div className="flex justify-between items-start">
+                  <div className="h-5 bg-slate-200 rounded w-1/2" />
+                  <div className="h-5 bg-slate-200 rounded w-20" />
+                </div>
+                <div className="h-4 bg-slate-100 rounded w-full" />
+                <div className="h-4 bg-slate-100 rounded w-2/3" />
+              </div>
+            ))
+          ) : ideas.length === 0 ? (
+            <div className="py-12 px-4 text-center bg-slate-50 border border-dashed border-slate-200 rounded-xl">
+              <Lightbulb className="mx-auto text-slate-400 mb-2" size={32} />
+              <p className="font-mono text-xs font-bold tracking-widest uppercase text-slate-600">No ideas found</p>
+              <p className="text-sm text-slate-400 mt-1">Try adjusting your search or filter</p>
+            </div>
+          ) : (
+            ideas.map(idea => (
+              <div
+                key={idea._id}
+                onClick={() => openDetail(idea)}
+                className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-sm space-y-3 cursor-pointer hover:border-slate-300 transition-all"
+              >
+                {/* Header: Title + Status */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <h4 className="font-semibold text-slate-900 text-sm leading-snug break-words">
+                      {idea.title}
+                    </h4>
+                    {idea.description && (
+                      <p className="text-xs text-slate-500 line-clamp-2 mt-1">
+                        {idea.description}
+                      </p>
+                    )}
+                  </div>
+                  <div className="shrink-0 pt-0.5">
+                    <StatusBadge status={idea.status} small />
+                  </div>
+                </div>
+
+                {/* Submitter & Academics */}
+                <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
+                  <div>
+                    <span className="font-medium text-slate-800">{idea.name}</span>
+                    <span className="text-slate-400 font-mono text-[11px] ml-2">({idea.course} / {idea.section})</span>
+                  </div>
+                  <span className="text-slate-400 font-mono text-[11px]">
+                    {fmtDate(idea.createdAt)}
+                  </span>
+                </div>
+
+                {/* Category & PDF */}
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  {idea.category && (
+                    <span className="inline-block font-mono text-[9px] font-bold tracking-widest uppercase px-2 py-0.5 bg-slate-100 text-slate-600 rounded-sm border border-slate-200">
+                      {idea.category}
+                    </span>
+                  )}
+                  {idea.pdfPublicId && (
+                    <span className="inline-flex items-center gap-1 text-brand-primary font-mono text-[10px] font-bold bg-brand-primary/5 px-2 py-0.5 rounded border border-brand-primary/20">
+                      <FileText size={12} />
+                      <span className="max-w-[140px] truncate">
+                        {idea.pdfOriginalName?.toLowerCase().endsWith('.pdf') ? idea.pdfOriginalName : `${idea.pdfOriginalName || 'document'}.pdf`}
+                      </span>
+                      {idea.pdfSizeBytes && (
+                        <span className="text-[9px] text-slate-400 font-normal ml-0.5">
+                          ({fmtSize(idea.pdfSizeBytes)})
+                        </span>
+                      )}
+                    </span>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                  <button
+                    onClick={e => { e.stopPropagation(); openDetail(idea); }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-brand-primary bg-brand-primary/10 hover:bg-brand-primary/20 rounded-lg transition-colors"
+                  >
+                    <Eye size={13} /> View Details
+                  </button>
+                  <button
+                    onClick={e => {
+                      e.stopPropagation();
+                      setDeleteError('');
+                      setDeleteTarget(idea);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                  >
+                    <Trash2 size={13} /> Delete
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
 
         {/* ── Pagination ──────────────────────────────────────────────────── */}

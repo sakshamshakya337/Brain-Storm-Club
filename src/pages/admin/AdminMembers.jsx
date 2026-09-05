@@ -845,8 +845,8 @@ export default function AdminMembers() {
           </div>
         </div>
 
-        {/* Table */}
-        <div className="overflow-x-auto">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-sm whitespace-nowrap">
             <thead className="bg-white border-b border-slate-200 font-mono text-[10px] uppercase tracking-wider text-slate-500">
               <tr>
@@ -984,6 +984,153 @@ export default function AdminMembers() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Card Grid View */}
+        <div className="md:hidden p-3.5 space-y-3">
+          {loading ? (
+            <div className="py-12 text-center">
+              <Loader2 className="animate-spin mx-auto text-slate-400 mb-2" size={24} />
+              <p className="text-sm text-slate-500">Loading members…</p>
+            </div>
+          ) : error ? (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-center text-sm text-red-600">
+              Error: {error}
+            </div>
+          ) : filteredMembers.length === 0 ? (
+            <div className="py-10 px-4 text-center bg-slate-50 border border-dashed border-slate-200 rounded-xl">
+              <Users className="mx-auto text-slate-400 mb-2" size={28} />
+              <p className="text-sm font-medium text-slate-700">No approved members found</p>
+              <p className="text-xs text-slate-500 mt-1">Check "Pending Approvals" or use "Add Member".</p>
+            </div>
+          ) : (
+            filteredMembers.map(member => {
+              const isFaculty = (member.memberType || 'student') === 'faculty';
+              return (
+                <div
+                  key={member._id}
+                  className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-sm space-y-3"
+                >
+                  {/* Header: Photo + Name + Role */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div
+                        onClick={() => openEditModal(member)}
+                        className="w-12 h-12 rounded-full bg-slate-100 overflow-hidden border border-slate-200 cursor-pointer shrink-0 hover:ring-2 hover:ring-brand-primary transition-all relative"
+                        title="Click to view/edit member photo"
+                      >
+                        {member.photoId ? (
+                          <img
+                            src={`/api/images/${member.photoId?.imageId || member.photoId}?variant=member_card`}
+                            alt={member.fullName}
+                            className="w-full h-full object-cover"
+                            crossOrigin="use-credentials"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm font-bold">
+                            {member.fullName.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <h4 className="font-semibold text-slate-900 text-sm leading-snug break-words">
+                            {member.fullName}
+                          </h4>
+                          {isFaculty && (
+                            <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[9px] font-bold font-mono tracking-wider uppercase rounded border border-emerald-200 shrink-0">
+                              Faculty
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-500 font-mono mt-0.5">
+                          {member.registrationNumber ? member.registrationNumber : member.employeeId ? `ID: ${member.employeeId}` : ''}
+                        </p>
+                      </div>
+                    </div>
+
+                    <span className="px-2 py-0.5 bg-brand-primary/10 text-brand-primary rounded-full text-xs font-bold tracking-wide shrink-0">
+                      {member.role}
+                    </span>
+                  </div>
+
+                  {/* Info: Academics or Dept/Designation */}
+                  <div className="pt-2.5 border-t border-slate-100 text-xs text-slate-600 space-y-1">
+                    {isFaculty ? (
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        {member.department && (
+                          <span className="font-medium text-slate-800">
+                            <span className="text-slate-400 font-mono text-[10px] uppercase">Dept:</span> {member.department}
+                          </span>
+                        )}
+                        {member.designation && (
+                          <span className="text-slate-600">
+                            <span className="text-slate-400 font-mono text-[10px] uppercase">Desig:</span> {member.designation}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        {member.course && (
+                          <span className="font-medium text-slate-800">
+                            <span className="text-slate-400 font-mono text-[10px] uppercase">Course:</span> {member.course}
+                          </span>
+                        )}
+                        {member.section && (
+                          <span className="text-slate-600">
+                            <span className="text-slate-400 font-mono text-[10px] uppercase">Sec:</span> {member.section}
+                          </span>
+                        )}
+                        {member.domain && (
+                          <span className="px-1.5 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-mono font-bold uppercase rounded border border-slate-200">
+                            {member.domain}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Contacts */}
+                    {(member.email || member.phone || member.whatsapp) && (
+                      <div className="flex flex-wrap gap-x-3 gap-y-1 pt-1 text-slate-500">
+                        {member.email && (
+                          <a href={`mailto:${member.email}`} className="flex items-center gap-1 hover:text-brand-primary transition-colors truncate max-w-full">
+                            <Mail size={11} className="shrink-0" /> <span className="truncate">{member.email}</span>
+                          </a>
+                        )}
+                        {member.phone && (
+                          <a href={`tel:${member.phone}`} className="flex items-center gap-1 hover:text-brand-primary transition-colors">
+                            <Phone size={11} className="shrink-0" /> {member.phone}
+                          </a>
+                        )}
+                        {member.whatsapp && member.whatsapp !== member.phone && (
+                          <span className="flex items-center gap-1 text-emerald-600 font-medium">
+                            WA: {member.whatsapp}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions (Always visible on mobile) */}
+                  <div className="pt-2.5 border-t border-slate-100 flex items-center justify-end gap-2">
+                    <button
+                      onClick={() => openEditModal(member)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-brand-primary bg-brand-primary/10 hover:bg-brand-primary/20 rounded-lg transition-colors"
+                    >
+                      <Edit size={13} /> Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(member._id)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                    >
+                      <Trash2 size={13} /> Delete
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
 

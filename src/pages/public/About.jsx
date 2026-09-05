@@ -256,10 +256,10 @@ export default function About() {
           {/* Placeholder Profiles */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
             {[
-              { img: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1000&auto=format&fit=crop', name: 'Member Profile', role: 'Engineering', interest: 'AI / ML' },
-              { img: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=1000&auto=format&fit=crop', name: 'Member Profile', role: 'Design', interest: 'UI / UX' },
-              { img: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?q=80&w=1000&auto=format&fit=crop', name: 'Member Profile', role: 'Product', interest: 'Strategy' },
-              { img: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1000&auto=format&fit=crop', name: 'Member Profile', role: 'Development', interest: 'Web3' },
+              { img: '/satyam.jpeg', name: 'Satyam Shakti', role: 'Social Media', interest: 'Social Media' },
+              { img: '/saksham.png', name: 'Saksham Shakya', role: 'Development', interest: 'Freelancing' },
+              { img: '/sujal.png', name: 'Sujal Bhatia', role: 'President', interest: 'Technical Workshops' },
+              { img: '/HarshSharma.jpeg', name: 'Harsh Sharma', role: 'Development', interest: 'Freelancing' },
             ].map((member, idx) => (
               <div key={idx} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 group hover:border-brand-primary transition-colors">
                 <div className="aspect-[3/4] w-full relative overflow-hidden mb-4 bg-slate-100 dark:bg-slate-950">

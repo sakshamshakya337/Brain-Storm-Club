@@ -57,17 +57,18 @@ const SortableLinkItem = ({ link, onEdit, onDelete }) => {
       ref={setNodeRef} 
       style={style} 
       className={cn(
-        "flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl shadow-sm mb-3 group",
+        "flex flex-col sm:flex-row sm:items-center justify-between p-3.5 sm:p-4 bg-white border border-slate-200 rounded-xl shadow-sm mb-3 gap-3 group",
         isDragging && "opacity-50 ring-2 ring-brand-primary border-transparent z-10 relative shadow-md",
         !link.isActive && "opacity-75 bg-slate-50"
       )}
     >
-      <div className="flex items-center gap-4 flex-1 overflow-hidden">
+      <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
         <button 
-          className="p-1 text-slate-400 hover:text-slate-600 cursor-grab active:cursor-grabbing"
+          className="p-1 text-slate-400 hover:text-slate-600 cursor-grab active:cursor-grabbing shrink-0 touch-none"
           {...attributes}
           {...listeners}
           title="Drag to reorder"
+          aria-label="Drag to reorder"
         >
           <GripVertical size={20} />
         </button>
@@ -86,36 +87,38 @@ const SortableLinkItem = ({ link, onEdit, onDelete }) => {
         </div>
         
         <div className="flex flex-col flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-slate-900 truncate">{link.title}</span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-semibold text-slate-900 text-sm truncate">{link.title}</span>
             {!link.isActive && (
-              <span className="px-2 py-0.5 bg-slate-200 text-slate-600 text-[10px] font-bold uppercase tracking-wider rounded">Inactive</span>
+              <span className="px-1.5 py-0.5 bg-slate-200 text-slate-600 text-[9px] font-bold uppercase tracking-wider rounded shrink-0">Inactive</span>
             )}
           </div>
-          <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-sm text-slate-500 truncate hover:text-brand-primary transition-colors flex items-center gap-1">
-            {link.url}
+          <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-xs text-slate-500 truncate hover:text-brand-primary transition-colors flex items-center gap-1 mt-0.5">
+            <span className="truncate">{link.url}</span>
           </a>
         </div>
       </div>
       
-      <div className="flex items-center gap-2 shrink-0 ml-4">
-        <div className="text-xs font-mono font-bold text-slate-400 px-3 py-1 bg-slate-100 rounded-md hidden sm:block">
+      <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t border-slate-100 sm:border-0">
+        <div className="text-[11px] font-mono font-bold text-slate-500 px-2.5 py-1 bg-slate-100 rounded-md">
           {link.clickCount} CLICKS
         </div>
-        <button 
-          onClick={() => onEdit(link)}
-          className="p-2 text-brand-primary hover:bg-brand-primary/10 rounded-md transition-colors" 
-          title="Edit Link"
-        >
-          <Edit size={16} />
-        </button>
-        <button 
-          onClick={() => onDelete(link._id)}
-          className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors" 
-          title="Delete Link"
-        >
-          <Trash2 size={16} />
-        </button>
+        <div className="flex items-center gap-1">
+          <button 
+            onClick={() => onEdit(link)}
+            className="p-2 text-brand-primary hover:bg-brand-primary/10 rounded-md transition-colors" 
+            title="Edit Link"
+          >
+            <Edit size={16} />
+          </button>
+          <button 
+            onClick={() => onDelete(link._id)}
+            className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors" 
+            title="Delete Link"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -16,7 +16,7 @@ export default function Home() {
   const containerRef = useRef(null);
   usePageReveal(containerRef);
   useScrollReveal(containerRef);
-  
+
   const ctaRef = useMagneticButton(0.4);
   const statsSectionRef = useRef(null);
 
@@ -317,7 +317,7 @@ export default function Home() {
             ].map((stat, i) => (
               <div key={i} className="stat-card flex flex-col lg:px-10">
                 <div className="stat-num font-mono text-[10px] font-bold tracking-widest text-brand-primary mb-4">{stat.num}</div>
-                <div 
+                <div
                   className="stat-counter font-heading font-black text-5xl md:text-6xl lg:text-7xl tracking-tighter text-slate-900 dark:text-white mb-2 tabular-nums"
                   data-value={stat.value}
                 >
@@ -447,7 +447,7 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
             {/* LARGE PORTRAIT */}
             <div className="md:col-span-6 bg-slate-200 dark:bg-slate-800 relative h-[400px] md:h-[600px] group overflow-hidden">
-              <img src="/sujal.webp" className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80 group-hover:scale-105 transition-transform duration-700" alt="President" />
+              <img src="/sujal.png" className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80 group-hover:scale-105 transition-transform duration-700" alt="President" />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80"></div>
               <div className="absolute bottom-8 left-8 text-white">
                 <span className="font-mono text-[10px] font-bold tracking-widest uppercase block mb-2 text-brand-secondary">President</span>
@@ -462,7 +462,7 @@ export default function Home() {
                 { name: 'Ritu Raj', role: 'Vice President', course: 'BCA', img: '/ritu.png' },
                 { name: 'Satyam Shakti', role: 'Media Head', course: 'MCA (2nd Year)', img: '/satyam.jpeg' },
                 { name: 'Meharjot Singh', role: 'Head Coordinator', course: 'MCA (2nd Year)', img: '/Meharjot.jpg' },
-                { name: 'Saksham Shakya', role: 'Technical Head', course: 'MCA (2nd Year)', img: 'https://i.ibb.co/PnsgYc4/saksham.png' }
+                { name: 'Saksham Shakya', role: 'Technical Head', course: 'MCA (2nd Year)', img: '/saksham.png' }
               ].map((person, i) => (
                 <div key={i} className="relative h-[190px] md:h-auto bg-slate-200 dark:bg-slate-800 group overflow-hidden">
                   <img src={person.img} className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80 group-hover:scale-105 transition-transform duration-700" alt={person.name} />

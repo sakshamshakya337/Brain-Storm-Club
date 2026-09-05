@@ -8,7 +8,13 @@ import { useScrollReveal } from '../../hooks/useScrollReveal';
 
 // ─── Role Configuration ────────────────────────────────────────────────────────
 // ─── Domain & Lead Configuration ──────────────────────────────────────────────
-// Canonical domain sequence
+// Canonical domain sequence:
+// 1. Faculty & Mentors
+// 2. Leadership (President, Vice President, Secretary, Head Coordinator)
+// 3. Technical Team (Technical Head + Technical Team)
+// 4. Media & Creative Team (Media Head + Media Team)
+// 5. Anchor Section
+// 6. Event Coordinators
 const DOMAIN_ORDER = [
   'Faculty',
   'Leadership',
@@ -26,29 +32,29 @@ const DOMAIN_METADATA = {
     leadBadge: 'Faculty Lead',
   },
   Leadership: {
-    title: 'Leadership & Executive',
+    title: 'Leadership',
     badge: 'Executive',
-    leadBadge: 'President / Lead',
+    leadBadge: 'President',
   },
   Technical: {
-    title: 'Technical Domain',
+    title: 'Technical Team',
     badge: 'Engineering',
     leadBadge: 'Technical Head',
   },
   Media: {
-    title: 'Media & Creative',
+    title: 'Media & Creative Team',
     badge: 'Creative & PR',
     leadBadge: 'Media Head',
   },
   Anchor: {
-    title: 'Anchor & Public Relations',
+    title: 'Anchor Section',
     badge: 'PR & Stage',
     leadBadge: 'Anchor Head',
   },
   Coordinator: {
-    title: 'Event & Logistics Coordination',
+    title: 'Event Coordinators',
     badge: 'Operations',
-    leadBadge: 'Head Coordinator',
+    leadBadge: 'Lead Coordinator',
   },
 };
 
@@ -61,86 +67,142 @@ const FACULTY_KEYWORDS = [
   'chief of school',
   'dean',
   'associate dean',
-  'advisor',
-  'coordinator',
   'professor',
   'mentor',
+  'faculty advisor',
+  'faculty coordinator',
 ];
 
 // Lead/Head priority within each domain to identify the primary featured member
 const DOMAIN_LEAD_PRIORITIES = {
-  Faculty: ['hos', 'head of school', 'founder', 'cos', 'chief of school', 'dean', 'advisor', 'coordinator', 'faculty'],
-  Leadership: ['president', 'vice president', 'secretary', 'head coordinator', 'executive'],
-  Technical: ['technical head', 'tech head', 'lead developer', 'technical lead', 'technical team'],
-  Media: ['social media head', 'media head', 'creative head', 'media team'],
+  Faculty: [
+    'hos',
+    'head of school',
+    'cos',
+    'chief of school',
+    'founder',
+    'dean',
+    'associate dean',
+    'faculty advisor',
+    'advisor',
+    'faculty coordinator',
+    'faculty',
+    'mentor',
+    'professor',
+  ],
+  Leadership: [
+    'president',
+    'vice president',
+    'vp',
+    'secretary',
+    'head coordinator',
+    'head coord',
+    'executive',
+  ],
+  Technical: [
+    'technical head',
+    'tech head',
+    'technical lead',
+    'tech lead',
+    'lead developer',
+    'technical team',
+    'tech',
+  ],
+  Media: [
+    'social media head',
+    'media head',
+    'creative head',
+    'media lead',
+    'media team',
+    'media',
+  ],
   Anchor: ['anchor head', 'lead anchor', 'anchor'],
-  Coordinator: ['head coordinator', 'lead coordinator', 'coordinator'],
+  Coordinator: [
+    'lead coordinator',
+    'senior coordinator',
+    'coordinator',
+  ],
 };
 
 /**
- * Normalise and resolve the canonical domain for a member.
+ * Normalise and resolve the canonical section for a member.
  * Inspects memberType, explicit domain, and role heuristics.
  */
 const resolveMemberDomain = (member) => {
-  const rawRole = (member.role || '').trim().toLowerCase();
-  const rawDomain = (member.domain || '').trim().toLowerCase();
+  const role = (member.role || '').trim().toLowerCase();
+  const domain = (member.domain || '').trim().toLowerCase();
+  const memberType = (member.memberType || '').trim().toLowerCase();
 
   // 1. Faculty check
   if (
-    member.memberType === 'faculty' ||
-    FACULTY_KEYWORDS.some((k) => rawRole.includes(k) || rawDomain.includes(k))
+    memberType === 'faculty' ||
+    (memberType !== 'student' &&
+      FACULTY_KEYWORDS.some((k) => role.includes(k) || domain.includes(k)))
   ) {
     return 'Faculty';
   }
 
-  // 2. Executive / Leadership
+  // 2. Leadership (President, Vice President, Secretary, Head Coordinator, Executive)
   if (
-    rawDomain === 'executive' ||
-    rawDomain === 'leadership' ||
-    rawRole.includes('president') ||
-    rawRole.includes('secretary') ||
-    rawRole.includes('vice president') ||
-    rawRole === 'vp'
+    role.includes('president') ||
+    role.includes('secretary') ||
+    role.includes('head coordinator') ||
+    role.includes('head coord') ||
+    role.includes('vice') ||
+    role === 'vp' ||
+    domain === 'leadership' ||
+    domain === 'executive'
   ) {
     return 'Leadership';
   }
 
-  // 3. Technical
-  if (rawDomain.includes('tech') || rawRole.includes('tech')) {
-    return 'Technical';
-  }
-
-  // 4. Media
+  // 3. Anchor Section
   if (
-    rawDomain.includes('media') ||
-    rawRole.includes('media') ||
-    rawRole.includes('social')
-  ) {
-    return 'Media';
-  }
-
-  // 5. Anchor
-  if (
-    rawDomain.includes('anchor') ||
-    rawRole.includes('anchor') ||
-    rawRole.includes('host')
+    role.includes('anchor') ||
+    domain.includes('anchor') ||
+    role.includes('host')
   ) {
     return 'Anchor';
   }
 
-  // 6. Coordinator
-  if (rawDomain.includes('coord') || rawRole.includes('coord')) {
+  // 4. Technical (Technical Head + Technical Team)
+  if (
+    role.includes('tech') ||
+    domain.includes('tech') ||
+    role.includes('developer') ||
+    role.includes('coding')
+  ) {
+    return 'Technical';
+  }
+
+  // 5. Media (Media Head + Media Team)
+  if (
+    role.includes('media') ||
+    domain.includes('media') ||
+    role.includes('social') ||
+    role.includes('creative') ||
+    role.includes('design')
+  ) {
+    return 'Media';
+  }
+
+  // 6. Coordinators
+  if (role.includes('coord') || domain.includes('coord')) {
     return 'Coordinator';
   }
 
-  // 7. Explicit domain if present
+  // 7. Explicit domain match if present
   if (member.domain && member.domain.trim()) {
-    const d = member.domain.trim();
-    return d.charAt(0).toUpperCase() + d.slice(1);
+    const d = member.domain.trim().toLowerCase();
+    if (d === 'executive' || d === 'leadership') return 'Leadership';
+    if (d.includes('tech')) return 'Technical';
+    if (d.includes('media')) return 'Media';
+    if (d.includes('anchor')) return 'Anchor';
+    if (d.includes('coord')) return 'Coordinator';
   }
 
   // Fallback
-  return 'Leadership';
+  return 'Coordinator';
 };
 
 /**
@@ -223,13 +285,14 @@ const groupAndRankMembers = (members) => {
 };
 
 // ─── Featured Member Card (Lead / Head) ────────────────────────────────────────
-function FeaturedMemberCard({ member, isSolo = false }) {
+function FeaturedMemberCard({ member, isSolo = false, leadBadge }) {
   const imageId = member.photoId?.imageId || null;
+  const displayBadge = member.role || leadBadge || 'Lead / Head';
 
   return (
     <div
-      className={`bg-white dark:bg-slate-900 border-2 border-brand-primary/40 dark:border-brand-primary/30 flex flex-col group hover:border-brand-primary dark:hover:border-brand-primary transition-all duration-500 shadow-lg dark:shadow-2xl dark:shadow-brand-primary/5 rounded-sm relative overflow-hidden ${
-        isSolo ? 'w-full max-w-md mx-auto sm:mx-0' : 'w-full'
+      className={`bg-white dark:bg-slate-900 border-2 border-brand-primary/40 dark:border-brand-primary/30 flex flex-col group hover:border-brand-primary dark:hover:border-brand-primary transition-all duration-500 shadow-lg dark:shadow-2xl dark:shadow-brand-primary/5 rounded-sm relative overflow-hidden w-full max-w-[310px] sm:max-w-[330px] ${
+        isSolo ? 'mx-auto sm:mx-0' : ''
       }`}
     >
       {/* Top Banner Accent */}
@@ -238,38 +301,38 @@ function FeaturedMemberCard({ member, isSolo = false }) {
       {/* Subtle Background Glow on Hover */}
       <div className="absolute inset-0 bg-gradient-to-br from-brand-primary/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10" />
 
-      {/* Image Block (Large aspect 4/5) */}
+      {/* Image Block (aspect 4/5) */}
       <div className="relative z-10 w-full aspect-[4/5] overflow-hidden bg-slate-100 dark:bg-slate-950">
         <ProtectedImage
           imageId={imageId}
           variant="member_card"
           alt={member.fullName}
-          className="w-full h-full object-cover mix-blend-luminosity opacity-90 group-hover:mix-blend-normal group-hover:scale-[1.03] transition-all duration-700"
+          className="w-full h-full object-cover object-center mix-blend-luminosity opacity-90 group-hover:mix-blend-normal group-hover:scale-[1.03] transition-all duration-700"
         />
 
-        {/* Lead Badge Floating on Image */}
-        <div className="absolute top-3 left-3 z-20">
-          <span className="inline-flex items-center gap-1.5 font-mono text-[9px] sm:text-[10px] font-extrabold tracking-widest uppercase text-white bg-brand-primary/95 backdrop-blur-md px-2.5 py-1 rounded-sm shadow-md border border-white/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-            Lead / Head
+        {/* Upper Image Role / Status Tag */}
+        <div className="absolute top-2.5 left-2.5 z-20 max-w-[calc(100%-20px)] pointer-events-none">
+          <span className="inline-flex items-center gap-1.5 font-mono text-[9px] sm:text-[10px] font-extrabold tracking-wider uppercase text-white bg-slate-950/90 dark:bg-slate-900/95 backdrop-blur-md px-2.5 py-1 rounded-sm shadow-md border border-white/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 animate-pulse" />
+            <span className="truncate">{displayBadge}</span>
           </span>
         </div>
       </div>
 
       {/* Content Block */}
-      <div className="relative z-10 flex flex-col flex-grow p-6 sm:p-7">
-        <div className="flex items-center justify-between gap-2 mb-2">
-          <span className="font-mono text-[11px] font-bold tracking-widest uppercase text-brand-secondary bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-2.5 py-1 inline-block">
-            {member.role || 'Domain Lead'}
+      <div className="relative z-10 flex flex-col flex-grow p-4 sm:p-5">
+        <div className="flex items-center justify-between gap-2 mb-1.5">
+          <span className="font-mono text-[10px] font-bold tracking-widest uppercase text-brand-secondary bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-2 py-0.5 inline-block">
+            {member.role || leadBadge || 'Domain Lead'}
           </span>
         </div>
 
-        <h3 className="font-heading font-black text-2xl sm:text-3xl uppercase tracking-tight text-slate-900 dark:text-white mb-2 group-hover:text-brand-primary transition-colors leading-tight">
+        <h3 className="font-heading font-black text-xl sm:text-2xl uppercase tracking-tight text-slate-900 dark:text-white mb-1.5 group-hover:text-brand-primary transition-colors leading-tight">
           {member.fullName}
         </h3>
 
         {member.memberType === 'faculty' ? (
-          <span className="font-body text-sm text-slate-600 dark:text-slate-400 font-light">
+          <span className="font-body text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-light">
             {member.designation
               ? member.department
                 ? `${member.designation} • ${member.department}`
@@ -278,7 +341,7 @@ function FeaturedMemberCard({ member, isSolo = false }) {
           </span>
         ) : (
           member.course && (
-            <span className="font-body text-sm text-slate-600 dark:text-slate-400 font-light">
+            <span className="font-body text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-light">
               {member.course}
               {member.section ? ` • Sec ${member.section}` : ''}
             </span>
@@ -292,9 +355,10 @@ function FeaturedMemberCard({ member, isSolo = false }) {
 // ─── Supporting Member Card ───────────────────────────────────────────────────
 function SupportingMemberCard({ member }) {
   const imageId = member.photoId?.imageId || null;
+  const displayBadge = member.role || 'Member';
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col group hover:border-brand-primary/60 dark:hover:bg-slate-900/90 transition-all duration-300 shadow-sm dark:shadow-none rounded-sm relative overflow-hidden h-full">
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col group hover:border-brand-primary/60 dark:hover:bg-slate-900/90 transition-all duration-300 shadow-sm dark:shadow-none rounded-sm relative overflow-hidden h-full max-w-[240px]">
       <div className="absolute inset-0 bg-gradient-to-br from-brand-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10" />
 
       {/* Image Block */}
@@ -303,25 +367,33 @@ function SupportingMemberCard({ member }) {
           imageId={imageId}
           variant="member_card"
           alt={member.fullName}
-          className="w-full h-full object-cover mix-blend-luminosity opacity-80 group-hover:mix-blend-normal group-hover:scale-[1.04] transition-all duration-500"
+          className="w-full h-full object-cover object-center mix-blend-luminosity opacity-80 group-hover:mix-blend-normal group-hover:scale-[1.04] transition-all duration-500"
         />
+
+        {/* Upper Image Role / Status Tag */}
+        <div className="absolute top-2 left-2 z-20 max-w-[calc(100%-16px)] pointer-events-none">
+          <span className="inline-flex items-center gap-1.5 font-mono text-[8px] sm:text-[9px] font-extrabold tracking-wider uppercase text-white bg-slate-950/90 dark:bg-slate-900/95 backdrop-blur-md px-2 py-0.5 rounded-sm shadow-md border border-white/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 animate-pulse" />
+            <span className="truncate">{displayBadge}</span>
+          </span>
+        </div>
       </div>
 
       {/* Content */}
-      <div className="relative z-10 flex flex-col flex-grow p-3.5 sm:p-4">
-        <span className="font-mono text-[9px] sm:text-[10px] font-bold tracking-widest uppercase text-brand-secondary mb-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 px-2 py-0.5 inline-block w-max max-w-full truncate">
+      <div className="relative z-10 flex flex-col flex-grow p-2.5 sm:p-3">
+        <span className="font-mono text-[8.5px] sm:text-[9px] font-bold tracking-widest uppercase text-brand-secondary mb-1 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 px-2 py-0.5 inline-block w-max max-w-full truncate">
           {member.role || 'Member'}
         </span>
-        <h4 className="font-heading font-bold text-base sm:text-lg uppercase tracking-tight text-slate-900 dark:text-white mb-1 group-hover:text-brand-primary transition-colors leading-tight truncate">
+        <h4 className="font-heading font-bold text-sm sm:text-base uppercase tracking-tight text-slate-900 dark:text-white mb-0.5 group-hover:text-brand-primary transition-colors leading-tight truncate">
           {member.fullName}
         </h4>
         {member.memberType === 'faculty' ? (
-          <span className="font-body text-xs font-light text-slate-500 dark:text-slate-400 truncate">
+          <span className="font-body text-[11px] sm:text-xs font-light text-slate-500 dark:text-slate-400 truncate">
             {member.designation || member.department || 'Faculty'}
           </span>
         ) : (
           member.course && (
-            <span className="font-body text-xs font-light text-slate-500 dark:text-slate-400 truncate">
+            <span className="font-body text-[11px] sm:text-xs font-light text-slate-500 dark:text-slate-400 truncate">
               {member.course}
               {member.section ? ` • Sec ${member.section}` : ''}
             </span>
@@ -337,16 +409,16 @@ function DomainSection({ domain, index }) {
   const sectionRef = useRef(null);
   useScrollReveal(sectionRef);
 
-  const { title, badge, leadMember, supportingMembers, totalCount } = domain;
+  const { title, badge, leadBadge, leadMember, supportingMembers, totalCount } = domain;
   const isSolo = supportingMembers.length === 0;
   const isPair = supportingMembers.length === 1;
 
   return (
-    <div ref={sectionRef} className="mb-20 md:mb-28 last:mb-0">
+    <div ref={sectionRef} className="mb-16 md:mb-20 last:mb-0">
       {/* Section Header */}
       <div
         data-reveal="up"
-        className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-slate-200 dark:border-slate-800 pb-5 mb-8 sm:mb-10 gap-3"
+        className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-slate-200 dark:border-slate-800 pb-4 mb-6 sm:mb-8 gap-3"
       >
         <div>
           <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-brand-primary mb-2 flex items-center gap-3">
@@ -373,19 +445,19 @@ function DomainSection({ domain, index }) {
 
       {/* ── Case A: 1 member in this domain (Solo) ── */}
       {isSolo && (
-        <div data-reveal="up" className="max-w-md">
-          <FeaturedMemberCard member={leadMember} isSolo={true} />
+        <div data-reveal="up" className="max-w-[320px]">
+          <FeaturedMemberCard member={leadMember} isSolo={true} leadBadge={leadBadge} />
         </div>
       )}
 
-      {/* ── Case B: 2 members (Lead + 1 Supporting) ── */}
+      {/* ── Case B: 2 members (1 Featured Lead + 1 Supporting Member) ── */}
       {isPair && (
         <div
           data-reveal="up"
-          className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-8 max-w-3xl"
+          className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 max-w-[580px] items-start"
         >
           <div>
-            <FeaturedMemberCard member={leadMember} />
+            <FeaturedMemberCard member={leadMember} leadBadge={leadBadge} />
           </div>
           <div>
             <SupportingMemberCard member={supportingMembers[0]} />
@@ -395,20 +467,20 @@ function DomainSection({ domain, index }) {
 
       {/* ── Case C: 3 or more members (Lead + 2+ Supporting) ── */}
       {!isSolo && !isPair && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start max-w-[1240px]">
           {/* Left: Featured Head Card */}
           <div
             data-reveal="up"
-            className="lg:col-span-5 xl:col-span-4 lg:sticky lg:top-24"
+            className="lg:col-span-4 xl:col-span-3 lg:sticky lg:top-24 max-w-[320px]"
           >
-            <FeaturedMemberCard member={leadMember} />
+            <FeaturedMemberCard member={leadMember} leadBadge={leadBadge} />
           </div>
 
           {/* Right: Supporting Members Grid */}
-          <div className="lg:col-span-7 xl:col-span-8">
+          <div className="lg:col-span-8 xl:col-span-9 max-w-[900px]">
             <div
               data-reveal="stagger-children"
-              className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5"
+              className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4"
             >
               {supportingMembers.map((member) => (
                 <div key={member._id || member.id} className="h-full">

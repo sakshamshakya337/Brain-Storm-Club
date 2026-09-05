@@ -195,7 +195,8 @@ export default function Dashboard() {
           </div>
           
           <div className="bg-white rounded-[14px] border border-slate-200 shadow-sm flex-1 flex flex-col overflow-hidden">
-            <div className="overflow-x-auto">
+            {/* Desktop Table View */}
+            <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-sm text-left">
                 <thead className="bg-slate-50/80 border-b border-slate-100">
                   <tr>
@@ -253,6 +254,54 @@ export default function Dashboard() {
                   )}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Card List View */}
+            <div className="sm:hidden divide-y divide-slate-100">
+              {loading ? (
+                Array.from({ length: 3 }).map((_, idx) => (
+                  <div key={idx} className="p-4 space-y-2 animate-pulse">
+                    <div className="flex justify-between items-center">
+                      <div className="h-4 bg-slate-100 rounded w-28"></div>
+                      <div className="h-4 bg-slate-100 rounded w-16"></div>
+                    </div>
+                    <div className="h-3 bg-slate-50 rounded w-20"></div>
+                  </div>
+                ))
+              ) : data.recentJoinRequests.length === 0 ? (
+                <div className="p-8 text-center text-slate-400">
+                  <FileText size={28} className="mx-auto mb-2 opacity-20" />
+                  <p className="text-sm font-medium text-slate-600 mb-0.5">No pending requests</p>
+                  <p className="text-xs">New membership applications will appear here.</p>
+                </div>
+              ) : (
+                data.recentJoinRequests.map((req) => (
+                  <div key={req._id} className="p-3.5 flex items-center justify-between gap-3 hover:bg-slate-50/50 transition-colors">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-slate-900 text-sm">{req.fullName}</span>
+                        <span className={cn(
+                          "px-2 py-0.5 rounded-full font-mono text-[9px] font-bold tracking-wider uppercase border",
+                          req.status === 'Pending' ? "bg-amber-50 text-amber-700 border-amber-200" :
+                          req.status === 'Approved' ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                          "bg-red-50 text-red-700 border-red-200"
+                        )}>
+                          {req.status}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {req.course} · {req.preferredRole || 'Member'}
+                      </p>
+                    </div>
+                    <Link
+                      to="/control/join-us"
+                      className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-brand-primary bg-brand-primary/10 hover:bg-brand-primary/20 rounded-lg transition-colors"
+                    >
+                      Review <ArrowRight size={12} />
+                    </Link>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

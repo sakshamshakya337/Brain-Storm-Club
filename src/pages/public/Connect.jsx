@@ -215,28 +215,6 @@ export default function Connect() {
           </span>
         </div>
       </div>
-
-      {/* Standalone Theme Toggle */}
-      <div className="fixed top-6 right-6 z-50">
-        <button
-          onClick={() => {
-            const current = localStorage.getItem('theme') || 'light';
-            const next = current === 'light' ? 'dark' : 'light';
-            localStorage.setItem('theme', next);
-            if (next === 'dark') {
-              document.documentElement.classList.add('dark');
-            } else {
-              document.documentElement.classList.remove('dark');
-            }
-          }}
-          className="w-10 h-10 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-center text-slate-600 dark:text-slate-400 hover:text-brand-primary transition-colors"
-          title="Toggle Theme"
-        >
-          {/* We rely on the global dark class being managed properly. We just toggle it manually here for /connect. */}
-          <span className="dark:hidden">🌙</span>
-          <span className="hidden dark:block">☀️</span>
-        </button>
-      </div>
     </div>
   );
 }

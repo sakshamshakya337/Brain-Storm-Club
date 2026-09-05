@@ -277,29 +277,29 @@ export default function AdminSettings() {
         </div>
       )}
 
-      <div className="flex flex-col md:flex-row gap-8">
-        <div className="w-full md:w-64 flex flex-col gap-1 shrink-0">
+      <div className="flex flex-col md:flex-row gap-6 md:gap-8">
+        <div className="w-full md:w-64 flex flex-row md:flex-col gap-1.5 shrink-0 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
           <button 
             onClick={() => setActiveTab('account')}
-            className={cn("text-left px-4 py-3 rounded-lg text-sm font-bold tracking-widest font-mono uppercase transition-colors", activeTab === 'account' ? "bg-white border border-slate-200 shadow-sm text-brand-primary" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900")}
+            className={cn("text-left px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-lg text-xs sm:text-sm font-bold tracking-widest font-mono uppercase transition-colors whitespace-nowrap shrink-0", activeTab === 'account' ? "bg-white border border-slate-200 shadow-sm text-brand-primary" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900")}
           >
             Account Details
           </button>
           <button 
             onClick={() => setActiveTab('security')}
-            className={cn("text-left px-4 py-3 rounded-lg text-sm font-bold tracking-widest font-mono uppercase transition-colors", activeTab === 'security' ? "bg-white border border-slate-200 shadow-sm text-brand-primary" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900")}
+            className={cn("text-left px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-lg text-xs sm:text-sm font-bold tracking-widest font-mono uppercase transition-colors whitespace-nowrap shrink-0", activeTab === 'security' ? "bg-white border border-slate-200 shadow-sm text-brand-primary" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900")}
           >
             Security
           </button>
           <button 
             onClick={() => setActiveTab('notifications')}
-            className={cn("text-left px-4 py-3 rounded-lg text-sm font-bold tracking-widest font-mono uppercase transition-colors", activeTab === 'notifications' ? "bg-white border border-slate-200 shadow-sm text-brand-primary" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900")}
+            className={cn("text-left px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-lg text-xs sm:text-sm font-bold tracking-widest font-mono uppercase transition-colors whitespace-nowrap shrink-0", activeTab === 'notifications' ? "bg-white border border-slate-200 shadow-sm text-brand-primary" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900")}
           >
             Notifications
           </button>
           <button 
             onClick={() => setActiveTab('system')}
-            className={cn("text-left px-4 py-3 rounded-lg text-sm font-bold tracking-widest font-mono uppercase transition-colors", activeTab === 'system' ? "bg-white border border-slate-200 shadow-sm text-brand-primary" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900")}
+            className={cn("text-left px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-lg text-xs sm:text-sm font-bold tracking-widest font-mono uppercase transition-colors whitespace-nowrap shrink-0", activeTab === 'system' ? "bg-white border border-slate-200 shadow-sm text-brand-primary" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900")}
           >
             System
           </button>
@@ -308,7 +308,7 @@ export default function AdminSettings() {
         <div className="flex-1 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           
           {activeTab === 'account' && (
-            <div className="p-8 space-y-6">
+            <div className="p-4 sm:p-8 space-y-6">
               <h3 className="font-heading font-bold text-lg text-slate-900 border-b border-slate-100 pb-4">Account Information</h3>
               <div className="grid gap-6">
                 <div>
@@ -329,7 +329,7 @@ export default function AdminSettings() {
           )}
 
           {activeTab === 'security' && (
-            <div className="p-8 space-y-6">
+            <div className="p-4 sm:p-8 space-y-6">
               <h3 className="font-heading font-bold text-lg text-slate-900 border-b border-slate-100 pb-4">Update Password</h3>
               <form onSubmit={handlePasswordUpdate} className="space-y-4 max-w-md">
                 <div>
@@ -377,7 +377,7 @@ export default function AdminSettings() {
           )}
 
           {activeTab === 'notifications' && (
-            <div className="p-8 space-y-6">
+            <div className="p-4 sm:p-8 space-y-6">
               <h3 className="font-heading font-bold text-lg text-slate-900 border-b border-slate-100 pb-4">Notification Preferences</h3>
               <form onSubmit={handleSaveSettings} className="space-y-6">
                 
@@ -435,7 +435,7 @@ export default function AdminSettings() {
           )}
 
           {activeTab === 'system' && (
-            <div className="p-8 space-y-6">
+            <div className="p-4 sm:p-8 space-y-6">
               <h3 className="font-heading font-bold text-lg text-slate-900 border-b border-slate-100 pb-4">System Settings</h3>
               <form onSubmit={handleSaveSettings} className="space-y-6">
                 

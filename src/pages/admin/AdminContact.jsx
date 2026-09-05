@@ -189,8 +189,8 @@ export default function AdminContact() {
           </div>
         </div>
 
-        {/* List View */}
-        <div className="overflow-x-auto">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-sm whitespace-nowrap">
             <thead className="bg-white border-b border-slate-200 font-mono text-[10px] uppercase tracking-wider text-slate-500">
               <tr>
@@ -271,6 +271,84 @@ export default function AdminContact() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Cards View */}
+        <div className="md:hidden p-3.5 space-y-3">
+          {loading ? (
+            <div className="p-8 text-center text-slate-500">
+              <Loader2 className="animate-spin mx-auto text-slate-400 mb-2" size={24} />
+              <p className="text-xs font-mono">Loading queries...</p>
+            </div>
+          ) : error ? (
+            <div className="p-6 text-center text-red-500 text-sm">
+              Error: {error}
+            </div>
+          ) : queries.length === 0 ? (
+            <div className="p-8 text-center text-slate-500 text-sm">
+              No queries found matching your filters.
+            </div>
+          ) : (
+            queries.map((query) => (
+              <div
+                key={query._id}
+                onClick={() => openQuery(query)}
+                className={cn(
+                  "p-4 bg-white border rounded-xl shadow-xs transition-all cursor-pointer active:scale-[0.99] flex flex-col gap-3",
+                  query.status === 'Unread' ? "border-blue-300 bg-blue-50/20" : "border-slate-200 hover:border-slate-300"
+                )}
+              >
+                {/* Top row: Status + Date */}
+                <div className="flex items-center justify-between gap-2">
+                  <span className={cn("px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border", getStatusColor(query.status))}>
+                    {query.status}
+                  </span>
+                  <span className="text-[11px] font-mono text-slate-400">
+                    {new Date(query.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </span>
+                </div>
+
+                {/* Subject & snippet */}
+                <div>
+                  <h4 className={cn("text-sm text-slate-900 leading-snug break-words", query.status === 'Unread' ? "font-bold" : "font-semibold")}>
+                    {query.subject}
+                  </h4>
+                  <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">
+                    {query.message}
+                  </p>
+                </div>
+
+                {/* Sender & Actions */}
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2 text-xs">
+                  <div className="min-w-0 flex-1 pr-2">
+                    <p className="font-semibold text-slate-800 truncate">{query.name}</p>
+                    <p className="text-slate-500 text-[11px] truncate flex items-center gap-1 mt-0.5">
+                      <Mail size={11} className="shrink-0" /> {query.email}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
+                    {query.status !== 'Resolved' && (
+                      <button
+                        onClick={() => updateStatus(query._id, 'Resolved')}
+                        className="px-2.5 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg text-xs font-medium border border-emerald-200 transition-colors flex items-center gap-1"
+                        title="Mark Resolved"
+                      >
+                        <CheckCircle2 size={13} />
+                        <span className="text-[11px]">Resolve</span>
+                      </button>
+                    )}
+                    <button
+                      onClick={() => openQuery(query)}
+                      className="px-2.5 py-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg text-xs font-medium transition-colors"
+                    >
+                      View
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
         
         {/* Pagination Controls */}

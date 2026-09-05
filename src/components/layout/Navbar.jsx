@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useLocation } from 'react-router-dom';
-import { Moon, Sun, Menu, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
@@ -148,13 +148,6 @@ export default function Navbar({ theme, toggleTheme }) {
 
           <div className="flex items-center gap-3">
             <button
-              onClick={toggleTheme}
-              aria-label="Toggle Dark Mode"
-              className="p-2 text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 rounded-full"
-            >
-              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
-            <button
               onClick={() => setMobileMenuOpen(false)}
               aria-label="Close mobile menu"
               className="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-md transition-colors"
@@ -245,14 +238,6 @@ export default function Navbar({ theme, toggleTheme }) {
 
           {/* Right controls */}
           <div className="flex items-center gap-4">
-            <button
-              onClick={toggleTheme}
-              aria-label="Toggle Dark Mode"
-              className="scale-95 active:scale-90 transition-transform p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-full flex items-center justify-center"
-            >
-              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
-
             <Link
               to="/ideas"
               className="hidden md:block bg-slate-900 dark:bg-brand-primary text-white px-6 py-2.5 rounded-full font-mono text-xs font-bold tracking-wider uppercase hover:bg-brand-primary dark:hover:bg-brand-primary/80 transition-colors scale-95 active:scale-90"

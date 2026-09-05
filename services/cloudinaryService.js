@@ -68,7 +68,7 @@ export const deleteImageFromCloudinary = async (publicId) => {
 const getTransformationForVariant = (variant) => {
   switch (variant) {
     case 'member_card':
-      return { width: 400, height: 400, crop: 'fill', quality: 'auto', fetch_format: 'auto' };
+      return { width: 800, crop: 'limit', quality: 'auto', fetch_format: 'auto' };
     case 'event_card':
       return { width: 800, crop: 'limit', quality: 'auto', fetch_format: 'auto' };
     case 'event_detail':
