@@ -47,6 +47,13 @@ const isBlockableWrite = (req) => {
 };
 
 export const maintenanceGuard = async (req, res, next) => {
+  // ── Development bypass ───────────────────────────────────────────────────
+  // Maintenance mode is stored in the shared MongoDB database, so enabling it
+  // on production would otherwise also block the local dev server.
+  // In development (NODE_ENV !== 'production') we always skip this guard.
+  if (process.env.NODE_ENV !== 'production') return next();
+  // ─────────────────────────────────────────────────────────────────────────
+
   if (!isBlockableWrite(req)) return next();
 
   try {
