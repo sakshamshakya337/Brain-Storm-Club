@@ -17,7 +17,8 @@ import { useScrollReveal } from '../../hooks/useScrollReveal';
 // 6. Event Coordinators
 const DOMAIN_ORDER = [
   'Faculty',
-  'Leadership',
+  'President',
+  'Secretariat',
   'Technical',
   'Media',
   'Anchor',
@@ -31,10 +32,15 @@ const DOMAIN_METADATA = {
     badge: 'Advisory',
     leadBadge: 'Faculty Lead',
   },
-  Leadership: {
-    title: 'Leadership',
-    badge: 'Executive',
+  President: {
+    title: 'President & Vice President',
+    badge: 'Leadership',
     leadBadge: 'President',
+  },
+  Secretariat: {
+    title: 'Secretary & Head Coordinator',
+    badge: 'Executive',
+    leadBadge: 'Secretary',
   },
   Technical: {
     title: 'Technical Team',
@@ -90,14 +96,15 @@ const DOMAIN_LEAD_PRIORITIES = {
     'mentor',
     'professor',
   ],
-  Leadership: [
+  President: [
     'president',
     'vice president',
     'vp',
+  ],
+  Secretariat: [
     'secretary',
     'head coordinator',
     'head coord',
-    'executive',
   ],
   Technical: [
     'technical head',
@@ -125,6 +132,35 @@ const DOMAIN_LEAD_PRIORITIES = {
 };
 
 /**
+ * shouldShowTag — single source of truth for upper image tag visibility.
+ * Returns true ONLY for:
+ *   - Faculty members (memberType === 'faculty') with a qualifying head/lead role
+ *   - Student members whose role matches a head/lead keyword
+ */
+const shouldShowTag = (member) => {
+  const role = (member.role || '').trim().toLowerCase();
+  if (!role) return false;
+
+  if (
+    member.memberType === 'faculty' ||
+    FACULTY_KEYWORDS.some((k) => role.includes(k))
+  ) {
+    return true;
+  }
+
+  const HEAD_ROLE_KEYWORDS = [
+    'president', 'vice president', 'vp', 'secretary', 'head coordinator', 'head coord',
+    'technical head', 'tech head', 'technical lead', 'tech lead',
+    'social media head', 'media head', 'creative head', 'media lead',
+    'anchor head', 'lead anchor', 'lead coordinator', 'senior coordinator',
+    'hos', 'head of school', 'cos', 'chief of school', 'founder', 'dean', 'associate dean',
+    'faculty advisor', 'faculty coordinator',
+  ];
+
+  return HEAD_ROLE_KEYWORDS.some((k) => role.includes(k));
+};
+
+/**
  * Normalise and resolve the canonical section for a member.
  * Inspects memberType, explicit domain, and role heuristics.
  */
@@ -142,18 +178,27 @@ const resolveMemberDomain = (member) => {
     return 'Faculty';
   }
 
-  // 2. Leadership (President, Vice President, Secretary, Head Coordinator, Executive)
+  // 2. President section — ONLY President and Vice President
   if (
-    role.includes('president') ||
+    role === 'president' ||
+    (role.includes('president') && !role.includes('vice')) ||
+    role.includes('vice president') ||
+    role.includes('vice-president') ||
+    role === 'vp' ||
+    domain === 'president'
+  ) {
+    return 'President';
+  }
+
+  // 3. Secretariat — Secretary + Head Coordinator
+  if (
     role.includes('secretary') ||
     role.includes('head coordinator') ||
     role.includes('head coord') ||
-    role.includes('vice') ||
-    role === 'vp' ||
-    domain === 'leadership' ||
+    domain === 'secretariat' ||
     domain === 'executive'
   ) {
-    return 'Leadership';
+    return 'Secretariat';
   }
 
   // 3. Anchor Section
@@ -194,7 +239,8 @@ const resolveMemberDomain = (member) => {
   // 7. Explicit domain match if present
   if (member.domain && member.domain.trim()) {
     const d = member.domain.trim().toLowerCase();
-    if (d === 'executive' || d === 'leadership') return 'Leadership';
+    if (d === 'leadership' || d === 'president') return 'President';
+    if (d === 'executive' || d === 'secretariat') return 'Secretariat';
     if (d.includes('tech')) return 'Technical';
     if (d.includes('media')) return 'Media';
     if (d.includes('anchor')) return 'Anchor';
@@ -284,10 +330,28 @@ const groupAndRankMembers = (members) => {
   return domainSections;
 };
 
+// ─── Shared Upper Image Role Tag Component ─────────────────────────────────────
+function MemberRoleOverlay({ role }) {
+  if (!role) return null;
+
+  return (
+    <div className="absolute top-2.5 left-2.5 z-30 max-w-[calc(100%-20px)] pointer-events-none select-none">
+      <span
+        className="inline-flex items-center gap-1.5 font-mono text-[9px] sm:text-[10px] font-extrabold tracking-wider uppercase text-white px-2.5 py-1 rounded-sm shadow-md border border-slate-700/60 dark:border-white/20"
+        style={{ backgroundColor: '#0a0f1e' }}
+      >
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 animate-pulse shadow-sm shadow-emerald-400/50" />
+        <span className="truncate">{role}</span>
+      </span>
+    </div>
+  );
+}
+
 // ─── Featured Member Card (Lead / Head) ────────────────────────────────────────
 function FeaturedMemberCard({ member, isSolo = false, leadBadge }) {
   const imageId = member.photoId?.imageId || null;
   const displayBadge = member.role || leadBadge || 'Lead / Head';
+  const showTag = shouldShowTag(member);
 
   return (
     <div
@@ -307,16 +371,11 @@ function FeaturedMemberCard({ member, isSolo = false, leadBadge }) {
           imageId={imageId}
           variant="member_card"
           alt={member.fullName}
-          className="w-full h-full object-cover object-center mix-blend-luminosity opacity-90 group-hover:mix-blend-normal group-hover:scale-[1.03] transition-all duration-700"
+          className="w-full h-full object-cover object-center opacity-90 group-hover:scale-[1.03] transition-all duration-700"
         />
 
         {/* Upper Image Role / Status Tag */}
-        <div className="absolute top-2.5 left-2.5 z-20 max-w-[calc(100%-20px)] pointer-events-none">
-          <span className="inline-flex items-center gap-1.5 font-mono text-[9px] sm:text-[10px] font-extrabold tracking-wider uppercase text-white bg-slate-950/90 dark:bg-slate-900/95 backdrop-blur-md px-2.5 py-1 rounded-sm shadow-md border border-white/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 animate-pulse" />
-            <span className="truncate">{displayBadge}</span>
-          </span>
-        </div>
+        {showTag && <MemberRoleOverlay role={displayBadge} />}
       </div>
 
       {/* Content Block */}
@@ -356,6 +415,7 @@ function FeaturedMemberCard({ member, isSolo = false, leadBadge }) {
 function SupportingMemberCard({ member }) {
   const imageId = member.photoId?.imageId || null;
   const displayBadge = member.role || 'Member';
+  const showTag = shouldShowTag(member);
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col group hover:border-brand-primary/60 dark:hover:bg-slate-900/90 transition-all duration-300 shadow-sm dark:shadow-none rounded-sm relative overflow-hidden h-full max-w-[240px]">
@@ -367,16 +427,11 @@ function SupportingMemberCard({ member }) {
           imageId={imageId}
           variant="member_card"
           alt={member.fullName}
-          className="w-full h-full object-cover object-center mix-blend-luminosity opacity-80 group-hover:mix-blend-normal group-hover:scale-[1.04] transition-all duration-500"
+          className="w-full h-full object-cover object-center opacity-80 group-hover:scale-[1.04] transition-all duration-500"
         />
 
         {/* Upper Image Role / Status Tag */}
-        <div className="absolute top-2 left-2 z-20 max-w-[calc(100%-16px)] pointer-events-none">
-          <span className="inline-flex items-center gap-1.5 font-mono text-[8px] sm:text-[9px] font-extrabold tracking-wider uppercase text-white bg-slate-950/90 dark:bg-slate-900/95 backdrop-blur-md px-2 py-0.5 rounded-sm shadow-md border border-white/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 animate-pulse" />
-            <span className="truncate">{displayBadge}</span>
-          </span>
-        </div>
+        {showTag && <MemberRoleOverlay role={displayBadge} />}
       </div>
 
       {/* Content */}
