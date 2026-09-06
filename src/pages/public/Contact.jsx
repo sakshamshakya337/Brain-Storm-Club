@@ -170,14 +170,14 @@ export default function Contact() {
                </p>
             </div>
 
-            <a href="mailto:hello@brainstorm.club" className="flex flex-col p-8 border border-slate-200 dark:border-[#26344D] bg-white dark:bg-[#111A2D] hover:border-brand-primary/30 dark:hover:border-[#6366F1] transition-all duration-300 shadow-sm dark:shadow-none group relative overflow-hidden hover:-translate-y-1">
+            <a href="mailto:brainstorm.club.lpu@gmail.com" className="flex flex-col p-8 border border-slate-200 dark:border-[#26344D] bg-white dark:bg-[#111A2D] hover:border-brand-primary/30 dark:hover:border-[#6366F1] transition-all duration-300 shadow-sm dark:shadow-none group relative overflow-hidden hover:-translate-y-1">
                <div className="absolute inset-0 bg-brand-primary/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                <div className="relative z-10 flex justify-between items-center mb-6">
                  <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-[#71819B]">EMAIL</div>
                  <ArrowUpRight size={16} className="text-slate-400 dark:text-[#71819B] group-hover:text-brand-primary group-hover:-translate-y-1 group-hover:translate-x-1 transition-all" />
                </div>
-               <p className="relative z-10 font-heading font-bold text-xl md:text-2xl text-slate-900 dark:text-[#F8FAFC] group-hover:text-brand-primary transition-colors">
-                 hello@brainstorm.club
+               <p className="relative z-10 font-heading font-bold text-xl md:text-2xl text-slate-900 dark:text-[#F8FAFC] group-hover:text-brand-primary transition-colors break-all">
+                 brainstorm.club.lpu@gmail.com
                </p>
             </a>
 
@@ -208,11 +208,44 @@ export default function Contact() {
                 Tell us what you're working on, what you'd like to build, or how we can collaborate.
               </p>
               
-              <div className="hidden lg:block w-full h-[200px] border border-slate-200 dark:border-[#26344D] bg-slate-50 dark:bg-[#0D1424] mt-auto relative overflow-hidden p-6 flex flex-col justify-end">
+              <div className="hidden lg:flex w-full h-[200px] border border-slate-200 dark:border-[#26344D] bg-slate-50 dark:bg-[#0D1424] mt-auto relative overflow-hidden p-6 flex-col justify-between group">
                  <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#151F33_1px,transparent_1px),linear-gradient(to_bottom,#151F33_1px,transparent_1px)] bg-[size:24px_24px] opacity-50" />
-                 <div className="relative z-10 flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-brand-primary animate-pulse"></div>
-                    <span className="font-mono text-[10px] font-bold tracking-widest text-slate-500 dark:text-[#71819B] uppercase">CHANNEL / ACTIVE</span>
+                 
+                 {/* Decorative scanning line */}
+                 <div className="absolute top-0 left-0 w-full h-[1px] bg-brand-primary/40 dark:bg-brand-primary/60 shadow-[0_0_8px_rgba(99,102,241,0.5)] transform -translate-y-full group-hover:translate-y-[200px] transition-transform duration-[3s] ease-linear" />
+                 
+                 {/* Connection Nodes */}
+                 <div className="absolute inset-0">
+                    <div className="absolute top-[30%] left-[20%] w-1.5 h-1.5 bg-brand-primary rounded-full animate-ping opacity-75" />
+                    <div className="absolute top-[30%] left-[20%] w-1.5 h-1.5 bg-brand-primary rounded-full" />
+                    
+                    <div className="absolute top-[60%] right-[30%] w-1.5 h-1.5 bg-brand-secondary rounded-full animate-pulse" />
+                    
+                    <div className="absolute bottom-[20%] left-[40%] w-1.5 h-1.5 bg-slate-400 dark:bg-[#71819B] rounded-full" />
+                    
+                    <svg className="absolute inset-0 w-full h-full opacity-30 dark:opacity-20" xmlns="http://www.w3.org/2000/svg">
+                      <line x1="20%" y1="30%" x2="70%" y2="60%" stroke="currentColor" className="text-slate-400 dark:text-[#71819B]" strokeWidth="1" strokeDasharray="3 3" />
+                      <line x1="20%" y1="30%" x2="40%" y2="80%" stroke="currentColor" className="text-slate-400 dark:text-[#71819B]" strokeWidth="1" strokeDasharray="3 3" />
+                    </svg>
+                 </div>
+
+                 {/* Top Stats */}
+                 <div className="relative z-10 flex justify-between items-start w-full">
+                   <div className="flex flex-col gap-1">
+                     <span className="font-mono text-[8px] font-bold tracking-widest text-slate-400 dark:text-[#71819B] uppercase">CONNECTION</span>
+                     <span className="font-mono text-[10px] text-slate-700 dark:text-[#A8B5CC]">SECURE</span>
+                   </div>
+                   <div className="font-mono text-[8px] text-slate-400 dark:text-[#71819B] bg-white/50 dark:bg-[#111A2D]/50 px-2 py-1 border border-slate-200 dark:border-[#26344D] backdrop-blur-sm">
+                     LATENCY: 24ms
+                   </div>
+                 </div>
+
+                 {/* Bottom Status */}
+                 <div className="relative z-10 flex items-center justify-between w-full mt-auto pt-4">
+                    <div className="flex items-center gap-3 bg-white/50 dark:bg-[#111A2D]/50 px-3 py-1.5 border border-slate-200 dark:border-[#26344D] backdrop-blur-sm">
+                      <div className="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse"></div>
+                      <span className="font-mono text-[10px] font-bold tracking-widest text-slate-700 dark:text-[#F8FAFC] uppercase">CHANNEL / ACTIVE</span>
+                    </div>
                  </div>
               </div>
             </div>
