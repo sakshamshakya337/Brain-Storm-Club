@@ -28,7 +28,7 @@ export default function PremiumCTA({ to, text, supportingText, variant = "second
         
         <div className="flex items-center justify-between gap-8 group">
           <span className={`font-heading font-bold text-xl uppercase tracking-tight transition-colors ${
-            isPrimary ? "text-white" : "text-[var(--ink)] group-hover:text-[var(--circuit)]"
+            isPrimary ? "text-white" : "text-[var(--ink)] group-hover:text-spark"
           }`}>
             {text}
           </span>
@@ -38,17 +38,17 @@ export default function PremiumCTA({ to, text, supportingText, variant = "second
             }}
             initial={{ rotate: -15 }}
             className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors ${
-              isPrimary 
-                ? "bg-[var(--circuit)] text-white" 
-                : "bg-[var(--paper-dim)] text-[var(--ink)] border border-[var(--border)] group-hover:bg-[var(--circuit)] group-hover:text-white"
-            }`}
+            isPrimary 
+              ? "bg-spark text-ink" 
+              : "bg-[var(--paper-dim)] text-[var(--ink)] border border-[var(--border)] group-hover:bg-spark group-hover:text-ink"
+          }`}
           >
             <ArrowUpRight size={16} />
           </motion.div>
         </div>
         
         {/* Animated accent line on hover */}
-        <div className={`absolute bottom-0 left-0 w-full h-0.5 origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-out ${isPrimary ? 'bg-[var(--spark)]' : 'bg-[var(--circuit)]'}`} />
+        <div className={`absolute bottom-0 left-0 w-full h-0.5 origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-out ${isPrimary ? 'bg-[var(--spark)]' : 'bg-spark'}`} />
       </Link>
     </motion.div>
   );

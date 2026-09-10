@@ -252,7 +252,7 @@ export default function IdeasFlow() {
         <Link 
           to="/ideas" 
           ref={ctaRef}
-          className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-10 py-5 rounded-full font-heading text-sm font-bold tracking-widest uppercase hover:scale-105 transition-transform flex items-center justify-center gap-2 group shadow-xl border border-transparent"
+          className="bg-spark text-ink px-10 py-5 rounded-full font-heading text-sm font-bold tracking-widest uppercase hover:scale-105 hover:bg-spark-soft transition-colors flex items-center justify-center gap-2 group shadow-xl shadow-spark/20 border border-transparent"
         >
           Submit An Idea
           <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />

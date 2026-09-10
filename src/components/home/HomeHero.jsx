@@ -156,7 +156,7 @@ export default function HomeHero() {
 
             <div ref={ctaRef} className="flex flex-col sm:flex-row gap-6">
               <motion.div whileTap={{ scale: 0.98 }} transition={{ type: "tween", duration: 0.1 }}>
-                <Link to="/ideas" className="group flex items-center justify-center gap-2 bg-[var(--ink)] text-white px-8 py-4 font-mono text-xs font-bold tracking-widest uppercase hover:bg-[var(--circuit)] transition-colors shadow-lg rounded-[10px]">
+                <Link to="/ideas" className="group flex items-center justify-center gap-2 bg-spark text-ink px-8 py-4 font-mono text-xs font-bold tracking-widest uppercase hover:bg-spark-soft transition-colors shadow-xl shadow-spark/20 rounded-[10px] hover:-translate-y-0.5">
                   SUBMIT AN IDEA
                   <motion.div 
                     variants={{ hover: { x: 4, y: -4 } }} 

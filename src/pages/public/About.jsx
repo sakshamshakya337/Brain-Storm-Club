@@ -13,9 +13,36 @@ gsap.registerPlugin(ScrollTrigger, useGSAP);
 export default function About() {
   const containerRef = useRef(null);
   const processRef = useRef(null);
+  const heroRef = useRef(null);
+  const backgroundRef = useRef(null);
 
   usePageReveal(containerRef);
   useScrollReveal(containerRef);
+
+  useGSAP(() => {
+    if (!heroRef.current) return undefined;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const lowPower = window.innerWidth < 768 || (navigator.hardwareConcurrency || 8) <= 4;
+    const ctx = gsap.context(() => {
+      const intro = !reduced ? gsap.timeline()
+        .from(backgroundRef.current, { opacity: 0, scale: 1.025, duration: .7, clearProps: 'all' }, .1)
+        .from('[data-about-hero-line]', { opacity: 0, y: 30, duration: .65, stagger: .12, clearProps: 'all' }, .35)
+        .from('[data-about-hero-copy]', { opacity: 0, y: 12, duration: .45, stagger: .08, clearProps: 'all' }, .8) : null;
+      const electric = !reduced ? gsap.timeline({ repeat: -1 })
+        .to('.electric-trace', { strokeDashoffset: -192, duration: 2.8, ease: 'none', stagger: .45 }, 0)
+        .to('.electric-trace-reverse', { strokeDashoffset: 192, duration: 3.2, ease: 'none', stagger: .45 }, 0) : null;
+      const visibility = () => { [intro, electric].filter(Boolean).forEach(a => document.hidden ? a.pause() : a.play()); };
+      document.addEventListener('visibilitychange', visibility);
+      if (!reduced && !lowPower) {
+        gsap.to(backgroundRef.current, { yPercent: 9, ease: 'none', scrollTrigger: { trigger: heroRef.current, start: 'top top', end: 'bottom top', scrub: true } });
+        const move = event => { const x = (event.clientX / window.innerWidth - .5) * 2, y = (event.clientY / window.innerHeight - .5) * 2; gsap.to(backgroundRef.current, { x: x * 8, y: y * 5, overwrite: 'auto', duration: .7 }); };
+        window.addEventListener('pointermove', move, { passive: true });
+        return () => { document.removeEventListener('visibilitychange', visibility); window.removeEventListener('pointermove', move); };
+      }
+      return () => document.removeEventListener('visibilitychange', visibility);
+    }, heroRef);
+    return () => ctx.revert();
+  }, { scope: heroRef });
 
   useGSAP(() => {
     if (processRef.current) {
@@ -80,84 +107,87 @@ export default function About() {
   ];
 
   return (
-    <div ref={containerRef} className="w-full bg-white dark:bg-slate-950 min-h-screen text-slate-900 dark:text-slate-300 font-body">
+    <div ref={containerRef} className="w-full bg-paper min-h-screen text-ink font-body">
       
       {/* SECTION 01: HERO */}
-      <section className="relative min-h-[70svh] md:min-h-[85svh] flex items-center pt-6 md:pt-10 pb-20 overflow-hidden border-b border-slate-200 dark:border-slate-800">
-        <div className="absolute inset-0 z-0 opacity-[0.02] dark:opacity-[0.04] pointer-events-none" style={{ backgroundImage: 'linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)', backgroundSize: '64px 64px', color: 'currentColor' }} />
-        
-        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px] relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+      <section ref={heroRef} className="relative isolate border-b border-border bg-paper overflow-hidden px-6 pb-12 pt-20 md:px-12 lg:px-20" style={{ minHeight: 'min(680px,84svh)' }}>
+        <div ref={backgroundRef} className="absolute inset-0 -z-20 overflow-hidden pointer-events-none">
+          <img src="/circuit-horizon.png" alt="" className="h-full w-full object-cover object-bottom opacity-30" />
+        </div>
+        <div className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,var(--paper)_15%,transparent_65%,var(--paper)_100%)] pointer-events-none" />
+        <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-70 z-0" aria-hidden="true" viewBox="0 0 1440 400" preserveAspectRatio="none">
+          <path d="M0 80 H200 L260 130 H500 L560 70 H780 L840 120 H1080 L1140 60 H1440" fill="none" stroke="var(--circuit)" strokeWidth="1.2" strokeDasharray="8 36" className="electric-trace-reverse" />
+          <path d="M0 320 H180 L240 270 H460 L520 340 H740 L800 280 H1020 L1080 350 H1440" fill="none" stroke="var(--spark)" strokeWidth="1" strokeDasharray="6 42" className="electric-trace" />
+        </svg>
+
+        <div className="relative z-10 mx-auto max-w-7xl grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center h-full py-12 md:py-20">
+          
+          {/* LEFT */}
+          <div className="col-span-1 lg:col-span-6 flex flex-col items-start">
+            <p data-about-hero-copy className="font-mono text-[10px] font-bold tracking-[0.35em] uppercase text-circuit mb-6">
+              LPU SCA / Brainstorm Club
+            </p>
             
-            {/* LEFT */}
-            <div className="col-span-1 lg:col-span-6 flex flex-col items-start">
-              <div className="reveal-eyebrow font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-brand-primary mb-8 border border-brand-primary/30 px-3 py-1.5 rounded-sm bg-brand-primary/5">
-                BRAINSTORM / ABOUT
-              </div>
-              
-              <h1 className="font-heading font-black text-[clamp(3rem,10vw,6.5rem)] leading-[0.9] tracking-tighter text-slate-900 dark:text-white mb-8 uppercase flex flex-col">
-                <span className="overflow-hidden"><span className="reveal-heading-line block">WE THINK.</span></span>
-                <span className="overflow-hidden"><span className="reveal-heading-line block">WE BUILD.</span></span>
-                <span className="overflow-hidden"><span className="reveal-heading-line block">WE CONNECT.</span></span>
-                <span className="overflow-hidden pb-4">
-                  <span className="reveal-heading-line block text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-brand-secondary">WE CREATE IMPACT.</span>
-                </span>
-              </h1>
-              
-              <p className="reveal-text font-body text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-xl font-light leading-relaxed">
-                Brainstorm is a student-led technology community at Lovely Professional University where curious minds come together to learn, build, experiment and turn ideas into action.
-              </p>
-            </div>
+            <h1 className="font-heading font-black uppercase tracking-tight leading-[0.88] text-ink" style={{ fontSize: 'clamp(3.5rem,10vw,7.5rem)' }}>
+              <span data-about-hero-line className="block">WE THINK.</span>
+              <span data-about-hero-line className="block">WE BUILD.</span>
+              <span data-about-hero-line className="block">WE CONNECT.</span>
+              <span data-about-hero-line className="block text-transparent bg-clip-text bg-gradient-to-r from-circuit to-spark">WE CREATE IMPACT.</span>
+            </h1>
             
-            {/* RIGHT */}
-            <div className="reveal-image col-span-1 lg:col-span-6 relative h-[400px] lg:h-[600px] w-full flex items-center justify-center p-6 lg:p-12">
-              <div className="absolute inset-0 border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30 overflow-hidden rounded-sm flex items-center justify-center">
-                <img 
-                  src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=2070&auto=format&fit=crop" 
-                  alt="Team Collaboration" 
-                  className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-40 dark:opacity-30" 
-                />
-                <div className="relative z-10 grid grid-cols-2 gap-4 md:gap-8 w-full max-w-md p-8">
-                  {['01 / THINK', '02 / BUILD', '03 / CONNECT', '04 / IMPACT'].map((label, idx) => (
-                    <div key={idx} className="bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border border-slate-200 dark:border-slate-800 p-4 font-mono text-[10px] tracking-widest font-bold uppercase text-slate-900 dark:text-white flex items-center gap-3">
-                      <span className="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse"></span>
-                      {label}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-            
+            <p data-about-hero-copy className="mt-8 max-w-xl font-body text-lg text-ink-soft leading-relaxed">
+              Brainstorm is a student-led technology community at Lovely Professional University where curious minds come together to learn, build, experiment and turn ideas into action.
+            </p>
           </div>
+          
+          {/* RIGHT */}
+          <div data-about-hero-copy className="col-span-1 lg:col-span-6 relative h-[400px] lg:h-[520px] w-full flex items-center justify-center p-6 lg:p-12">
+            <div className="absolute inset-0 border border-border bg-paper-dim overflow-hidden rounded-sm flex items-center justify-center">
+              <img 
+                src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=2070&auto=format&fit=crop" 
+                alt="Team Collaboration" 
+                className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-40" 
+              />
+              <div className="relative z-10 grid grid-cols-2 gap-4 md:gap-8 w-full max-w-md p-8">
+                {['01 / THINK', '02 / BUILD', '03 / CONNECT', '04 / IMPACT'].map((label, idx) => (
+                  <div key={idx} className="bg-paper/80 backdrop-blur-md border border-border p-4 font-mono text-[10px] tracking-widest font-bold uppercase text-ink flex items-center gap-3">
+                    <span className="w-1.5 h-1.5 rounded-full bg-circuit animate-pulse"></span>
+                    {label}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          
         </div>
       </section>
 
       {/* SECTION 02: MISSION */}
-      <section className="py-24 md:py-32 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
-        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]" data-reveal="up">
+      <section className="py-24 md:py-32 bg-paper border-b border-border px-6 md:px-12 lg:px-20">
+        <div className="mx-auto max-w-7xl" data-reveal="up">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
             {/* LEFT */}
             <div className="col-span-1 lg:col-span-5 order-2 lg:order-1">
-              <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-slate-400 mb-6 flex items-center gap-3">
-                <span className="w-8 h-px bg-slate-300 dark:bg-slate-700"></span>
+              <div className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-ink-soft mb-6 flex items-center gap-3">
+                <span className="w-8 h-px bg-border"></span>
                 01 / MISSION
               </div>
-              <h2 className="font-heading font-black text-4xl md:text-5xl uppercase tracking-tight text-slate-900 dark:text-white mb-8">
+              <h2 className="font-heading font-black text-4xl md:text-5xl uppercase tracking-tight text-ink mb-8">
                 WHY WE EXIST
               </h2>
-              <p className="font-body text-lg text-slate-600 dark:text-slate-400 leading-relaxed font-light mb-6">
+              <p className="font-body text-lg text-ink-soft leading-relaxed font-light mb-6">
                 The LPU SCA Brainstorm Club is a hub of innovation where students from diverse technical backgrounds come together to ideate, create, and build. 
               </p>
-              <p className="font-body text-lg text-slate-600 dark:text-slate-400 leading-relaxed font-light">
+              <p className="font-body text-lg text-ink-soft leading-relaxed font-light">
                 We believe that structured creativity can solve complex problems. By providing the environment, resources, and network, we transform raw ambition into deployed reality.
               </p>
             </div>
             {/* RIGHT */}
             <div className="col-span-1 lg:col-span-7 order-1 lg:order-2 flex justify-end">
-              <div className="relative w-full lg:w-[80%] aspect-square max-h-[500px] border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30 flex items-center justify-center overflow-hidden">
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:40px_40px] opacity-50" />
-                <span className="font-heading font-black text-[12rem] md:text-[16rem] text-slate-200 dark:text-slate-800 opacity-30 select-none tracking-tighter">01</span>
-                <span className="absolute font-mono text-2xl md:text-3xl font-bold tracking-[0.5em] text-brand-primary uppercase">THINK</span>
+              <div className="relative w-full lg:w-[80%] aspect-square max-h-[500px] border border-border bg-paper-dim flex items-center justify-center overflow-hidden">
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] bg-[size:40px_40px] opacity-50" />
+                <span className="font-heading font-black text-[12rem] md:text-[16rem] text-border opacity-60 select-none tracking-tighter">01</span>
+                <span className="absolute font-mono text-2xl md:text-3xl font-bold tracking-[0.5em] text-circuit uppercase">THINK</span>
               </div>
             </div>
           </div>
@@ -165,15 +195,15 @@ export default function About() {
       </section>
 
       {/* SECTION 03: ACTIVITIES */}
-      <section className="py-24 md:py-32 bg-slate-50 dark:bg-slate-900/20 border-b border-slate-200 dark:border-slate-800">
-        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]" data-reveal="stagger-children">
+      <section className="py-24 md:py-32 bg-paper-dim border-b border-border px-6 md:px-12 lg:px-20">
+        <div className="mx-auto max-w-7xl" data-reveal="stagger-children">
           <div className="mb-16 md:mb-24 flex flex-col md:flex-row md:items-end justify-between gap-8">
             <div>
-              <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-slate-400 mb-6 flex items-center gap-3">
-                <span className="w-8 h-px bg-slate-300 dark:bg-slate-700"></span>
+              <div className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-ink-soft mb-6 flex items-center gap-3">
+                <span className="w-8 h-px bg-border"></span>
                 02 / ACTIVITIES
               </div>
-              <h2 className="font-heading font-black text-4xl md:text-5xl uppercase tracking-tight text-slate-900 dark:text-white">
+              <h2 className="font-heading font-black text-4xl md:text-5xl uppercase tracking-tight text-ink">
                 WHAT WE DO
               </h2>
             </div>
@@ -181,15 +211,15 @@ export default function About() {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {activities.map((activity) => (
-              <div key={activity.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 flex flex-col group hover:border-brand-primary dark:hover:border-brand-primary hover:bg-slate-50 dark:hover:bg-bg-elevated transition-colors shadow-sm dark:shadow-none rounded-sm relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-brand-primary/5 rounded-bl-[100px] -z-0"></div>
+              <div key={activity.id} className="bg-paper border border-border p-8 flex flex-col group hover:border-circuit hover:bg-paper-dim transition-colors shadow-sys rounded-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-circuit/5 rounded-bl-[100px] -z-0"></div>
                 <div className="relative z-10 flex justify-between items-start mb-12">
-                  <span className="font-mono text-xs font-bold tracking-widest text-brand-primary">{activity.id}</span>
-                  <activity.icon size={24} className="text-slate-400 group-hover:text-brand-primary transition-colors" />
+                  <span className="font-mono text-xs font-bold tracking-widest text-circuit">{activity.id}</span>
+                  <activity.icon size={24} className="text-ink-soft group-hover:text-circuit transition-colors" />
                 </div>
-                <h3 className="relative z-10 font-heading font-bold text-2xl uppercase tracking-tight text-slate-900 dark:text-white mb-4">{activity.title}</h3>
-                <p className="relative z-10 font-body text-slate-600 dark:text-slate-400 font-light text-sm leading-relaxed mb-8 flex-grow">{activity.desc}</p>
-                <div className="relative z-10 border-t border-slate-200 dark:border-slate-800 pt-4 flex items-center justify-between font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-slate-400 group-hover:text-brand-primary transition-colors">
+                <h3 className="relative z-10 font-heading font-bold text-2xl uppercase tracking-tight text-ink mb-4">{activity.title}</h3>
+                <p className="relative z-10 font-body text-ink-soft font-light text-sm leading-relaxed mb-8 flex-grow">{activity.desc}</p>
+                <div className="relative z-10 border-t border-border pt-4 flex items-center justify-between font-mono text-[10px] font-bold tracking-widest uppercase text-ink-soft group-hover:text-circuit transition-colors">
                   EXPLORE <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
@@ -199,12 +229,12 @@ export default function About() {
       </section>
 
       {/* SECTION 04: PROCESS */}
-      <section className="py-24 md:py-32 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 overflow-hidden">
-        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px] text-center flex flex-col items-center">
-          <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-slate-400 mb-6 flex items-center justify-center gap-3">
+      <section className="py-24 md:py-32 bg-paper border-b border-border overflow-hidden px-6 md:px-12 lg:px-20">
+        <div className="mx-auto max-w-7xl text-center flex flex-col items-center">
+          <div className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-ink-soft mb-6 flex items-center justify-center gap-3">
             03 / PROCESS
           </div>
-          <h2 className="font-heading font-black text-4xl md:text-5xl uppercase tracking-tight text-slate-900 dark:text-white mb-20">
+          <h2 className="font-heading font-black text-4xl md:text-5xl uppercase tracking-tight text-ink mb-20">
             FROM IDEA TO IMPACT
           </h2>
           
@@ -214,16 +244,16 @@ export default function About() {
               <React.Fragment key={step.label}>
                 {/* Node */}
                 <div className="process-node flex flex-col items-center gap-4 relative z-10 shrink-0 min-w-[80px]">
-                  <div className="w-16 h-16 rounded-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex items-center justify-center transition-all hover:border-brand-primary hover:bg-brand-primary hover:shadow-[0_0_20px_rgba(79,70,229,0.4)] group">
-                    <step.icon size={20} className="text-slate-400 dark:text-slate-600 group-hover:text-white transition-colors" />
+                  <div className="w-16 h-16 rounded-full border border-border bg-paper-dim flex items-center justify-center transition-all hover:border-circuit hover:bg-circuit group">
+                    <step.icon size={20} className="text-ink-soft group-hover:text-paper transition-colors" />
                   </div>
-                  <div className="font-mono text-[10px] md:text-xs tracking-widest uppercase text-slate-500 dark:text-slate-400 font-bold">{step.label}</div>
+                  <div className="font-mono text-[10px] md:text-xs tracking-widest uppercase text-ink-soft font-bold">{step.label}</div>
                 </div>
                 
                 {/* Line (Don't render after last node) */}
                 {idx < processSteps.length - 1 && (
-                  <div className="process-line relative w-1 h-12 md:w-full md:h-1 bg-slate-200 dark:bg-slate-800 my-2 md:my-0 md:mt-8 shrink-0 md:min-w-[40px] origin-top md:origin-left overflow-hidden">
-                    <div className="absolute inset-0 bg-brand-primary opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  <div className="process-line relative w-1 h-12 md:w-full md:h-1 bg-border my-2 md:my-0 md:mt-8 shrink-0 md:min-w-[40px] origin-top md:origin-left overflow-hidden">
+                    <div className="absolute inset-0 bg-circuit opacity-0 group-hover:opacity-100 transition-opacity"></div>
                   </div>
                 )}
               </React.Fragment>
@@ -233,22 +263,22 @@ export default function About() {
       </section>
 
       {/* SECTION 05: COMMUNITY */}
-      <section className="py-24 md:py-32 bg-slate-50 dark:bg-slate-900/20 border-b border-slate-200 dark:border-slate-800">
-        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]" data-reveal="up">
+      <section className="py-24 md:py-32 bg-paper-dim border-b border-border px-6 md:px-12 lg:px-20">
+        <div className="mx-auto max-w-7xl" data-reveal="up">
           <div className="mb-16 flex flex-col md:flex-row md:items-end justify-between gap-8">
             <div>
-              <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-slate-400 mb-6 flex items-center gap-3">
-                <span className="w-8 h-px bg-slate-300 dark:bg-slate-700"></span>
+              <div className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-ink-soft mb-6 flex items-center gap-3">
+                <span className="w-8 h-px bg-border"></span>
                 04 / COMMUNITY
               </div>
-              <h2 className="font-heading font-black text-4xl md:text-5xl uppercase tracking-tight text-slate-900 dark:text-white mb-4">
+              <h2 className="font-heading font-black text-4xl md:text-5xl uppercase tracking-tight text-ink mb-4">
                 A COMMUNITY OF BUILDERS
               </h2>
-              <p className="font-body text-slate-600 dark:text-slate-400 font-light max-w-xl">
+              <p className="font-body text-ink-soft font-light max-w-xl">
                 Students, creators, developers, designers and problem-solvers coming together to learn and build.
               </p>
             </div>
-            <Link to="/members" className="bg-transparent border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white px-6 py-3 font-mono text-[10px] font-bold tracking-widest uppercase hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors flex items-center gap-2 group whitespace-nowrap">
+            <Link to="/members" className="bg-transparent border border-border text-ink px-6 py-3 font-mono text-[10px] font-bold tracking-[0.3em] uppercase hover:bg-paper transition-colors flex items-center gap-2 group whitespace-nowrap">
               MEET THE COMMUNITY <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
@@ -261,15 +291,15 @@ export default function About() {
               { img: '/sujal.png', name: 'Sujal Bhatia', role: 'President', interest: 'Revenue Generation' },
               { img: '/HarshSharma.jpeg', name: 'Harsh Sharma', role: 'Development', interest: 'Freelancing' },
             ].map((member, idx) => (
-              <div key={idx} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 group hover:border-brand-primary transition-colors">
-                <div className="aspect-[3/4] w-full relative overflow-hidden mb-4 bg-slate-100 dark:bg-slate-950">
+              <div key={idx} className="bg-paper border border-border p-4 group hover:border-circuit transition-colors">
+                <div className="aspect-[3/4] w-full relative overflow-hidden mb-4 bg-paper-dim">
                   <img src={member.img} alt="Member placeholder" className="w-full h-full object-cover mix-blend-luminosity opacity-70 group-hover:mix-blend-normal group-hover:scale-105 group-hover:opacity-100 transition-all duration-500" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent opacity-60"></div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-ink via-transparent to-transparent opacity-60"></div>
                 </div>
-                <h4 className="font-heading font-bold uppercase text-lg text-slate-900 dark:text-white mb-1">{member.name}</h4>
-                <div className="flex justify-between items-center font-mono text-[10px] uppercase font-bold tracking-widest text-slate-500 dark:text-slate-400">
+                <h4 className="font-heading font-bold uppercase text-lg text-ink mb-1">{member.name}</h4>
+                <div className="flex justify-between items-center font-mono text-[10px] uppercase font-bold tracking-widest text-ink-soft">
                   <span>{member.role}</span>
-                  <span className="text-brand-primary">{member.interest}</span>
+                  <span className="text-circuit">{member.interest}</span>
                 </div>
               </div>
             ))}
@@ -278,9 +308,9 @@ export default function About() {
       </section>
 
       {/* SECTION 06: STATISTICS STRIP */}
-      <section className="py-12 bg-slate-900 dark:bg-[#050914] text-white border-b border-slate-800">
-        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4 divide-x-0 md:divide-x divide-slate-800" data-reveal="stagger-children">
+      <section className="py-12 bg-ink text-paper border-b border-border px-6 md:px-12 lg:px-20">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4 divide-x-0 md:divide-x divide-border" data-reveal="stagger-children">
             {[
               { label: 'APPROACH', value: 'STUDENT-LED' },
               { label: 'FOCUS', value: 'TECH-DRIVEN' },
@@ -288,8 +318,8 @@ export default function About() {
               { label: 'CULTURE', value: 'COMMUNITY-FIRST' },
             ].map((stat, idx) => (
               <div key={idx} className="flex flex-col items-center justify-center text-center px-4">
-                <span className="font-heading font-black text-2xl sm:text-3xl lg:text-4xl uppercase tracking-tighter text-white mb-2">{stat.value}</span>
-                <span className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-brand-secondary">{stat.label}</span>
+                <span className="font-heading font-black text-2xl sm:text-3xl lg:text-4xl uppercase tracking-tighter text-paper mb-2">{stat.value}</span>
+                <span className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-spark">{stat.label}</span>
               </div>
             ))}
           </div>
@@ -297,24 +327,24 @@ export default function About() {
       </section>
 
       {/* SECTION 07: VALUES */}
-      <section className="py-24 md:py-32 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
-        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]" data-reveal="stagger-children">
+      <section className="py-24 md:py-32 bg-paper border-b border-border px-6 md:px-12 lg:px-20">
+        <div className="mx-auto max-w-7xl" data-reveal="stagger-children">
           <div className="text-center mb-16 md:mb-24 flex flex-col items-center">
-            <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-slate-400 mb-6 flex items-center justify-center gap-3">
+            <div className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-ink-soft mb-6 flex items-center justify-center gap-3">
               05 / PRINCIPLES
             </div>
-            <h2 className="font-heading font-black text-4xl md:text-5xl uppercase tracking-tight text-slate-900 dark:text-white">
+            <h2 className="font-heading font-black text-4xl md:text-5xl uppercase tracking-tight text-ink">
               WHAT WE BELIEVE
             </h2>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
             {values.map((value) => (
-              <div key={value.num} className="flex gap-6 md:gap-8 items-start group p-6 border border-transparent hover:border-slate-200 dark:hover:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors rounded-sm">
-                <span className="font-heading font-black text-5xl md:text-6xl text-slate-200 dark:text-slate-800 group-hover:text-brand-primary transition-colors">{value.num}</span>
+              <div key={value.num} className="flex gap-6 md:gap-8 items-start group p-6 border border-transparent hover:border-border hover:bg-paper-dim transition-colors rounded-sm">
+                <span className="font-heading font-black text-5xl md:text-6xl text-border group-hover:text-circuit transition-colors">{value.num}</span>
                 <div>
-                  <h3 className="font-heading font-bold text-2xl uppercase tracking-tight text-slate-900 dark:text-white mb-3">{value.title}</h3>
-                  <p className="font-body text-slate-600 dark:text-slate-400 font-light leading-relaxed">{value.desc}</p>
+                  <h3 className="font-heading font-bold text-2xl uppercase tracking-tight text-ink mb-3">{value.title}</h3>
+                  <p className="font-body text-ink-soft font-light leading-relaxed">{value.desc}</p>
                 </div>
               </div>
             ))}
@@ -323,35 +353,35 @@ export default function About() {
       </section>
 
       {/* SECTION 08: VISUAL STATEMENT */}
-      <section className="py-32 md:py-48 bg-slate-50 dark:bg-slate-900/20 border-b border-slate-200 dark:border-slate-800 relative overflow-hidden flex items-center justify-center text-center">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:100px_100px] opacity-30" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-brand-primary/10 rounded-full blur-[100px] pointer-events-none"></div>
+      <section className="py-32 md:py-48 bg-paper-dim border-b border-border relative overflow-hidden flex items-center justify-center text-center px-6 md:px-12 lg:px-20">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] bg-[size:100px_100px] opacity-30" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-circuit/10 rounded-full blur-[100px] pointer-events-none"></div>
         
-        <div className="relative z-10 px-6" data-reveal="up">
-          <h2 className="font-heading font-black text-5xl sm:text-7xl md:text-8xl lg:text-[8rem] leading-[0.9] tracking-tighter uppercase text-slate-900 dark:text-white mix-blend-normal">
+        <div className="relative z-10 px-6 mx-auto max-w-7xl" data-reveal="up">
+          <h2 className="font-heading font-black text-5xl sm:text-7xl md:text-8xl lg:text-[8rem] leading-[0.9] tracking-tighter uppercase text-ink mix-blend-normal">
             IDEAS ARE <br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-secondary to-brand-primary">ONLY THE</span> <br/>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-spark to-circuit">ONLY THE</span> <br/>
             BEGINNING.
           </h2>
         </div>
       </section>
 
       {/* SECTION 09: CTA */}
-      <section className="py-24 md:py-32 bg-white dark:bg-slate-950">
-        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px] text-center flex flex-col items-center relative z-10" data-reveal="up">
-          <h2 className="font-heading font-black text-4xl md:text-6xl uppercase tracking-tight text-slate-900 dark:text-white mb-6">
+      <section className="py-24 md:py-32 bg-paper px-6 md:px-12 lg:px-20">
+        <div className="mx-auto max-w-7xl text-center flex flex-col items-center relative z-10" data-reveal="up">
+          <h2 className="font-heading font-black text-4xl md:text-6xl uppercase tracking-tight text-ink mb-6">
             HAVE AN IDEA?
           </h2>
-          <p className="font-body text-lg md:text-xl text-slate-600 dark:text-slate-400 font-light max-w-2xl mb-12">
+          <p className="font-body text-lg md:text-xl text-ink-soft font-light max-w-2xl mb-12">
             Bring your idea to Brainstorm and turn it into something real. Join the community, find a team, and start building.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto justify-center">
-            <Link to="/ideas" className="bg-slate-900 dark:bg-brand-primary text-white px-10 py-5 rounded-full font-mono text-sm font-bold tracking-widest uppercase hover:scale-105 transition-transform flex items-center justify-center gap-2 group shadow-xl shadow-brand-primary/20">
+            <Link to="/ideas" className="rounded-[10px] bg-spark px-8 py-4 font-medium text-ink transition-transform hover:-translate-y-0.5 flex items-center justify-center gap-2 group shadow-xl shadow-spark/20">
               Submit An Idea
               <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
             </Link>
-            <Link to="/events" className="bg-transparent border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white px-10 py-5 rounded-full font-mono text-sm font-bold tracking-widest uppercase hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors flex items-center justify-center gap-2 group">
+            <Link to="/events" className="rounded-[10px] border border-circuit bg-paper px-8 py-4 font-medium text-ink transition-colors hover:bg-paper-dim flex items-center justify-center gap-2 group">
               Explore Events
               <ArrowUpRight size={16} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
             </Link>

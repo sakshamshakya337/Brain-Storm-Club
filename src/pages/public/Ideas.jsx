@@ -184,45 +184,67 @@ export default function Ideas() {
   return (
     <div
       ref={containerRef}
-      className="w-full bg-white dark:bg-[#080D1A] min-h-screen text-slate-900 dark:text-[#F8FAFC] font-body transition-colors duration-300"
+      className="w-full min-h-screen bg-[var(--paper)] text-[var(--ink)] font-body overflow-x-hidden"
     >
       {/* ── HERO ─────────────────────────────────────────────────────────────── */}
-      <section className="relative pt-8 pb-16 md:pt-14 md:pb-24 overflow-hidden border-b border-slate-200 dark:border-[#26344D]">
-        <div
-          className="absolute inset-0 z-0 opacity-[0.03] dark:opacity-10 pointer-events-none"
-          style={{
-            backgroundImage:
-              'linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)',
-            backgroundSize: '48px 48px',
-            color: 'currentColor',
-          }}
-        />
+      <section className="relative isolate overflow-hidden border-b border-[var(--border)] bg-[var(--paper)] px-6 pb-14 pt-16 md:px-12 md:pb-20 md:pt-20 lg:px-20">
+        {/* Circuit artwork used by the Events page */}
+        <div className="absolute inset-0 -z-20 overflow-hidden pointer-events-none">
+          <img
+            src="/circuit.png"
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full object-cover object-bottom opacity-[0.24] scale-[1.02]"
+          />
+        </div>
 
-        {/* Glow */}
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-brand-primary/10 rounded-full blur-[120px] pointer-events-none" />
+        {/* Soft fade: artwork remains visible without reducing text contrast */}
+        <div className="absolute inset-0 -z-10 pointer-events-none bg-gradient-to-b from-[var(--paper)]/95 via-[var(--paper)]/70 to-[var(--paper)]/90" />
 
-        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px] relative z-10">
-          <div className="max-w-4xl flex flex-col items-start">
+        {/* Events-page style animated traces */}
+        <svg
+          className="absolute inset-0 z-0 h-full w-full pointer-events-none opacity-50"
+          aria-hidden="true"
+          viewBox="0 0 1440 500"
+          preserveAspectRatio="none"
+        >
+          <path
+            d="M0 100 H170 L230 150 H470 L530 95 H760 L820 145 H1060 L1120 85 H1440"
+            fill="none"
+            stroke="var(--circuit)"
+            strokeWidth="1.1"
+            strokeDasharray="8 36"
+            className="electric-trace-reverse"
+          />
+          <path
+            d="M0 390 H190 L250 340 H455 L520 405 H745 L810 350 H1020 L1090 410 H1440"
+            fill="none"
+            stroke="var(--spark)"
+            strokeWidth="1"
+            strokeDasharray="6 42"
+            className="electric-trace"
+          />
+        </svg>
 
-            <div className="reveal-eyebrow flex flex-wrap gap-4 mb-8">
-              <div className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-brand-primary border border-brand-primary/30 px-3 py-1.5 rounded-sm bg-brand-primary/5">
-                LPU SCA / BRAINSTORM CLUB
-              </div>
-              <div className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-slate-500 dark:text-[#71819B] border border-slate-200 dark:border-[#26344D] px-3 py-1.5 rounded-sm bg-white dark:bg-[#111A2D]">
-                IDEAS / SUBMISSION
-              </div>
+        <div className="relative z-10 mx-auto max-w-7xl">
+          <div className="max-w-4xl">
+            <div className="reveal-eyebrow mb-7 flex flex-wrap items-center gap-3">
+              <span className="border border-[var(--circuit)]/30 bg-[var(--paper)]/85 px-3 py-1.5 font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-[var(--circuit)] backdrop-blur-sm">
+                LPU SCA / Brainstorm Club
+              </span>
+              <span className="border border-[var(--border)] bg-[var(--paper)]/85 px-3 py-1.5 font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-[var(--ink-soft)] backdrop-blur-sm">
+                Ideas / Submission
+              </span>
             </div>
 
-            <h1 className="font-heading font-black text-[clamp(3rem,6vw,5.5rem)] leading-[0.95] tracking-tighter text-slate-900 dark:text-[#F8FAFC] mb-8 uppercase flex flex-col">
-              <span className="overflow-hidden"><span className="reveal-heading-line block">SUBMIT YOUR</span></span>
-              <span className="overflow-hidden">
-                <span className="reveal-heading-line block text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-brand-secondary">
-                  IDEA.
-                </span>
+            <h1 className="font-heading font-black uppercase tracking-tight leading-[0.88] text-[var(--ink)] text-[clamp(3.5rem,9vw,7.5rem)]">
+              <span className="reveal-heading-line block">Submit your</span>
+              <span className="reveal-heading-line block bg-gradient-to-r from-[var(--circuit)] to-[var(--spark)] bg-clip-text text-transparent">
+                idea.
               </span>
             </h1>
 
-            <p className="reveal-text font-body text-lg md:text-xl text-slate-600 dark:text-[#A8B5CC] max-w-2xl font-light leading-relaxed">
+            <p className="reveal-text mt-8 max-w-2xl font-body text-lg leading-relaxed text-[var(--ink-soft)] md:text-xl">
               Have an idea that could make a difference? Share it with the Brainstorm community. The best ideas get pitched, prototyped and built — by you.
             </p>
           </div>
@@ -230,21 +252,21 @@ export default function Ideas() {
       </section>
 
       {/* ── BENEFITS STRIP ──────────────────────────────────────────────────── */}
-      <section className="border-b border-slate-200 dark:border-[#26344D] bg-slate-50 dark:bg-[#0D1424]" data-reveal="stagger-children">
+      <section className="border-b border-[var(--border)] bg-[var(--paper-dim)]" data-reveal="stagger-children">
         <div className="container mx-auto px-6 lg:px-12 max-w-[1440px] py-10">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 divide-y sm:divide-y-0 sm:divide-x divide-slate-200 dark:divide-[#26344D]">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 divide-y sm:divide-y-0 sm:divide-x divide-slate-200">
             {[
               { icon: Lightbulb, label: '01 / IDEATE', desc: 'Submit any technology or impact idea — no prototype required.' },
               { icon: Sparkles,  label: '02 / REVIEW', desc: 'The Brainstorm team reviews every submission and provides feedback.' },
               { icon: Target,    label: '03 / BUILD',  desc: 'Shortlisted ideas get resources, a team and a shot at production.' },
             ].map(({ icon: Icon, label, desc }) => (
               <div key={label} className="flex items-start gap-4 pt-8 sm:pt-0 sm:px-8 first:pt-0 first:pl-0 last:pr-0">
-                <div className="w-10 h-10 rounded-sm bg-brand-primary/10 dark:bg-[#151F33] flex items-center justify-center text-brand-primary shrink-0">
+                <div className="w-10 h-10 rounded-sm bg-[var(--paper-dim)] bg-[var(--paper-dim)] flex items-center justify-center text-[var(--circuit)] shrink-0">
                   <Icon size={18} />
                 </div>
                 <div>
-                  <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-brand-primary mb-1">{label}</div>
-                  <p className="font-body text-sm text-slate-600 dark:text-[#A8B5CC] leading-relaxed">{desc}</p>
+                  <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-[var(--circuit)] mb-1">{label}</div>
+                  <p className="font-body text-sm text-[var(--ink-soft)] leading-relaxed">{desc}</p>
                 </div>
               </div>
             ))}
@@ -253,14 +275,23 @@ export default function Ideas() {
       </section>
 
       {/* ── MAIN FORM AREA ──────────────────────────────────────────────────── */}
-      <section className="py-12 md:py-24 bg-white dark:bg-[#080D1A]">
-        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]">
+      <section className="relative py-12 md:py-24 bg-[var(--paper)]">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.035]"
+          style={{
+            backgroundImage:
+              'linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)',
+            backgroundSize: '48px 48px',
+            color: 'var(--ink)',
+          }}
+        />
+        <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-20">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-24" data-reveal="up">
 
             {/* ── LEFT: Context ─────────────────────────────────────────────── */}
             <div className="col-span-1 lg:col-span-4 flex flex-col gap-10">
               <div className="sticky top-28">
-                <h3 className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-[#71819B] mb-6">
+                <h3 className="font-mono text-[10px] font-bold tracking-widest uppercase text-[var(--ink-soft)] mb-6">
                   WHAT TO INCLUDE
                 </h3>
                 <ul className="space-y-4 mb-10">
@@ -273,21 +304,21 @@ export default function Ideas() {
                   ].map((item, i) => (
                     <li key={i} className="flex items-start gap-3">
                       <div className="w-1.5 h-1.5 rounded-full bg-brand-primary mt-2 shrink-0" />
-                      <span className="font-body text-slate-600 dark:text-[#A8B5CC] text-sm leading-relaxed">{item}</span>
+                      <span className="font-body text-[var(--ink-soft)] text-sm leading-relaxed">{item}</span>
                     </li>
                   ))}
                 </ul>
 
-                <div className="p-5 border border-brand-primary/20 bg-brand-primary/5 dark:bg-[#111A2D] rounded-sm">
-                  <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-brand-primary mb-2">
+                <div className="p-5 border border-brand-primary/20 bg-[var(--paper-dim)] bg-[var(--paper)] rounded-sm">
+                  <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-[var(--circuit)] mb-2">
                     IDEA STATUS FLOW
                   </div>
                   <div className="flex flex-col gap-2 relative">
-                    <div className="absolute left-[7px] top-3 bottom-3 w-px bg-slate-200 dark:bg-[#26344D]" />
+                    <div className="absolute left-[7px] top-3 bottom-3 w-px bg-slate-200" />
                     {['New', 'Reviewed', 'Shortlisted', 'Implemented'].map((s, i) => (
                       <div key={s} className="flex items-center gap-3 relative z-10">
-                        <div className="w-3.5 h-3.5 rounded-full bg-white dark:bg-[#111A2D] border-2 border-brand-primary shrink-0" />
-                        <span className="font-mono text-[10px] font-bold tracking-widest text-slate-600 dark:text-[#A8B5CC] uppercase">{s}</span>
+                        <div className="w-3.5 h-3.5 rounded-full bg-white bg-[var(--paper)] border-2 border-brand-primary shrink-0" />
+                        <span className="font-mono text-[10px] font-bold tracking-widest text-[var(--ink-soft)] uppercase">{s}</span>
                       </div>
                     ))}
                   </div>
@@ -300,17 +331,17 @@ export default function Ideas() {
 
               {/* ── SUCCESS STATE ─────────────────────────────────────────── */}
               {formState === 'SUCCESS' ? (
-                <div className="w-full bg-white dark:bg-[#111A2D] border border-slate-200 dark:border-[#26344D] p-8 md:p-16 rounded-sm shadow-sm flex flex-col items-center justify-center text-center min-h-[600px]">
-                  <div className="w-20 h-20 rounded-full bg-brand-primary/10 dark:bg-[#151F33] flex items-center justify-center mb-8 text-brand-primary border border-brand-primary/20">
+                <div className="w-full bg-white bg-[var(--paper)] border border-[var(--border)] p-8 md:p-16 rounded-sm shadow-sm flex flex-col items-center justify-center text-center min-h-[600px]">
+                  <div className="w-20 h-20 rounded-full bg-[var(--paper-dim)] bg-[var(--paper-dim)] flex items-center justify-center mb-8 text-[var(--circuit)] border border-brand-primary/20">
                     <CheckCircle2 size={40} />
                   </div>
-                  <div className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-brand-primary mb-4">
+                  <div className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-[var(--circuit)] mb-4">
                     SUBMISSION STATUS / RECEIVED
                   </div>
-                  <h2 className="font-heading font-black text-3xl md:text-4xl uppercase text-slate-900 dark:text-[#F8FAFC] mb-6">
+                  <h2 className="font-heading font-black text-3xl md:text-4xl uppercase text-[var(--ink)] mb-6">
                     IDEA RECEIVED.
                   </h2>
-                  <p className="font-body text-lg text-slate-600 dark:text-[#A8B5CC] max-w-md mb-12">
+                  <p className="font-body text-lg text-[var(--ink-soft)] max-w-md mb-12">
                     Thanks for submitting your idea to Brainstorm. We'll review it and get back to you.
                   </p>
                   <div className="flex flex-col sm:flex-row gap-4">
@@ -322,14 +353,14 @@ export default function Ideas() {
                         setPdfError('');
                         setErrorMessage('');
                       }}
-                      className="bg-slate-900 dark:bg-brand-primary text-white px-8 py-4 font-mono text-[10px] font-bold tracking-widest uppercase hover:scale-105 transition-transform flex items-center justify-center gap-2 group shadow-xl shadow-brand-primary/10 rounded-sm"
+                      className="bg-spark text-ink px-8 py-4 font-mono text-[10px] font-bold tracking-widest uppercase hover:bg-spark-soft hover:-translate-y-0.5 transition-colors flex items-center justify-center gap-2 group shadow-xl shadow-spark/20 rounded-[10px]"
                     >
                       SUBMIT ANOTHER IDEA
                       <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                     </button>
                     <Link
                       to="/"
-                      className="bg-transparent border border-slate-300 dark:border-[#26344D] text-slate-900 dark:text-[#F8FAFC] px-8 py-4 font-mono text-[10px] font-bold tracking-widest uppercase hover:bg-slate-50 dark:hover:bg-[#111A2D] transition-colors flex items-center justify-center gap-2 rounded-sm"
+                      className="bg-paper border border-border text-ink px-8 py-4 font-mono text-[10px] font-bold tracking-widest uppercase hover:bg-paper-dim transition-colors flex items-center justify-center gap-2 rounded-[10px]"
                     >
                       BACK TO HOME
                     </Link>
@@ -337,22 +368,22 @@ export default function Ideas() {
                 </div>
               ) : (
                 /* ── FORM ─────────────────────────────────────────────────── */
-                <div className="w-full bg-white dark:bg-[#111A2D] border border-slate-200 dark:border-[#26344D] p-6 md:p-12 rounded-sm shadow-sm">
+                <div className="w-full bg-white bg-[var(--paper)] border border-[var(--border)] p-6 md:p-12 rounded-sm shadow-sm">
 
-                  <div className="mb-10 pb-6 border-b border-slate-100 dark:border-[#26344D]">
-                    <h2 className="font-heading font-black text-2xl md:text-3xl uppercase tracking-tight text-slate-900 dark:text-[#F8FAFC] mb-2">
+                  <div className="mb-10 pb-6 border-b border-[var(--border)]">
+                    <h2 className="font-heading font-black text-2xl md:text-3xl uppercase tracking-tight text-[var(--ink)] mb-2">
                       IDEA SUBMISSION
                     </h2>
-                    <p className="font-body text-slate-500 dark:text-[#71819B]">
+                    <p className="font-body text-[var(--ink-soft)]">
                       All fields marked * are required.
                     </p>
                   </div>
 
                   {/* Error banner */}
                   {(errorMessage || formState === 'ERROR') && (
-                    <div className="mb-8 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-500/30 flex items-start gap-3 rounded-sm" role="alert">
+                    <div className="mb-8 p-4 bg-red-50 border border-red-200 flex items-start gap-3 rounded-sm" role="alert">
                       <AlertCircle className="text-red-500 mt-0.5 shrink-0" size={18} />
-                      <p className="text-sm font-body text-red-700 dark:text-red-400">
+                      <p className="text-sm font-body text-red-700">
                         {errorMessage || 'Something went wrong. Please try again.'}
                       </p>
                     </div>
@@ -362,7 +393,7 @@ export default function Ideas() {
 
                     {/* ── Section 1: Your Details ─────────────────────────── */}
                     <fieldset className="flex flex-col gap-6">
-                      <legend className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-400 dark:text-[#71819B] mb-2 border-b border-slate-100 dark:border-[#26344D] pb-2 w-full">
+                      <legend className="font-mono text-[10px] font-bold tracking-widest uppercase text-[var(--ink-soft)] mb-2 border-b border-[var(--border)] pb-2 w-full">
                         01 / YOUR DETAILS
                       </legend>
 
@@ -390,7 +421,7 @@ export default function Ideas() {
 
                     {/* ── Section 2: The Idea ─────────────────────────────── */}
                     <fieldset className="flex flex-col gap-6">
-                      <legend className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-400 dark:text-[#71819B] mb-2 border-b border-slate-100 dark:border-[#26344D] pb-2 w-full">
+                      <legend className="font-mono text-[10px] font-bold tracking-widest uppercase text-[var(--ink-soft)] mb-2 border-b border-[var(--border)] pb-2 w-full">
                         02 / THE IDEA
                       </legend>
 
@@ -416,7 +447,7 @@ export default function Ideas() {
                           rows={5}
                           className={`${inputCls} resize-y min-h-[120px]`}
                         />
-                        <span className={`self-end font-mono text-[9px] ${formData.description.length < 30 ? 'text-red-400' : 'text-slate-400 dark:text-[#71819B]'}`}>
+                        <span className={`self-end font-mono text-[9px] ${formData.description.length < 30 ? 'text-red-400' : 'text-[var(--ink-soft)]'}`}>
                           {formData.description.length} / 30 min
                         </span>
                       </div>
@@ -432,7 +463,7 @@ export default function Ideas() {
                           rows={3}
                           className={`${inputCls} resize-y min-h-[80px]`}
                         />
-                        <span className={`self-end font-mono text-[9px] ${formData.outcome.length < 20 ? 'text-red-400' : 'text-slate-400 dark:text-[#71819B]'}`}>
+                        <span className={`self-end font-mono text-[9px] ${formData.outcome.length < 20 ? 'text-red-400' : 'text-[var(--ink-soft)]'}`}>
                           {formData.outcome.length} / 20 min
                         </span>
                       </div>
@@ -440,17 +471,17 @@ export default function Ideas() {
 
                     {/* ── Section 3: PDF Upload ───────────────────────────── */}
                     <fieldset className="flex flex-col gap-4">
-                      <legend className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-400 dark:text-[#71819B] mb-2 border-b border-slate-100 dark:border-[#26344D] pb-2 w-full">
+                      <legend className="font-mono text-[10px] font-bold tracking-widest uppercase text-[var(--ink-soft)] mb-2 border-b border-[var(--border)] pb-2 w-full">
                         03 / SUPPORTING DOCUMENT <span className="text-slate-400 normal-case font-normal tracking-normal">(optional)</span>
                       </legend>
 
-                      <p className="font-mono text-[10px] tracking-wider text-slate-500 dark:text-[#71819B] uppercase">
+                      <p className="font-mono text-[10px] tracking-wider text-[var(--ink-soft)] uppercase">
                         PDF only · Max 2 MB · Auto-compressed if possible
                       </p>
 
                       {!pdf ? (
                         /* Drop zone */
-                        <div className="relative w-full border-2 border-dashed border-slate-300 dark:border-[#26344D] bg-slate-50 dark:bg-[#080D1A] hover:bg-slate-100 dark:hover:bg-[#0D1424] hover:border-brand-primary/50 dark:hover:border-[#6366F1]/50 transition-all rounded-sm flex flex-col items-center justify-center p-10 group cursor-pointer">
+                        <div className="relative w-full border-2 border-dashed border-[var(--border)] bg-[var(--paper-dim)] hover:bg-slate-100 hover:border-brand-primary/50 transition-all rounded-sm flex flex-col items-center justify-center p-10 group cursor-pointer">
                           <input
                             ref={fileInputRef}
                             type="file"
@@ -459,13 +490,13 @@ export default function Ideas() {
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                             aria-label="Upload supporting PDF"
                           />
-                          <div className="w-12 h-12 rounded-full bg-brand-primary/10 dark:bg-[#151F33] flex items-center justify-center text-brand-primary mb-4 group-hover:scale-110 transition-transform">
+                          <div className="w-12 h-12 rounded-full bg-[var(--paper-dim)] bg-[var(--paper-dim)] flex items-center justify-center text-[var(--circuit)] mb-4 group-hover:scale-110 transition-transform">
                             <Upload size={20} />
                           </div>
-                          <span className="font-heading font-bold text-slate-900 dark:text-[#F8FAFC] mb-1 text-center">
+                          <span className="font-heading font-bold text-[var(--ink)] mb-1 text-center">
                             CLICK OR DRAG TO UPLOAD PDF
                           </span>
-                          <span className="font-mono text-[10px] text-slate-500 dark:text-[#71819B] tracking-widest uppercase">
+                          <span className="font-mono text-[10px] text-[var(--ink-soft)] tracking-widest uppercase">
                             Max 2 MB · PDF only
                           </span>
                           {pdfError && (
@@ -482,12 +513,12 @@ export default function Ideas() {
                     </fieldset>
 
                     {/* ── Submit ──────────────────────────────────────────── */}
-                    <div className="pt-6 mt-2 border-t border-slate-100 dark:border-[#26344D]">
+                    <div className="pt-6 mt-2 border-t border-[var(--border)]">
                       <button
                         type="submit"
                         disabled={isBusy}
                         aria-busy={isBusy}
-                        className="w-full bg-slate-900 dark:bg-brand-primary text-white px-10 py-5 font-heading font-semibold text-sm tracking-widest uppercase hover:scale-[1.01] active:scale-[0.99] transition-transform flex items-center justify-center gap-3 shadow-xl shadow-brand-primary/10 disabled:opacity-70 disabled:scale-100 rounded-sm"
+                        className="w-full bg-spark text-ink px-10 py-5 font-heading font-semibold text-sm tracking-widest uppercase hover:bg-spark-soft hover:-translate-y-0.5 active:translate-y-0 transition-colors transform flex items-center justify-center gap-3 shadow-xl shadow-spark/20 disabled:opacity-70 disabled:translate-y-0 rounded-[10px]"
                       >
                         {formState === 'SUBMITTING' ? (
                           <>
@@ -518,9 +549,9 @@ export default function Ideas() {
 
 // ─── Shared style tokens ─────────────────────────────────────────────────────
 const labelCls =
-  'font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-[#71819B]';
+  'font-mono text-[10px] font-bold tracking-widest uppercase text-[var(--ink-soft)]';
 const inputCls =
-  'w-full bg-slate-50 dark:bg-[#080D1A] border border-slate-200 dark:border-[#26344D] px-5 py-4 font-body text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-brand-primary dark:focus:border-[#6366F1] transition-colors rounded-sm placeholder-slate-400 dark:placeholder-[#71819B]';
+  'w-full bg-[var(--paper-dim)] border border-[var(--border)] px-5 py-4 font-body text-[var(--ink)] focus:outline-none focus:border-brand-primary transition-colors rounded-sm placeholder-slate-400';
 const selectCls =
   inputCls + ' appearance-none cursor-pointer';
 
@@ -544,9 +575,9 @@ function PdfStatusCard({ pdf, onRemove }) {
   const wasCompressed = isReady && pdf.originalSizeMB !== pdf.finalSizeMB;
 
   return (
-    <div className="w-full border border-slate-200 dark:border-[#26344D] bg-slate-50 dark:bg-[#080D1A] p-4 rounded-sm relative">
+    <div className="w-full border border-[var(--border)] bg-[var(--paper-dim)] p-4 rounded-sm relative">
       <div className="flex items-start gap-4">
-        <div className="w-12 h-12 rounded-sm bg-brand-primary/10 dark:bg-[#151F33] flex items-center justify-center text-brand-primary shrink-0">
+        <div className="w-12 h-12 rounded-sm bg-[var(--paper-dim)] bg-[var(--paper-dim)] flex items-center justify-center text-[var(--circuit)] shrink-0">
           {isCompressing ? (
             <Loader2 size={20} className="animate-spin" />
           ) : (
@@ -555,24 +586,24 @@ function PdfStatusCard({ pdf, onRemove }) {
         </div>
 
         <div className="flex flex-col flex-grow min-w-0 pr-8 gap-1">
-          <span className="font-body text-sm font-bold text-slate-900 dark:text-[#F8FAFC] truncate">
+          <span className="font-body text-sm font-bold text-[var(--ink)] truncate">
             {pdf.file?.name}
           </span>
 
           {isCompressing && (
-            <span className="font-mono text-[10px] text-brand-primary tracking-widest uppercase flex items-center gap-1.5" aria-live="polite">
+            <span className="font-mono text-[10px] text-[var(--circuit)] tracking-widest uppercase flex items-center gap-1.5" aria-live="polite">
               <Loader2 size={10} className="animate-spin" />
               COMPRESSING… ({pdf.originalSizeMB} MB)
             </span>
           )}
 
           {isReady && (
-            <span className="font-mono text-[10px] text-slate-500 dark:text-[#71819B] tracking-widest uppercase flex flex-wrap gap-3" aria-live="polite">
-              <span className="flex items-center gap-1 text-green-600 dark:text-green-400 font-bold">
+            <span className="font-mono text-[10px] text-[var(--ink-soft)] tracking-widest uppercase flex flex-wrap gap-3" aria-live="polite">
+              <span className="flex items-center gap-1 text-green-600 font-bold">
                 <CheckCircle2 size={10} /> READY · {pdf.finalSizeMB} MB
               </span>
               {wasCompressed && (
-                <span className="text-brand-primary">
+                <span className="text-[var(--circuit)]">
                   (compressed from {pdf.originalSizeMB} MB)
                 </span>
               )}
@@ -594,7 +625,7 @@ function PdfStatusCard({ pdf, onRemove }) {
 
       {/* Progress bar while compressing */}
       {isCompressing && (
-        <div className="mt-3 h-0.5 w-full bg-slate-200 dark:bg-[#26344D] overflow-hidden rounded-full">
+        <div className="mt-3 h-0.5 w-full bg-slate-200 overflow-hidden rounded-full">
           <div className="h-full bg-brand-primary animate-[progress_1.5s_ease-in-out_infinite] rounded-full" />
           <style>{`
             @keyframes progress {

@@ -5,15 +5,15 @@ export default function MemberFeaturedCard({ member }) {
   if (!member) return null;
   
   return (
-    <div className="md:col-span-6 relative h-[450px] md:h-[600px] bg-slate-100 group overflow-hidden border border-slate-200">
+    <div className="md:col-span-6 relative h-[450px] md:h-[600px] bg-slate-100 group overflow-hidden border border-slate-200 block p-0 m-0">
       <ProtectedImage 
         imageId={member.photoId?.imageId} 
         alt={member.fullName} 
         variant="member_card"
-        className="absolute inset-0 w-full h-full object-cover mix-blend-multiply opacity-90 group-hover:scale-105 transition-transform duration-1000 ease-out" 
-        style={{ objectPosition: 'center top' }}
+        className="absolute inset-0 w-full h-full m-0 p-0 object-cover object-top transition-transform duration-1000 ease-out" 
+        style={{ width: '100%', height: '100%' }}
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent pointer-events-none p-0 m-0" />
       
       {/* Editorial UI overlay */}
       <div className="absolute top-6 left-6 flex gap-2 z-10">

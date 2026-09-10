@@ -20,27 +20,28 @@ export default function EventCard({ event }) {
       
       {/* Responsive Image Block with Ambient Backdrop */}
       <div className="relative w-full aspect-[16/10] sm:aspect-auto sm:h-48 md:h-56 overflow-hidden bg-slate-950 flex items-center justify-center">
-        {/* Ambient blurred backdrop to prevent black bars and match image palette */}
+        {/* Ambient blurred backdrop to fill container and match image palette */}
         <ProtectedImage 
           imageId={imageId} 
           src={externalSrc}
           variant="event_card"
           alt="" 
           aria-hidden="true"
-          className="absolute inset-0 w-full h-full object-cover blur-md scale-110 opacity-35 dark:opacity-40 pointer-events-none" 
+          className="absolute inset-0 w-full h-full object-cover blur-md scale-110 opacity-40 dark:opacity-45 pointer-events-none" 
         />
-        {/* Crisp foreground poster with full containment (no cropped text) */}
+        {/* Crisp foreground poster — fully contained with no cropped text/logos */}
         <ProtectedImage 
           imageId={imageId} 
           src={externalSrc}
           variant="event_card"
           alt={event.title} 
-          className="relative z-10 max-w-full max-h-full w-auto h-auto object-contain transition-transform duration-500 group-hover:scale-[1.02]" 
+          className="relative z-10 max-w-[90%] max-h-[90%] w-auto h-auto object-contain drop-shadow-sm transition-transform duration-[550ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.06]" 
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent z-20 pointer-events-none"></div>
+        {/* Subtle vignette for depth */}
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-slate-950/10 to-slate-950/15 z-20 pointer-events-none"></div>
 
         {galleryCount > 1 && (
-          <span className="absolute bottom-2 right-2 z-20 font-mono text-[9px] font-bold tracking-wider px-1.5 py-0.5 rounded bg-slate-900/85 text-slate-200 border border-white/15 backdrop-blur-sm">
+          <span className="absolute bottom-3 right-3 z-30 font-mono text-[9px] font-bold tracking-wider px-2 py-0.5 rounded-sm bg-slate-900/85 text-slate-200 border border-white/15 backdrop-blur-sm">
             {galleryCount} PHOTOS
           </span>
         )}

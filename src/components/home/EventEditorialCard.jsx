@@ -22,22 +22,36 @@ export default function EventEditorialCard({ event, index }) {
         
         {/* MEDIA SECTION */}
         <div className="relative w-full aspect-[4/3] bg-slate-100 overflow-hidden border-b border-slate-200">
+          {/* Ambient blurred backdrop — fills container to eliminate empty space and match palette */}
+          <ProtectedImage 
+            imageId={hImageId} 
+            src={hSrc}
+            variant="event_card" 
+            alt="" 
+            aria-hidden="true"
+            className="absolute inset-0 w-full h-full object-cover blur-md scale-110 opacity-40 pointer-events-none" 
+          />
+          
+          {/* Crisp foreground poster — fully visible with no cropped logos/text */}
           <motion.div
-            variants={{ hover: { scale: 1.03 } }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-            className="w-full h-full"
+            variants={{ hover: { scale: 1.06 } }}
+            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+            className="absolute inset-0 w-full h-full flex items-center justify-center"
           >
             <ProtectedImage 
               imageId={hImageId} 
               src={hSrc}
               variant="event_card" 
-              className="w-full h-full object-cover object-center mix-blend-multiply" 
+              className="relative z-10 max-w-[88%] max-h-[88%] w-auto h-auto object-contain drop-shadow-sm" 
               alt={event.title} 
             />
           </motion.div>
+
+          {/* Subtle vignette / readability overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/15 via-transparent to-slate-900/8 z-20 pointer-events-none"></div>
           
           {/* Status Badge */}
-          <div className="absolute top-4 left-4 z-10">
+          <div className="absolute top-4 left-4 z-30">
             <span className={`inline-flex items-center gap-1.5 font-mono text-[9px] font-bold tracking-widest uppercase px-2 py-1 shadow-sm backdrop-blur-md ${isLiveOrUpcoming ? 'bg-indigo-600/90 text-white' : 'bg-white/80 text-slate-600 border border-slate-200'}`}>
               {isLiveOrUpcoming && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>}
               {event.status}
@@ -45,7 +59,7 @@ export default function EventEditorialCard({ event, index }) {
           </div>
 
           {/* Index Marker */}
-          <div className="absolute bottom-4 right-4 z-10">
+          <div className="absolute bottom-4 right-4 z-30">
             <span className="font-mono text-[10px] font-bold tracking-[0.2em] text-white mix-blend-difference opacity-70">
               {paddedIndex}
             </span>

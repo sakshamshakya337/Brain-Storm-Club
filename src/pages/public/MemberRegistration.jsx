@@ -3,11 +3,14 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, CheckCircle2, Upload, X, FileWarning, AlertCircle, ShieldAlert, Crop } from 'lucide-react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useGSAP } from '@gsap/react';
 import Footer from '../../components/layout/Footer';
 import imageCompression from 'browser-image-compression';
 import MemberPhotoEditor from '../../components/common/MemberPhotoEditor';
+import { usePageReveal } from '../../hooks/usePageReveal';
+import { useScrollReveal } from '../../hooks/useScrollReveal';
 
-gsap.registerPlugin(ScrollTrigger);
+gsap.registerPlugin(ScrollTrigger, useGSAP);
 
 const PUBLIC_ROLES = [
   'Technical Team',
@@ -48,7 +51,37 @@ export default function MemberRegistration() {
 
   const heroRef = useRef(null);
   const contentRef = useRef(null);
+  const backgroundRef = useRef(null);
+  const containerRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  usePageReveal(containerRef);
+  useScrollReveal(containerRef);
+
+  useGSAP(() => {
+    if (!heroRef.current) return undefined;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const lowPower = window.innerWidth < 768 || (navigator.hardwareConcurrency || 8) <= 4;
+    const ctx = gsap.context(() => {
+      const intro = !reduced ? gsap.timeline()
+        .from(backgroundRef.current, { opacity: 0, scale: 1.025, duration: .7, clearProps: 'all' }, .1)
+        .from('[data-register-hero-line]', { opacity: 0, y: 30, duration: .65, stagger: .12, clearProps: 'all' }, .35)
+        .from('[data-register-hero-copy]', { opacity: 0, y: 12, duration: .45, stagger: .08, clearProps: 'all' }, .8) : null;
+      const electric = !reduced ? gsap.timeline({ repeat: -1 })
+        .to('.electric-trace', { strokeDashoffset: -192, duration: 2.8, ease: 'none', stagger: .45 }, 0)
+        .to('.electric-trace-reverse', { strokeDashoffset: 192, duration: 3.2, ease: 'none', stagger: .45 }, 0) : null;
+      const visibility = () => { [intro, electric].filter(Boolean).forEach(a => document.hidden ? a.pause() : a.play()); };
+      document.addEventListener('visibilitychange', visibility);
+      if (!reduced && !lowPower) {
+        gsap.to(backgroundRef.current, { yPercent: 9, ease: 'none', scrollTrigger: { trigger: heroRef.current, start: 'top top', end: 'bottom top', scrub: true } });
+        const move = event => { const x = (event.clientX / window.innerWidth - .5) * 2, y = (event.clientY / window.innerHeight - .5) * 2; gsap.to(backgroundRef.current, { x: x * 8, y: y * 5, overwrite: 'auto', duration: .7 }); };
+        window.addEventListener('pointermove', move, { passive: true });
+        return () => { document.removeEventListener('visibilitychange', visibility); window.removeEventListener('pointermove', move); };
+      }
+      return () => document.removeEventListener('visibilitychange', visibility);
+    }, heroRef);
+    return () => ctx.revert();
+  }, { scope: heroRef });
 
   useEffect(() => {
     return () => {
@@ -59,14 +92,6 @@ export default function MemberRegistration() {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-
-    if (heroRef.current) {
-      gsap.fromTo(
-        heroRef.current.children,
-        { y: 30, opacity: 0 },
-        { y: 0, opacity: 1, duration: 1, stagger: 0.1, ease: 'power3.out' }
-      );
-    }
     if (contentRef.current) {
       gsap.fromTo(
         contentRef.current,
@@ -79,7 +104,6 @@ export default function MemberRegistration() {
     }
   }, []);
 
-  // Sync WhatsApp
   useEffect(() => {
     if (sameAsPhone) {
       setFormData(prev => ({ ...prev, whatsapp: prev.phone }));
@@ -108,7 +132,6 @@ export default function MemberRegistration() {
 
       let fileToProcess = file;
 
-      // Handle HEIC conversion
       if (file.name.toLowerCase().endsWith('.heic') || file.type === 'image/heic') {
         const heic2any = (await import('heic2any')).default;
         const convertedBlob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 });
@@ -176,15 +199,12 @@ export default function MemberRegistration() {
     e.preventDefault();
     setErrorMessage('');
     
-    // 1. Strict Validation
     if (!formData.course) return setErrorMessage('Please select your course.');
     if (!formData.role) return setErrorMessage('Please select a role.');
     if (!formData.profileImage) return setErrorMessage('Please upload a profile image (under 5MB).');
 
-    // 2. Normalize Registration Number
     const normalizedRegNo = formData.regNo.trim().toUpperCase();
 
-    // 3. Backend Mock Security Check: Prevent Admin Roles
     if (ADMIN_ROLES.includes(formData.role)) {
       setErrorMessage('SECURITY ERROR: The selected role requires Administrator privileges to assign.');
       return;
@@ -192,7 +212,6 @@ export default function MemberRegistration() {
 
     setFormState('SENDING');
     
-    // Create FormData for file upload
     const submitData = new FormData();
     submitData.append('fullName', formData.name);
     submitData.append('registrationNumber', normalizedRegNo);
@@ -204,7 +223,6 @@ export default function MemberRegistration() {
     submitData.append('role', formData.role);
     submitData.append('profileImage', formData.profileImage);
 
-    // Call real backend API
     fetch('/api/public/members/register', {
       method: 'POST',
       body: submitData
@@ -227,39 +245,46 @@ export default function MemberRegistration() {
   };
 
   return (
-    <div className="w-full bg-white dark:bg-[#080D1A] min-h-screen text-slate-900 dark:text-[#F8FAFC] font-body transition-colors duration-300">
+    <div ref={containerRef} className="w-full bg-paper min-h-screen text-ink font-body">
       
       {/* HERO SECTION */}
-      <section className="relative pt-8 pb-16 md:pt-14 md:pb-24 overflow-hidden border-b border-slate-200 dark:border-[#26344D]">
-        <div className="absolute inset-0 z-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none" style={{ backgroundImage: 'linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)', backgroundSize: '64px 64px', color: 'currentColor' }} />
-        
-        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px] relative z-10">
-          <div ref={heroRef} className="max-w-4xl flex flex-col items-start">
+      <section ref={heroRef} className="relative isolate border-b border-border bg-paper overflow-hidden px-6 pb-12 pt-20 md:px-12 lg:px-20" style={{ minHeight: 'min(680px,84svh)' }}>
+        <div ref={backgroundRef} className="absolute inset-0 -z-20 overflow-hidden pointer-events-none">
+          <img src="/circuit-horizon.png" alt="" className="h-full w-full object-cover object-bottom opacity-30" />
+        </div>
+        <div className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,var(--paper)_15%,transparent_65%,var(--paper)_100%)] pointer-events-none" />
+        <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-70 z-0" aria-hidden="true" viewBox="0 0 1440 400" preserveAspectRatio="none">
+          <path d="M0 80 H200 L260 130 H500 L560 70 H780 L840 120 H1080 L1140 60 H1440" fill="none" stroke="var(--circuit)" strokeWidth="1.2" strokeDasharray="8 36" className="electric-trace-reverse" />
+          <path d="M0 320 H180 L240 270 H460 L520 340 H740 L800 280 H1020 L1080 350 H1440" fill="none" stroke="var(--spark)" strokeWidth="1" strokeDasharray="6 42" className="electric-trace" />
+        </svg>
+
+        <div className="relative z-10 mx-auto max-w-7xl py-12 md:py-20">
+          <div className="max-w-5xl flex flex-col items-start">
             
-            <div className="flex flex-wrap gap-4 mb-8">
-              <div className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-brand-primary border border-brand-primary/30 px-3 py-1.5 rounded-sm bg-brand-primary/5">
+            <div data-register-hero-copy className="flex flex-wrap gap-4 mb-8">
+              <div className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-circuit border border-circuit/30 px-3 py-1.5 rounded-sm bg-circuit/5">
                 LPU SCA / BRAINSTORM CLUB
               </div>
-              <div className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-slate-500 dark:text-[#71819B] border border-slate-200 dark:border-[#26344D] px-3 py-1.5 rounded-sm bg-white dark:bg-[#111A2D]">
+              <div className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-ink-soft border border-border px-3 py-1.5 rounded-sm bg-paper">
                 MEMBERSHIP / REGISTRATION
               </div>
             </div>
             
-            <h1 className="font-heading font-black text-[clamp(3rem,6vw,5rem)] leading-[0.95] tracking-tighter text-slate-900 dark:text-[#F8FAFC] mb-8 uppercase">
-              JOIN THE <br/>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-brand-secondary">BRAINSTORM</span><br/>
-              TEAM.
+            <h1 className="font-heading font-black uppercase tracking-tight leading-[0.88] text-ink" style={{ fontSize: 'clamp(3.5rem,10vw,7.5rem)' }}>
+              <span data-register-hero-line className="block">JOIN THE</span>
+              <span data-register-hero-line className="block text-transparent bg-clip-text bg-gradient-to-r from-circuit to-spark">BRAINSTORM</span>
+              <span data-register-hero-line className="block">TEAM.</span>
             </h1>
             
-            <div className="flex items-center gap-4 mb-6">
+            <div data-register-hero-copy className="flex items-center gap-4 my-8">
                  <span className="relative flex h-3 w-3">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-primary opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-brand-primary"></span>
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-circuit opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-circuit"></span>
                  </span>
-                 <span className="font-mono text-[10px] font-bold tracking-widest text-slate-500 dark:text-[#71819B] uppercase">REGISTRATION / OPEN</span>
+                 <span className="font-mono text-[10px] font-bold tracking-widest text-ink-soft uppercase">REGISTRATION / OPEN</span>
             </div>
 
-            <p className="font-body text-lg md:text-xl text-slate-600 dark:text-[#A8B5CC] max-w-2xl font-light leading-relaxed">
+            <p data-register-hero-copy className="font-body text-lg md:text-xl text-ink-soft max-w-2xl font-light leading-relaxed">
               Register as a Brainstorm member and become part of the community building ideas, projects, events and technology at LPU.
             </p>
           </div>
@@ -267,35 +292,39 @@ export default function MemberRegistration() {
       </section>
 
       {/* REGISTRATION FORM AREA */}
-      <section className="py-12 md:py-24 bg-slate-50 dark:bg-[#0D1424]">
-        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]">
-          <div ref={contentRef} className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-24">
+      <section className="py-16 md:py-24 bg-paper-dim border-b border-border px-6 md:px-12 lg:px-20">
+        <div className="mx-auto max-w-7xl">
+          <div ref={contentRef} className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-24" data-reveal="up">
             
             {/* LEFT: INFO & TIMELINE */}
             <div className="col-span-1 lg:col-span-4 flex flex-col gap-12">
               <div className="sticky top-32">
                 
                 <div className="mb-12">
-                  <h3 className="font-heading font-black text-2xl uppercase tracking-tight text-slate-900 dark:text-[#F8FAFC] mb-4">
+                  <h3 className="font-heading font-black text-2xl uppercase tracking-tight text-ink mb-4">
                     BECOME PART OF THE TEAM.
                   </h3>
-                  <p className="font-body text-slate-600 dark:text-[#A8B5CC] font-light leading-relaxed mb-8">
+                  <p className="font-body text-ink-soft font-light leading-relaxed mb-8">
                     Complete your registration to officially join the club. Ensure your registration number is accurate.
                   </p>
                   
-                  <div className="p-6 border border-brand-primary/20 bg-brand-primary/5 rounded-sm flex flex-col gap-2">
-                    <div className="flex items-center gap-2 text-brand-primary font-mono text-[10px] font-bold tracking-widest uppercase">
+                  <div className="p-6 border border-circuit/30 bg-circuit/5 rounded-sm flex flex-col gap-2 relative overflow-hidden">
+                    <div className="absolute inset-0 bg-circuit/5 pointer-events-none"></div>
+                    <div className="flex items-center gap-2 text-circuit font-mono text-[10px] font-bold tracking-widest uppercase relative z-10">
                       <ShieldAlert size={14} /> SECURITY NOTICE
                     </div>
-                    <p className="text-sm font-body text-slate-700 dark:text-[#F8FAFC] font-medium">One registration per student.</p>
-                    <p className="text-xs font-body text-slate-500 dark:text-[#71819B]">Registration number is used to prevent duplicate membership records.</p>
+                    <p className="text-sm font-body text-ink font-medium relative z-10">One registration per student.</p>
+                    <p className="text-xs font-body text-ink-soft relative z-10">Registration number is used to prevent duplicate membership records.</p>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-[#71819B] mb-6">MEMBERSHIP STRUCTURE</h3>
+                  <h3 className="font-mono text-[10px] font-bold tracking-widest uppercase text-ink-soft mb-6 flex items-center gap-3">
+                    <span className="w-6 h-px bg-border"></span>
+                    MEMBERSHIP STRUCTURE
+                  </h3>
                   <div className="flex flex-col gap-4 relative">
-                    <div className="absolute left-[9px] top-4 bottom-4 w-px bg-slate-200 dark:bg-[#26344D]"></div>
+                    <div className="absolute left-[9px] top-4 bottom-4 w-px bg-border"></div>
                     {[
                       { step: '01', title: 'REGISTER', desc: 'Provide your core academic and contact details.' },
                       { step: '02', title: 'VERIFY', desc: 'System verifies registration number uniqueness.' },
@@ -303,12 +332,12 @@ export default function MemberRegistration() {
                       { step: '04', title: 'BUILD TOGETHER', desc: 'Welcome to the Brainstorm club.' }
                     ].map((item, i) => (
                       <div key={i} className="flex items-start gap-6 relative z-10">
-                        <div className="w-[19px] h-[19px] rounded-full bg-slate-50 dark:bg-[#0D1424] border-2 border-brand-primary flex items-center justify-center mt-0.5">
-                           <div className="w-1.5 h-1.5 bg-brand-primary rounded-full"></div>
+                        <div className="w-[19px] h-[19px] rounded-full bg-paper-dim border-2 border-circuit flex items-center justify-center mt-0.5">
+                           <div className="w-1.5 h-1.5 bg-circuit rounded-full"></div>
                         </div>
                         <div className="flex flex-col">
-                          <span className="font-heading font-bold text-slate-900 dark:text-[#F8FAFC] tracking-widest uppercase">{item.step} / {item.title}</span>
-                          <span className="font-body text-sm text-slate-500 dark:text-[#71819B] mt-1">{item.desc}</span>
+                          <span className="font-heading font-bold text-ink tracking-widest uppercase">{item.step} / {item.title}</span>
+                          <span className="font-body text-sm text-ink-soft mt-1">{item.desc}</span>
                         </div>
                       </div>
                     ))}
@@ -323,20 +352,21 @@ export default function MemberRegistration() {
               
               {/* SUCCESS STATE */}
               {formState === 'SUCCESS' && (
-                <div className="w-full bg-white dark:bg-[#111A2D] border border-slate-200 dark:border-[#26344D] p-8 md:p-16 rounded-sm shadow-sm flex flex-col items-center justify-center text-center animate-in fade-in zoom-in duration-500 min-h-[600px]">
-                  <div className="w-20 h-20 rounded-full bg-brand-primary/10 dark:bg-[#151F33] flex items-center justify-center mb-8 text-brand-primary border border-brand-primary/20">
+                <div className="w-full bg-paper border border-circuit/30 p-8 md:p-16 rounded-sm shadow-sys flex flex-col items-center justify-center text-center animate-in fade-in zoom-in duration-500 min-h-[600px] relative overflow-hidden">
+                  <div className="absolute inset-0 bg-circuit/5"></div>
+                  <div className="w-20 h-20 rounded-full bg-circuit/10 flex items-center justify-center mb-8 text-circuit border border-circuit/20 relative z-10">
                     <CheckCircle2 size={40} />
                   </div>
-                  <div className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-brand-primary mb-4">
+                  <div className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-circuit mb-4 relative z-10">
                     REGISTRATION STATUS / ✓ REGISTERED
                   </div>
-                  <h2 className="font-heading font-black text-3xl md:text-4xl uppercase text-slate-900 dark:text-[#F8FAFC] mb-6">
+                  <h2 className="font-heading font-black text-3xl md:text-4xl uppercase text-ink mb-6 relative z-10">
                     WELCOME TO BRAINSTORM.
                   </h2>
-                  <p className="font-body text-lg text-slate-600 dark:text-[#A8B5CC] max-w-md mx-auto mb-12">
+                  <p className="font-body text-lg text-ink-soft max-w-md mx-auto mb-12 relative z-10">
                     Your membership registration has been successfully received. Your details have been added to the Brainstorm member system.
                   </p>
-                  <Link to="/" className="bg-slate-900 dark:bg-brand-primary text-white px-8 py-4 font-mono text-[10px] font-bold tracking-widest uppercase hover:scale-105 transition-transform flex items-center justify-center gap-2 group shadow-xl shadow-brand-primary/10 rounded-sm">
+                  <Link to="/" className="rounded-[10px] bg-spark px-8 py-4 font-medium text-ink transition-transform hover:-translate-y-0.5 flex items-center justify-center gap-2 group shadow-xl shadow-spark/20 relative z-10">
                     BACK TO BRAINSTORM
                     <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                   </Link>
@@ -345,25 +375,26 @@ export default function MemberRegistration() {
 
               {/* DUPLICATE ERROR STATE */}
               {formState === 'DUPLICATE' && (
-                <div className="w-full bg-white dark:bg-[#111A2D] border border-red-200 dark:border-red-900/30 p-8 md:p-16 rounded-sm shadow-sm flex flex-col items-center justify-center text-center animate-in slide-in-from-right duration-500 min-h-[600px]">
-                  <div className="w-20 h-20 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center mb-8 text-red-500 border border-red-200 dark:border-red-500/30">
+                <div className="w-full bg-paper border border-red-200/60 p-8 md:p-16 rounded-sm shadow-sys flex flex-col items-center justify-center text-center animate-in slide-in-from-right duration-500 min-h-[600px] relative overflow-hidden">
+                  <div className="absolute inset-0 bg-red-50/50"></div>
+                  <div className="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center mb-8 text-red-500 border border-red-200/60 relative z-10">
                     <ShieldAlert size={40} />
                   </div>
-                  <div className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-red-500 mb-4">
+                  <div className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-red-500 mb-4 relative z-10">
                     REGISTRATION REJECTED / DUPLICATE
                   </div>
-                  <h2 className="font-heading font-black text-3xl md:text-4xl uppercase text-slate-900 dark:text-[#F8FAFC] mb-6">
+                  <h2 className="font-heading font-black text-3xl md:text-4xl uppercase text-ink mb-6 relative z-10">
                     ALREADY REGISTERED.
                   </h2>
-                  <p className="font-body text-lg text-slate-600 dark:text-[#A8B5CC] max-w-md mx-auto mb-2">
+                  <p className="font-body text-lg text-ink-soft max-w-md mx-auto mb-2 relative z-10">
                     This registration number ({formData.regNo.trim().toUpperCase()}) is already associated with a Brainstorm member.
                   </p>
-                  <p className="font-body text-sm text-slate-500 dark:text-[#71819B] max-w-md mx-auto mb-12">
+                  <p className="font-body text-sm text-ink-soft max-w-md mx-auto mb-12 relative z-10">
                     Each student can have only one membership registration.
                   </p>
                   <button 
                     onClick={() => setFormState('DEFAULT')}
-                    className="bg-slate-100 dark:bg-[#151F33] text-slate-900 dark:text-[#F8FAFC] px-8 py-4 font-mono text-[10px] font-bold tracking-widest uppercase hover:bg-slate-200 dark:hover:bg-[#26344D] transition-colors rounded-sm"
+                    className="rounded-[10px] border border-border bg-paper px-8 py-4 font-medium text-ink transition-colors hover:bg-paper-dim relative z-10"
                   >
                     BACK TO FORM
                   </button>
@@ -372,20 +403,20 @@ export default function MemberRegistration() {
 
               {/* FORM STATE */}
               {(formState === 'DEFAULT' || formState === 'SENDING') && (
-                <div className="w-full bg-white dark:bg-[#111A2D] border border-slate-200 dark:border-[#26344D] p-6 md:p-12 rounded-sm shadow-sm">
+                <div className="w-full bg-paper border border-border p-6 md:p-12 rounded-sm shadow-sys">
                   
-                  <div className="mb-10 pb-6 border-b border-slate-100 dark:border-[#26344D] flex justify-between items-end">
+                  <div className="mb-10 pb-6 border-b border-border flex justify-between items-end">
                     <div>
-                      <h2 className="font-heading font-black text-2xl md:text-3xl uppercase tracking-tight text-slate-900 dark:text-[#F8FAFC] mb-2">
+                      <h2 className="font-heading font-black text-2xl md:text-3xl uppercase tracking-tight text-ink mb-2">
                         MEMBERSHIP APPLICATION
                       </h2>
                     </div>
                   </div>
 
                   {errorMessage && (
-                    <div className="mb-8 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-500/30 flex items-start gap-3 rounded-sm">
+                    <div className="mb-8 p-4 bg-red-50 border border-red-200 flex items-start gap-3 rounded-sm">
                       <AlertCircle className="text-red-500 mt-0.5 flex-shrink-0" size={18} />
-                      <p className="text-sm font-body text-red-700 dark:text-red-400 font-medium">{errorMessage}</p>
+                      <p className="text-sm font-body text-red-700 font-medium">{errorMessage}</p>
                     </div>
                   )}
 
@@ -393,24 +424,24 @@ export default function MemberRegistration() {
                     
                     {/* PERSONAL INFO */}
                     <div className="flex flex-col gap-6">
-                      <h4 className="font-mono text-xs font-bold tracking-widest uppercase text-slate-900 dark:text-[#F8FAFC] border-b border-slate-100 dark:border-[#26344D] pb-3">
+                      <h4 className="font-mono text-xs font-bold tracking-widest uppercase text-ink border-b border-border pb-3">
                         PERSONAL INFORMATION
                       </h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="flex flex-col gap-2">
-                          <label className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-[#71819B]">FULL NAME *</label>
+                          <label className="font-mono text-[10px] font-bold tracking-widest uppercase text-ink-soft">FULL NAME *</label>
                           <input 
                             type="text" name="name" required placeholder="Enter your full name"
                             value={formData.name} onChange={handleInputChange}
-                            className="w-full bg-slate-50 dark:bg-[#080D1A] border border-slate-200 dark:border-[#26344D] px-5 py-4 font-body text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-brand-primary dark:focus:border-[#6366F1] transition-colors rounded-sm placeholder-slate-400 dark:placeholder-[#71819B]"
+                            className="w-full bg-paper-dim border border-border px-5 py-4 font-body text-ink placeholder-ink-soft focus:outline-none focus:border-circuit transition-colors rounded-sm shadow-sys"
                           />
                         </div>
                         <div className="flex flex-col gap-2">
-                          <label className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-[#71819B]">REGISTRATION NUMBER *</label>
+                          <label className="font-mono text-[10px] font-bold tracking-widest uppercase text-ink-soft">REGISTRATION NUMBER *</label>
                           <input 
                             type="text" name="regNo" required placeholder="Enter your registration number"
                             value={formData.regNo} onChange={handleInputChange}
-                            className="w-full bg-slate-50 dark:bg-[#080D1A] border border-slate-200 dark:border-[#26344D] px-5 py-4 font-body text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-brand-primary dark:focus:border-[#6366F1] transition-colors rounded-sm placeholder-slate-400 dark:placeholder-[#71819B]"
+                            className="w-full bg-paper-dim border border-border px-5 py-4 font-body text-ink placeholder-ink-soft focus:outline-none focus:border-circuit transition-colors rounded-sm shadow-sys"
                           />
                         </div>
                       </div>
@@ -418,30 +449,30 @@ export default function MemberRegistration() {
 
                     {/* ACADEMICS */}
                     <div className="flex flex-col gap-6">
-                      <h4 className="font-mono text-xs font-bold tracking-widest uppercase text-slate-900 dark:text-[#F8FAFC] border-b border-slate-100 dark:border-[#26344D] pb-3">
+                      <h4 className="font-mono text-xs font-bold tracking-widest uppercase text-ink border-b border-border pb-3">
                         ACADEMIC INFORMATION
                       </h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="flex flex-col gap-2">
-                          <label className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-[#71819B]">COURSE *</label>
+                          <label className="font-mono text-[10px] font-bold tracking-widest uppercase text-ink-soft">COURSE *</label>
                           <select 
                             name="course" required 
                             value={formData.course} onChange={handleInputChange}
-                            className="w-full bg-slate-50 dark:bg-[#080D1A] border border-slate-200 dark:border-[#26344D] px-5 py-4 font-body text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-brand-primary dark:focus:border-[#6366F1] transition-colors rounded-sm appearance-none cursor-pointer invalid:text-slate-400 dark:invalid:text-[#71819B]"
+                            className="w-full bg-paper-dim border border-border px-5 py-4 font-body text-ink focus:outline-none focus:border-circuit transition-colors rounded-sm appearance-none cursor-pointer invalid:text-ink-soft"
                           >
                             <option value="" disabled hidden>Select your course</option>
-                            <option value="MCA" className="text-slate-900 dark:text-[#F8FAFC]">MCA</option>
-                            <option value="BCA" className="text-slate-900 dark:text-[#F8FAFC]">BCA</option>
-                            <option value="B.Sc IT" className="text-slate-900 dark:text-[#F8FAFC]">B.Sc IT</option>
-                            <option value="M.Sc IT" className="text-slate-900 dark:text-[#F8FAFC]">M.Sc IT</option>
+                            <option value="MCA" className="text-ink">MCA</option>
+                            <option value="BCA" className="text-ink">BCA</option>
+                            <option value="B.Sc IT" className="text-ink">B.Sc IT</option>
+                            <option value="M.Sc IT" className="text-ink">M.Sc IT</option>
                           </select>
                         </div>
                         <div className="flex flex-col gap-2">
-                          <label className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-[#71819B]">SECTION *</label>
+                          <label className="font-mono text-[10px] font-bold tracking-widest uppercase text-ink-soft">SECTION *</label>
                           <input 
                             type="text" name="section" required placeholder="Enter your section"
                             value={formData.section} onChange={handleInputChange}
-                            className="w-full bg-slate-50 dark:bg-[#080D1A] border border-slate-200 dark:border-[#26344D] px-5 py-4 font-body text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-brand-primary dark:focus:border-[#6366F1] transition-colors rounded-sm placeholder-slate-400 dark:placeholder-[#71819B]"
+                            className="w-full bg-paper-dim border border-border px-5 py-4 font-body text-ink placeholder-ink-soft focus:outline-none focus:border-circuit transition-colors rounded-sm shadow-sys"
                           />
                         </div>
                       </div>
@@ -449,41 +480,41 @@ export default function MemberRegistration() {
 
                     {/* CONTACT */}
                     <div className="flex flex-col gap-6">
-                      <h4 className="font-mono text-xs font-bold tracking-widest uppercase text-slate-900 dark:text-[#F8FAFC] border-b border-slate-100 dark:border-[#26344D] pb-3">
+                      <h4 className="font-mono text-xs font-bold tracking-widest uppercase text-ink border-b border-border pb-3">
                         CONTACT INFORMATION
                       </h4>
                       <div className="flex flex-col gap-2">
-                        <label className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-[#71819B]">EMAIL ADDRESS *</label>
+                        <label className="font-mono text-[10px] font-bold tracking-widest uppercase text-ink-soft">EMAIL ADDRESS *</label>
                         <input 
                           type="email" name="email" required placeholder="you@example.com"
                           value={formData.email} onChange={handleInputChange}
-                          className="w-full bg-slate-50 dark:bg-[#080D1A] border border-slate-200 dark:border-[#26344D] px-5 py-4 font-body text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-brand-primary dark:focus:border-[#6366F1] transition-colors rounded-sm placeholder-slate-400 dark:placeholder-[#71819B]"
+                          className="w-full bg-paper-dim border border-border px-5 py-4 font-body text-ink placeholder-ink-soft focus:outline-none focus:border-circuit transition-colors rounded-sm shadow-sys"
                         />
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="flex flex-col gap-2">
-                          <label className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-[#71819B]">PHONE NUMBER *</label>
+                          <label className="font-mono text-[10px] font-bold tracking-widest uppercase text-ink-soft">PHONE NUMBER *</label>
                           <input 
                             type="tel" name="phone" required placeholder="Enter your phone number"
                             value={formData.phone} onChange={handleInputChange}
-                            className="w-full bg-slate-50 dark:bg-[#080D1A] border border-slate-200 dark:border-[#26344D] px-5 py-4 font-body text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-brand-primary dark:focus:border-[#6366F1] transition-colors rounded-sm placeholder-slate-400 dark:placeholder-[#71819B]"
+                            className="w-full bg-paper-dim border border-border px-5 py-4 font-body text-ink placeholder-ink-soft focus:outline-none focus:border-circuit transition-colors rounded-sm shadow-sys"
                           />
                         </div>
                         <div className="flex flex-col gap-2">
                           <div className="flex justify-between items-end">
-                            <label className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-[#71819B]">WHATSAPP NUMBER *</label>
+                            <label className="font-mono text-[10px] font-bold tracking-widest uppercase text-ink-soft">WHATSAPP NUMBER *</label>
                             <label className="flex items-center gap-2 cursor-pointer group">
                               <div className="relative flex items-center justify-center">
                                 <input 
                                   type="checkbox" 
                                   checked={sameAsPhone}
                                   onChange={(e) => setSameAsPhone(e.target.checked)}
-                                  className="appearance-none w-4 h-4 border border-slate-300 dark:border-[#26344D] bg-slate-50 dark:bg-[#080D1A] rounded-[2px] checked:bg-brand-primary checked:border-brand-primary cursor-pointer transition-colors"
+                                  className="appearance-none w-4 h-4 border border-border bg-paper-dim rounded-[2px] checked:bg-circuit checked:border-circuit cursor-pointer transition-colors"
                                 />
-                                {sameAsPhone && <CheckCircle2 size={12} className="absolute text-white pointer-events-none" strokeWidth={4} />}
+                                {sameAsPhone && <CheckCircle2 size={12} className="absolute text-paper pointer-events-none" strokeWidth={4} />}
                               </div>
-                              <span className="font-mono text-[8px] tracking-widest text-slate-500 dark:text-[#71819B] uppercase group-hover:text-slate-700 dark:group-hover:text-[#A8B5CC] transition-colors">Same as phone number</span>
+                              <span className="font-mono text-[8px] tracking-widest text-ink-soft uppercase group-hover:text-ink transition-colors">Same as phone number</span>
                             </label>
                           </div>
                           <input 
@@ -491,7 +522,7 @@ export default function MemberRegistration() {
                             value={formData.whatsapp} 
                             onChange={handleInputChange}
                             readOnly={sameAsPhone}
-                            className={`w-full bg-slate-50 dark:bg-[#080D1A] border border-slate-200 dark:border-[#26344D] px-5 py-4 font-body text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-brand-primary dark:focus:border-[#6366F1] transition-colors rounded-sm placeholder-slate-400 dark:placeholder-[#71819B] ${sameAsPhone ? 'opacity-70 cursor-not-allowed' : ''}`}
+                            className={`w-full bg-paper-dim border border-border px-5 py-4 font-body text-ink placeholder-ink-soft focus:outline-none focus:border-circuit transition-colors rounded-sm shadow-sys ${sameAsPhone ? 'opacity-70 cursor-not-allowed' : ''}`}
                           />
                         </div>
                       </div>
@@ -499,17 +530,17 @@ export default function MemberRegistration() {
 
                     {/* ROLE & PROFILE */}
                     <div className="flex flex-col gap-6">
-                      <h4 className="font-mono text-xs font-bold tracking-widest uppercase text-slate-900 dark:text-[#F8FAFC] border-b border-slate-100 dark:border-[#26344D] pb-3">
+                      <h4 className="font-mono text-xs font-bold tracking-widest uppercase text-ink border-b border-border pb-3">
                         ROLE & PROFILE
                       </h4>
                       <div className="flex flex-col gap-2">
                         <div className="flex justify-between items-end">
-                          <label className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-[#71819B]">ROLE *</label>
-                          <span className="font-mono text-[8px] tracking-widest text-slate-400 dark:text-[#71819B] uppercase">Leadership roles assigned by admin</span>
+                          <label className="font-mono text-[10px] font-bold tracking-widest uppercase text-ink-soft">ROLE *</label>
+                          <span className="font-mono text-[8px] tracking-widest text-ink-soft uppercase">Leadership roles assigned by admin</span>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           {PUBLIC_ROLES.map(r => (
-                            <label key={r} className={`flex items-center gap-3 p-4 border rounded-sm cursor-pointer transition-colors ${formData.role === r ? 'border-brand-primary bg-brand-primary/5 dark:bg-[#151F33]' : 'border-slate-200 dark:border-[#26344D] bg-slate-50 dark:bg-[#080D1A] hover:border-brand-primary/50 dark:hover:border-[#6366F1]/50'}`}>
+                            <label key={r} className={`flex items-center gap-3 p-4 border rounded-sm cursor-pointer transition-colors ${formData.role === r ? 'border-circuit bg-circuit/5' : 'border-border bg-paper-dim hover:border-circuit/50'}`}>
                               <div className="relative flex items-center justify-center">
                                 <input 
                                   type="radio" 
@@ -517,11 +548,11 @@ export default function MemberRegistration() {
                                   value={r}
                                   checked={formData.role === r}
                                   onChange={handleInputChange}
-                                  className="appearance-none w-4 h-4 border border-slate-300 dark:border-[#26344D] rounded-full checked:border-brand-primary transition-colors"
+                                  className="appearance-none w-4 h-4 border border-border rounded-full checked:border-circuit transition-colors"
                                 />
-                                {formData.role === r && <div className="absolute w-2 h-2 rounded-full bg-brand-primary pointer-events-none" />}
+                                {formData.role === r && <div className="absolute w-2 h-2 rounded-full bg-circuit pointer-events-none" />}
                               </div>
-                              <span className={`font-body text-sm font-medium ${formData.role === r ? 'text-slate-900 dark:text-[#F8FAFC]' : 'text-slate-600 dark:text-[#A8B5CC]'}`}>{r}</span>
+                              <span className={`font-body text-sm font-medium ${formData.role === r ? 'text-ink' : 'text-ink-soft'}`}>{r}</span>
                             </label>
                           ))}
                         </div>
@@ -529,12 +560,12 @@ export default function MemberRegistration() {
 
                       {/* Image Upload */}
                       <div className="flex flex-col gap-2 mt-4">
-                        <label className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-[#71819B]">PROFILE IMAGE * (PNG, JPG, HEIC)</label>
+                        <label className="font-mono text-[10px] font-bold tracking-widest uppercase text-ink-soft">PROFILE IMAGE * (PNG, JPG, HEIC)</label>
                         
                         {!imagePreview ? (
                           <div 
                             onClick={() => fileInputRef.current?.click()}
-                            className="relative w-full border-2 border-dashed border-slate-300 dark:border-[#26344D] bg-slate-50 dark:bg-[#080D1A] hover:bg-slate-100 dark:hover:bg-[#151F33] hover:border-brand-primary/50 dark:hover:border-[#6366F1]/50 transition-all rounded-sm flex flex-col items-center justify-center p-12 group cursor-pointer"
+                            className="relative w-full border-2 border-dashed border-border bg-paper-dim hover:bg-paper hover:border-circuit/50 transition-all rounded-sm flex flex-col items-center justify-center p-12 group cursor-pointer"
                           >
                             <input 
                               ref={fileInputRef}
@@ -543,17 +574,17 @@ export default function MemberRegistration() {
                               onChange={handleImageUpload}
                               className="hidden" 
                             />
-                            <div className="w-12 h-12 rounded-full bg-brand-primary/10 dark:bg-[#151F33] flex items-center justify-center text-brand-primary mb-4 group-hover:scale-110 transition-transform">
+                            <div className="w-12 h-12 rounded-full bg-circuit/10 flex items-center justify-center text-circuit mb-4 group-hover:scale-110 transition-transform">
                               {imageProcessing ? (
-                                 <div className="w-5 h-5 border-2 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
+                                 <div className="w-5 h-5 border-2 border-circuit border-t-transparent rounded-full animate-spin"></div>
                               ) : (
                                  <Upload size={20} />
                               )}
                             </div>
-                            <span className="font-heading font-bold text-slate-900 dark:text-[#F8FAFC] mb-2 text-center">
+                            <span className="font-heading font-bold text-ink mb-2 text-center">
                               {imageProcessing ? 'PROCESSING...' : 'CHOOSE PHOTO & ADJUST CROP'}
                             </span>
-                            <span className="font-mono text-[10px] text-slate-500 dark:text-[#71819B] tracking-widest uppercase text-center">
+                            <span className="font-mono text-[10px] text-ink-soft tracking-widest uppercase text-center">
                               PNG · JPG · HEIC · Max 5 MB (Auto-cropped to 4:5 Card Ratio)
                             </span>
                             
@@ -564,7 +595,7 @@ export default function MemberRegistration() {
                             )}
                           </div>
                         ) : (
-                          <div className="w-full border border-slate-200 dark:border-[#26344D] bg-slate-50 dark:bg-[#080D1A] p-4 flex items-center gap-4 rounded-sm relative group overflow-hidden">
+                          <div className="w-full border border-border bg-paper-dim p-4 flex items-center gap-4 rounded-sm relative group overflow-hidden">
                             <input 
                               ref={fileInputRef}
                               type="file" 
@@ -572,14 +603,14 @@ export default function MemberRegistration() {
                               onChange={handleImageUpload}
                               className="hidden" 
                             />
-                            <div className="w-16 h-20 aspect-[4/5] rounded-sm overflow-hidden bg-slate-200 dark:bg-[#151F33] flex-shrink-0 border border-slate-300 dark:border-slate-700">
+                            <div className="w-16 h-20 aspect-[4/5] rounded-sm overflow-hidden bg-paper flex-shrink-0 border border-border">
                               <img src={imagePreview} alt="Crop Preview" className="w-full h-full object-cover" />
                             </div>
                             <div className="flex flex-col flex-grow min-w-0 pr-8">
-                              <span className="font-body text-sm font-bold text-slate-900 dark:text-[#F8FAFC] truncate">
+                              <span className="font-body text-sm font-bold text-ink truncate">
                                 {formData.profileImage?.name || 'profile.jpg'}
                               </span>
-                              <span className="font-mono text-[10px] text-emerald-600 dark:text-emerald-400 tracking-widest uppercase mt-1 flex items-center gap-1.5 font-bold">
+                              <span className="font-mono text-[10px] text-emerald-600 tracking-widest uppercase mt-1 flex items-center gap-1.5 font-bold">
                                 <CheckCircle2 size={11} />
                                 CROPPED & READY ({(formData.profileImage.size / (1024 * 1024)).toFixed(2)} MB)
                               </span>
@@ -587,16 +618,16 @@ export default function MemberRegistration() {
                                 <button
                                   type="button"
                                   onClick={() => setCropModalOpen(true)}
-                                  className="font-mono text-[10px] font-bold text-brand-primary hover:underline uppercase flex items-center gap-1"
+                                  className="font-mono text-[10px] font-bold text-circuit hover:underline uppercase flex items-center gap-1"
                                 >
                                   <Crop size={12} />
                                   Adjust Crop
                                 </button>
-                                <span className="text-slate-300 dark:text-slate-700">•</span>
+                                <span className="text-border">•</span>
                                 <button
                                   type="button"
                                   onClick={() => fileInputRef.current?.click()}
-                                  className="font-mono text-[10px] font-bold text-slate-500 hover:text-slate-900 dark:hover:text-white uppercase"
+                                  className="font-mono text-[10px] font-bold text-ink-soft hover:text-ink uppercase"
                                 >
                                   Change Photo
                                 </button>
@@ -616,15 +647,15 @@ export default function MemberRegistration() {
                     </div>
 
                     {/* Submit */}
-                    <div className="pt-6 mt-4 border-t border-slate-100 dark:border-[#26344D]">
+                    <div className="pt-6 mt-4 border-t border-border">
                       <button 
                         type="submit"
                         disabled={formState === 'SENDING' || imageProcessing}
-                        className="w-full bg-slate-900 dark:bg-brand-primary text-white px-10 py-5 font-heading font-semibold text-sm tracking-widest uppercase hover:scale-[1.01] transition-transform flex items-center justify-center gap-2 group shadow-xl shadow-brand-primary/10 disabled:opacity-70 disabled:scale-100 rounded-sm"
+                        className="w-full rounded-[10px] bg-spark px-10 py-5 font-medium text-ink transition-transform hover:-translate-y-0.5 flex items-center justify-center gap-2 group shadow-xl shadow-spark/20 disabled:opacity-70 disabled:translate-y-0"
                       >
                         {formState === 'SENDING' ? (
                           <div className="flex items-center gap-3">
-                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                             <div className="w-4 h-4 border-2 border-ink border-t-transparent rounded-full animate-spin"></div>
                              SUBMITTING...
                           </div>
                         ) : (
@@ -657,9 +688,7 @@ export default function MemberRegistration() {
         title="Adjust Profile Photo"
       />
 
-      <div className="dark:bg-[#050914] dark:border-t dark:border-[#26344D]">
-        <Footer />
-      </div>
+      <Footer />
     </div>
   );
 }

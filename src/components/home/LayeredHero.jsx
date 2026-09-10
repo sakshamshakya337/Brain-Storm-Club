@@ -72,7 +72,7 @@ export default function LayeredHero() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-6">
-              <Link to="/ideas" className="group flex items-center justify-center gap-2 bg-slate-900 text-white px-8 py-4 font-mono text-xs font-bold tracking-widest uppercase hover:bg-indigo-600 transition-colors">
+              <Link to="/ideas" className="group flex items-center justify-center gap-2 bg-spark text-ink px-8 py-4 font-mono text-xs font-bold tracking-widest uppercase hover:bg-spark-soft transition-colors shadow-xl shadow-spark/20 hover:-translate-y-0.5">
                 SUBMIT AN IDEA
                 <ArrowUpRight size={14} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
               </Link>

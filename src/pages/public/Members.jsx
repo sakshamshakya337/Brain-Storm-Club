@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import { Search, Filter, ArrowRight } from 'lucide-react';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useGSAP } from '@gsap/react';
 import Footer from '../../components/layout/Footer';
 import ProtectedImage from '../../components/common/ProtectedImage';
-import { usePageReveal } from '../../hooks/usePageReveal';
-import { useScrollReveal } from '../../hooks/useScrollReveal';
+
+gsap.registerPlugin(ScrollTrigger);
 
 // ─── Role Configuration ────────────────────────────────────────────────────────
 // ─── Domain & Lead Configuration ──────────────────────────────────────────────
@@ -348,17 +351,19 @@ const groupAndRankMembers = (members) => {
   return domainSections;
 };
 
+const FILTERS = ['ALL', ...DOMAIN_ORDER];
+
 // ─── Shared Upper Image Role Tag Component ─────────────────────────────────────
 function MemberRoleOverlay({ role }) {
   if (!role) return null;
 
   return (
-    <div className="absolute top-2.5 left-2.5 z-30 max-w-[calc(100%-20px)] pointer-events-none select-none">
+    <div className="absolute top-3 left-3 z-30 max-w-[calc(100%-24px)] pointer-events-none select-none">
       <span
-        className="inline-flex items-center gap-1.5 font-mono text-[9px] sm:text-[10px] font-extrabold tracking-wider uppercase text-white px-2.5 py-1 rounded-sm shadow-md border border-slate-700/60 dark:border-white/20"
-        style={{ backgroundColor: '#0a0f1e' }}
+        className="inline-flex items-center gap-1.5 font-mono text-[9px] font-extrabold tracking-[0.2em] uppercase text-white px-2.5 py-1 shadow-sm backdrop-blur-md border border-white/15"
+        style={{ backgroundColor: 'rgba(10,15,30,0.82)' }}
       >
-        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 animate-pulse shadow-sm shadow-emerald-400/50" />
+        <span className="w-1.5 h-1.5 rounded-full bg-[var(--spark)] shrink-0 animate-pulse shadow-sm shadow-[var(--spark-glow)]" />
         <span className="truncate">{role}</span>
       </span>
     </div>
@@ -372,55 +377,62 @@ function FeaturedMemberCard({ member, isSolo = false, leadBadge }) {
   const showTag = shouldShowTag(member);
 
   return (
-    <div
-      className={`bg-white dark:bg-slate-900 border-2 border-brand-primary/40 dark:border-brand-primary/30 flex flex-col group hover:border-brand-primary dark:hover:border-brand-primary transition-all duration-500 shadow-lg dark:shadow-2xl dark:shadow-brand-primary/5 rounded-sm relative overflow-hidden w-full sm:max-w-[310px] md:max-w-[330px] ${
-        isSolo ? 'sm:mx-auto lg:mx-0' : ''
-      }`}
-    >
-      {/* Top Banner Accent */}
-      <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-brand-secondary via-brand-primary to-brand-secondary z-20" />
+    <div className={`bg-[var(--paper)] border border-[var(--border)] flex flex-col group hover:border-[var(--circuit)] transition-all duration-500 relative overflow-hidden w-full ${isSolo ? 'sm:mx-auto lg:mx-0' : ''}`}>
+      {/* Thin top editorial accent */}
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-[var(--spark)] via-[var(--circuit)] to-[var(--spark)] z-20" />
 
-      {/* Subtle Background Glow on Hover */}
-      <div className="absolute inset-0 bg-gradient-to-br from-brand-primary/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10" />
+      {/* Hover ambient glow */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[var(--circuit)]/8 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none z-10" />
 
-      {/* Image Block (aspect 4/5) */}
-      <div className="relative z-10 w-full aspect-[4/5] overflow-hidden bg-slate-100 dark:bg-slate-950">
+      {/* Image Block (aspect 4/5) — edge-to-edge object-cover */}
+      <div className="relative z-10 w-full aspect-[4/5] overflow-hidden bg-[var(--paper-dim)] border-b border-[var(--border)] m-0 p-0">
         <ProtectedImage
           imageId={imageId}
           variant="member_card"
           alt={member.fullName}
-          className="w-full h-full object-cover object-center opacity-90 group-hover:scale-[1.03] transition-all duration-700"
+          className="w-full h-full m-0 object-cover object-top"
+          style={{ width: '100%', height: '100%' }}
         />
 
-        {/* Upper Image Role / Status Tag */}
+        {/* Readability vignette — overlay only, no spacing */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[var(--ink)]/18 via-transparent to-[var(--ink)]/8 z-20 pointer-events-none p-0 m-0" />
+
         {showTag && <MemberRoleOverlay role={displayBadge} />}
+
+        {/* Bottom-right index-style accent */}
+        <div className="absolute bottom-3 right-3 z-30 p-0 m-0">
+          <span className="font-mono text-[10px] font-bold tracking-[0.2em] text-white mix-blend-difference opacity-60">
+            {isSolo ? '01' : 'HL'}
+          </span>
+        </div>
       </div>
 
       {/* Content Block */}
-      <div className="relative z-10 flex flex-col flex-grow p-4 sm:p-5">
-        <div className="flex items-center justify-between gap-2 mb-1.5">
-          <span className="font-mono text-[10px] font-bold tracking-widest uppercase text-brand-secondary bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-2 py-0.5 inline-block">
+      <div className="relative z-10 flex flex-col flex-grow p-6 md:p-7">
+        <div className="flex items-center justify-between gap-2 mb-2.5">
+          <span className="font-mono text-[10px] font-bold tracking-[0.2em] uppercase text-[var(--spark)] bg-[var(--paper-dim)] border border-[var(--border)] px-2.5 py-1 inline-block">
             {member.role || leadBadge || 'Domain Lead'}
           </span>
         </div>
 
-        <h3 className="font-heading font-black text-xl sm:text-2xl uppercase tracking-tight text-slate-900 dark:text-white mb-1.5 group-hover:text-brand-primary transition-colors leading-tight">
+        <h3 className="font-heading font-black text-2xl md:text-[26px] uppercase tracking-tight text-[var(--ink)] group-hover:text-[var(--circuit)] transition-colors mb-2 leading-[1.02]">
           {member.fullName}
         </h3>
 
         {member.memberType === 'faculty' ? (
-          <span className="font-body text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-light">
+          <span className="font-body text-sm text-[var(--ink-soft)] font-light leading-snug">
             {member.designation
               ? member.department
-                ? `${member.designation} • ${member.department}`
+                ? `${member.designation} \u2022 ${member.department}`
                 : member.designation
               : member.department || 'Faculty Mentor'}
           </span>
         ) : (
           member.course && (
-            <span className="font-body text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-light">
+            <span className="font-body text-sm text-[var(--ink-soft)] font-light leading-snug">
               {member.course}
-              {member.section ? ` • Sec ${member.section}` : ''}
+              {member.section ? ` \u2022 Sec ${member.section}` : ''}
+              {member.year ? ` \u2022 ${member.year}` : ''}
             </span>
           )
         )}
@@ -436,39 +448,43 @@ function SupportingMemberCard({ member }) {
   const showTag = shouldShowTag(member);
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col group hover:border-brand-primary/60 dark:hover:bg-slate-900/90 transition-all duration-300 shadow-sm dark:shadow-none rounded-sm relative overflow-hidden w-full sm:max-w-[240px]">
-      <div className="absolute inset-0 bg-gradient-to-br from-brand-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10" />
+    <div className="bg-[var(--paper)] border border-[var(--border)] flex flex-col group hover:border-[var(--circuit)] transition-all duration-400 relative overflow-hidden w-full">
+      <div className="absolute inset-0 bg-gradient-to-br from-[var(--circuit)]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-400 pointer-events-none z-10" />
 
-      {/* Image Block */}
-      <div className="relative z-10 w-full aspect-[4/5] overflow-hidden bg-slate-100 dark:bg-slate-950">
+      {/* Image Block — edge-to-edge object-cover, zero internal spacing */}
+      <div className="relative z-10 w-full aspect-[4/5] overflow-hidden bg-[var(--paper-dim)] border-b border-[var(--border)] m-0 p-0">
         <ProtectedImage
           imageId={imageId}
           variant="member_card"
           alt={member.fullName}
-          className="w-full h-full object-cover object-center opacity-80 group-hover:scale-[1.04] transition-all duration-500"
+          className="w-full h-full m-0 object-cover object-top"
+          style={{ width: '100%', height: '100%' }}
         />
+        {/* Subtle vignette overlay — no spacing */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[var(--ink)]/15 via-transparent to-[var(--ink)]/6 z-20 pointer-events-none p-0 m-0" />
 
-        {/* Upper Image Role / Status Tag */}
         {showTag && <MemberRoleOverlay role={displayBadge} />}
       </div>
 
       {/* Content */}
-      <div className="relative z-10 flex flex-col flex-grow p-2.5 sm:p-3">
-        <span className="font-mono text-[8.5px] sm:text-[9px] font-bold tracking-widest uppercase text-brand-secondary mb-1 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 px-2 py-0.5 inline-block w-max max-w-full truncate">
-          {member.role || 'Member'}
-        </span>
-        <h4 className="font-heading font-bold text-sm sm:text-base uppercase tracking-tight text-slate-900 dark:text-white mb-0.5 group-hover:text-brand-primary transition-colors leading-tight truncate">
+      <div className="relative z-10 flex flex-col flex-grow p-4 md:p-5 gap-1.5">
+        <div className="flex items-start justify-between gap-2">
+          <span className="font-mono text-[9.5px] font-bold tracking-[0.2em] uppercase text-[var(--spark)] bg-[var(--paper-dim)] border border-[var(--border)] px-2 py-0.5 inline-block w-max max-w-full truncate">
+            {member.role || 'Member'}
+          </span>
+        </div>
+        <h4 className="font-heading font-bold text-base md:text-lg uppercase tracking-tight text-[var(--ink)] group-hover:text-[var(--circuit)] transition-colors leading-tight truncate">
           {member.fullName}
         </h4>
         {member.memberType === 'faculty' ? (
-          <span className="font-body text-[11px] sm:text-xs font-light text-slate-500 dark:text-slate-400 truncate">
+          <span className="font-body text-[11px] md:text-xs font-light text-[var(--ink-soft)] truncate">
             {member.designation || member.department || 'Faculty'}
           </span>
         ) : (
           member.course && (
-            <span className="font-body text-[11px] sm:text-xs font-light text-slate-500 dark:text-slate-400 truncate">
+            <span className="font-body text-[11px] md:text-xs font-light text-[var(--ink-soft)] truncate">
               {member.course}
-              {member.section ? ` • Sec ${member.section}` : ''}
+              {member.section ? ` \u2022 Sec ${member.section}` : ''}
             </span>
           )
         )}
@@ -479,90 +495,64 @@ function SupportingMemberCard({ member }) {
 
 // ─── Domain Section ────────────────────────────────────────────────────────────
 function DomainSection({ domain, index }) {
-  const sectionRef = useRef(null);
-  useScrollReveal(sectionRef);
-
   const { title, badge, leadBadge, leadMember, supportingMembers, totalCount } = domain;
   const hasLead = !!leadMember;
 
   const countText = `${totalCount} ${totalCount === 1 ? 'Member' : 'Members'}`;
-  const compositionText = hasLead 
-    ? `• 1 Lead${supportingMembers.length > 0 ? ` + ${supportingMembers.length} Supporting` : ''}` 
+  const compositionText = hasLead
+    ? `\u2022 1 Lead${supportingMembers.length > 0 ? ` + ${supportingMembers.length} Supporting` : ''}`
     : '';
 
   return (
-    <div ref={sectionRef} className="mb-16 md:mb-20 last:mb-0">
+    <div className="mb-16 md:mb-20 last:mb-0">
       {/* Section Header */}
-      <div
-        data-reveal="up"
-        className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-slate-200 dark:border-slate-800 pb-4 mb-6 sm:mb-8 gap-3"
-      >
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-[var(--border)] pb-5 mb-7 sm:mb-9 gap-3">
         <div>
-          <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-brand-primary mb-2 flex items-center gap-3">
-            <span className="w-6 h-px bg-brand-primary/50" />
+          <div className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-[var(--circuit)] mb-2.5 flex items-center gap-3">
+            <span className="w-6 h-px bg-[var(--circuit)]/50" />
             <span>{String(index + 1).padStart(2, '0')}</span>
-            <span className="text-slate-300 dark:text-slate-700">/</span>
+            <span className="text-[var(--border)]">/</span>
             <span>{badge}</span>
           </div>
-          <h2 className="font-heading font-black text-3xl sm:text-4xl lg:text-5xl uppercase tracking-tight text-slate-900 dark:text-white">
+          <h2 className="font-heading font-black text-3xl sm:text-4xl lg:text-5xl uppercase tracking-tight text-[var(--ink)] leading-none">
             {title}
           </h2>
         </div>
-        <div className="font-mono text-[10px] tracking-widest text-slate-500 dark:text-slate-400 font-bold uppercase flex items-center gap-2">
+        <div className="font-mono text-[10px] tracking-[0.2em] text-[var(--ink-soft)] font-bold uppercase flex items-center gap-2">
           <span>{countText}</span>
           {compositionText && (
-            <span className="text-brand-primary hidden sm:inline">{compositionText}</span>
+            <span className="text-[var(--circuit)] hidden sm:inline">{compositionText}</span>
           )}
         </div>
       </div>
 
       {!hasLead ? (
-        <div
-          data-reveal="stagger-children"
-          className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 max-w-[1440px]"
-        >
+        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5 max-w-[1500px]">
           {supportingMembers.map((member) => (
-            <div key={member._id || member.id}>
-              <SupportingMemberCard member={member} />
-            </div>
+            <SupportingMemberCard key={member._id || member.id} member={member} />
           ))}
         </div>
       ) : supportingMembers.length === 0 ? (
-        <div data-reveal="up" className="max-w-[320px]">
+        <div className="max-w-[340px]">
           <FeaturedMemberCard member={leadMember} isSolo={true} leadBadge={leadBadge} />
         </div>
       ) : supportingMembers.length === 1 ? (
-        <div
-          data-reveal="up"
-          className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 max-w-[580px] items-start"
-        >
-          <div>
-            <FeaturedMemberCard member={leadMember} leadBadge={leadBadge} />
-          </div>
-          <div>
-            <SupportingMemberCard member={supportingMembers[0]} />
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 max-w-[620px] items-start">
+          <FeaturedMemberCard member={leadMember} leadBadge={leadBadge} />
+          <SupportingMemberCard member={supportingMembers[0]} />
         </div>
       ) : (
-        <div className="flex flex-col lg:grid lg:grid-cols-12 gap-6 lg:gap-8 items-start max-w-[1240px]">
+        <div className="flex flex-col lg:grid lg:grid-cols-12 gap-6 lg:gap-8 items-start max-w-[1280px]">
           {/* Featured Head Card */}
-          <div
-            data-reveal="up"
-            className="w-full lg:col-span-4 xl:col-span-3 lg:sticky lg:top-24 lg:max-w-[320px]"
-          >
+          <div className="w-full lg:col-span-4 xl:col-span-3 lg:sticky lg:top-24 lg:max-w-[340px]">
             <FeaturedMemberCard member={leadMember} leadBadge={leadBadge} />
           </div>
 
           {/* Right: Supporting Members Grid */}
-          <div className="w-full lg:col-span-8 xl:col-span-9 lg:max-w-[900px]">
-            <div
-              data-reveal="stagger-children"
-              className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4"
-            >
+          <div className="w-full lg:col-span-8 xl:col-span-9">
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
               {supportingMembers.map((member) => (
-                <div key={member._id || member.id}>
-                  <SupportingMemberCard member={member} />
-                </div>
+                <SupportingMemberCard key={member._id || member.id} member={member} />
               ))}
             </div>
           </div>
@@ -574,11 +564,15 @@ function DomainSection({ domain, index }) {
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function Members() {
+  const heroRef = useRef(null);
+  const backgroundRef = useRef(null);
   const containerRef = useRef(null);
   const [members, setMembers] = useState([]);
-  const [groupedDomains, setGroupedDomains] = useState([]); // array of domain sections
+  const [groupedDomains, setGroupedDomains] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeFilter, setActiveFilter] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetch('/api/public/members')
@@ -603,87 +597,148 @@ export default function Members() {
       .finally(() => setIsLoading(false));
   }, []);
 
-  usePageReveal(containerRef);
-  useScrollReveal(containerRef, [groupedDomains.length]);
+  // ─── GSAP Hero Motion Pipeline (matches Home + Events pattern) ────────────────
+  useGSAP(() => {
+    if (!heroRef.current) return undefined;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const lowPower = window.innerWidth < 768 || (navigator.hardwareConcurrency || 8) <= 4;
+    const ctx = gsap.context(() => {
+      const intro = !reduced ? gsap.timeline()
+        .from(backgroundRef.current, { opacity: 0, scale: 1.025, duration: .7, clearProps: 'all' }, .1)
+        .from('[data-members-hero-line]', { opacity: 0, y: 30, duration: .65, stagger: .12, clearProps: 'all' }, .35)
+        .from('[data-members-hero-copy]', { opacity: 0, y: 12, duration: .45, stagger: .08, clearProps: 'all' }, .85)
+        .from('[data-members-hero-preview]', { opacity: 0, y: 20, duration: .6, ease: 'power2.out', clearProps: 'all' }, 1.0)
+        : null;
+      const electric = !reduced ? gsap.timeline({ repeat: -1 })
+        .to('.electric-trace', { strokeDashoffset: -192, duration: 2.8, ease: 'none', stagger: .45 }, 0)
+        .to('.electric-trace-reverse', { strokeDashoffset: 192, duration: 3.2, ease: 'none', stagger: .45 }, 0) : null;
+      const visibility = () => { [intro, electric].filter(Boolean).forEach(a => document.hidden ? a.pause() : a.play()); };
+      document.addEventListener('visibilitychange', visibility);
+      if (!reduced && !lowPower) {
+        gsap.to(backgroundRef.current, { yPercent: 9, ease: 'none', scrollTrigger: { trigger: heroRef.current, start: 'top top', end: 'bottom top', scrub: true } });
+        const move = event => { const x = (event.clientX / window.innerWidth - .5) * 2, y = (event.clientY / window.innerHeight - .5) * 2; gsap.to(backgroundRef.current, { x: x * 8, y: y * 5, overwrite: 'auto', duration: .7 }); };
+        window.addEventListener('pointermove', move, { passive: true });
+        return () => { document.removeEventListener('visibilitychange', visibility); window.removeEventListener('pointermove', move); };
+      }
+      return () => document.removeEventListener('visibilitychange', visibility);
+    }, heroRef);
+    return () => ctx.revert();
+  }, { scope: heroRef });
 
   // Hero preview members (first 4 approved members)
   const previewMembers = members.slice(0, 4);
 
+  // Filter + search logic — operates on already-grouped domains
+  const matchMember = (m) => {
+    const q = searchQuery.toLowerCase();
+    if (q && !m.fullName?.toLowerCase().includes(q) && !m.role?.toLowerCase().includes(q) && !m.department?.toLowerCase().includes(q) && !m.course?.toLowerCase().includes(q)) return false;
+    if (activeFilter === 'ALL') return true;
+    return resolveMemberDomain(m) === activeFilter;
+  };
+
+  const filteredDomains = activeFilter === 'ALL' && !searchQuery
+    ? groupedDomains
+    : groupedDomains
+        .map(sec => {
+          const filteredLead = sec.leadMember && matchMember(sec.leadMember) ? sec.leadMember : null;
+          const filteredSupporting = sec.supportingMembers.filter(matchMember);
+          // If filter hits supporting lead-matching, promote top match
+          let lead = filteredLead;
+          let supporting = filteredSupporting;
+          if (!lead && activeFilter !== 'ALL' && filteredSupporting.length > 0) {
+            const withTag = filteredSupporting.find(shouldShowTag);
+            if (withTag) { lead = withTag; supporting = filteredSupporting.filter(m => m !== withTag); }
+          }
+          return { ...sec, leadMember: lead, supportingMembers: supporting, totalCount: (lead ? 1 : 0) + supporting.length };
+        })
+        .filter(sec => sec.leadMember || sec.supportingMembers.length > 0);
+
+  const visibleCount = filteredDomains.reduce((acc, s) => acc + s.totalCount, 0);
+
   return (
-    <div ref={containerRef} className="w-full bg-white dark:bg-slate-950 min-h-screen text-slate-900 dark:text-slate-300 font-body">
+    <div ref={containerRef} className="w-full bg-[var(--paper)] min-h-screen font-body text-[var(--ink)]">
 
-      {/* ── HERO SECTION ── */}
-      <section className="relative min-h-[60svh] md:min-h-[75svh] flex items-center pt-6 md:pt-10 pb-20 overflow-hidden border-b border-slate-200 dark:border-slate-800">
-        <div
-          className="absolute inset-0 z-0 opacity-[0.02] dark:opacity-[0.04] pointer-events-none"
-          style={{
-            backgroundImage:
-              'linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)',
-            backgroundSize: '64px 64px',
-          }}
-        />
+      {/* ── HERO ── */}
+      <section ref={heroRef} className="relative isolate border-b border-[var(--border)] bg-[var(--paper)] overflow-hidden px-6 pb-16 pt-20 md:px-12 lg:px-20" style={{ minHeight: 'min(680px,84svh)' }}>
+        {/* Circuit horizon background image — matches Home/Events treatment */}
+        <div ref={backgroundRef} className="absolute inset-0 -z-20 overflow-hidden pointer-events-none">
+          <img src="/circuit-horizon.png" alt="" className="h-full w-full object-cover object-bottom opacity-28" />
+        </div>
+        {/* Gradient fade overlay — 15%/65%/100% stop pattern */}
+        <div className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,var(--paper)_15%,transparent_65%,var(--paper)_100%)] pointer-events-none" />
+        {/* Electric trace lines — matches Events.jsx SVG pattern */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-70 z-0" aria-hidden="true" viewBox="0 0 1440 400" preserveAspectRatio="none">
+          <path d="M0 80 H200 L260 130 H500 L560 70 H780 L840 120 H1080 L1140 60 H1440" fill="none" stroke="var(--circuit)" strokeWidth="1.2" strokeDasharray="8 36" className="electric-trace-reverse" />
+          <path d="M0 320 H180 L240 270 H460 L520 340 H740 L800 280 H1020 L1080 350 H1440" fill="none" stroke="var(--spark)" strokeWidth="1" strokeDasharray="6 42" className="electric-trace" />
+        </svg>
 
-        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px] relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+        <div className="relative z-10 mx-auto max-w-7xl grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8 items-center py-12 md:py-20">
+          {/* Left — headline + copy */}
+          <div className="col-span-1 lg:col-span-7 flex flex-col items-start">
+            <p data-members-hero-copy className="font-mono text-[10px] font-bold tracking-[0.35em] uppercase text-[var(--circuit)] mb-6">LPU SCA / Brainstorm Club</p>
+            <h1 className="font-heading font-black uppercase tracking-tight leading-[0.88] text-[var(--ink)]" style={{ fontSize: 'clamp(3.5rem,10vw,7.5rem)' }}>
+              <span data-members-hero-line className="block">Meet The</span>
+              <span data-members-hero-line className="block text-transparent bg-clip-text bg-gradient-to-r from-circuit to-spark">Minds</span>
+              <span data-members-hero-line className="block">Behind</span>
+              <span data-members-hero-line className="block">Brainstorm.</span>
+            </h1>
+            <p data-members-hero-copy className="mt-8 max-w-xl font-body text-lg text-[var(--ink-soft)] leading-relaxed">
+              Students, mentors and leaders who turn curiosity into experiments, and ideas into impact. A dedicated hierarchy ensuring continuous innovation across every discipline.
+            </p>
+          </div>
 
-            {/* Left — text */}
-            <div className="col-span-1 lg:col-span-6 flex flex-col items-start">
-              <div className="reveal-eyebrow font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-brand-primary mb-8 border border-brand-primary/30 px-3 py-1.5 rounded-sm bg-brand-primary/5 flex gap-4">
-                <span>LPU SCA</span>
-                <span className="text-slate-400">/</span>
-                <span>BRAINSTORM CLUB</span>
-              </div>
+          {/* Right — hero preview editorial frame */}
+          <div data-members-hero-preview className="col-span-1 lg:col-span-5 relative w-full flex items-center justify-center">
+            <div className="relative w-full max-w-[480px] aspect-[4/5] md:aspect-[5/6] border border-[var(--border)] bg-[var(--paper-dim)] overflow-hidden">
+              {/* Frame ambient */}
+              <div className="absolute inset-0 bg-[linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] bg-[size:40px_40px] opacity-40" />
+              <div className="absolute inset-0 bg-gradient-to-br from-[var(--circuit)]/5 via-transparent to-[var(--spark)]/5" />
 
-              <h1 className="font-heading font-black text-[clamp(2.5rem,10vw,6rem)] leading-[0.9] tracking-tighter text-slate-900 dark:text-white mb-8 uppercase flex flex-col">
-                <span className="overflow-hidden"><span className="reveal-heading-line block">MEET THE</span></span>
-                <span className="overflow-hidden"><span className="reveal-heading-line block text-transparent bg-clip-text bg-gradient-to-r from-brand-secondary to-brand-primary">
-                  MINDS
-                </span></span>
-                <span className="overflow-hidden"><span className="reveal-heading-line block">BEHIND</span></span>
-                <span className="overflow-hidden pb-4"><span className="reveal-heading-line block">BRAINSTORM.</span></span>
-              </h1>
+              {/* Corner brackets — editorial */}
+              <div className="absolute top-3 left-3 w-5 h-5 border-l border-t border-[var(--circuit)]/70 z-30" />
+              <div className="absolute top-3 right-3 w-5 h-5 border-r border-t border-[var(--circuit)]/70 z-30" />
+              <div className="absolute bottom-3 left-3 w-5 h-5 border-l border-b border-[var(--spark)]/60 z-30" />
+              <div className="absolute bottom-3 right-3 w-5 h-5 border-r border-b border-[var(--spark)]/60 z-30" />
 
-              <p className="reveal-text font-body text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-xl font-light leading-relaxed">
-                Meet the students, mentors and leaders who turn curiosity into experiments, and ideas into impact. A dedicated hierarchy ensuring continuous innovation.
-              </p>
-            </div>
-
-            {/* Right — preview grid */}
-            <div className="reveal-image col-span-1 lg:col-span-6 relative h-[400px] lg:h-[500px] w-full flex items-center justify-center p-6 lg:p-12">
-              <div className="absolute inset-0 border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30 overflow-hidden rounded-sm flex items-center justify-center">
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:40px_40px] opacity-30" />
-                <div className="relative z-10 w-full max-w-md p-8 grid grid-cols-2 gap-4">
-                  {previewMembers.length > 0
-                    ? previewMembers.map((member, i) => (
-                        <div
-                          key={member._id || i}
-                          className="aspect-square border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 flex items-center justify-center relative overflow-hidden group shadow-sm"
-                        >
-                          <ProtectedImage
-                            imageId={member.photoId?.imageId}
-                            variant="member_card"
-                            alt={member.fullName}
-                            className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-40 group-hover:opacity-80 group-hover:mix-blend-normal transition-all duration-500 group-hover:scale-105"
-                          />
-                          <div className="absolute w-full h-full bg-brand-primary/10 opacity-0 group-hover:opacity-100 transition-opacity mix-blend-overlay" />
-                          <div className="absolute bottom-2 left-2 right-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border border-slate-200 dark:border-slate-700 px-2 py-1 flex justify-between items-center z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-y-2 group-hover:translate-y-0">
-                            <span className="font-mono text-[8px] font-bold text-slate-900 dark:text-white uppercase truncate">
-                              {member.fullName}
-                            </span>
-                            <span className="font-mono text-[8px] text-brand-primary font-bold">
-                              0{i + 1}
-                            </span>
-                          </div>
-                        </div>
-                      ))
-                    : // Skeleton placeholders while loading
-                      Array.from({ length: 4 }).map((_, i) => (
-                        <div
-                          key={i}
-                          className="aspect-square border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 animate-pulse"
+              {/* Grid of preview portraits */}
+              <div className="relative z-10 w-full h-full p-6 md:p-8 grid grid-cols-2 gap-3 md:gap-4">
+                {previewMembers.length > 0
+                  ? previewMembers.map((member, i) => (
+                      <div
+                        key={member._id || i}
+                        className="aspect-[4/5] border border-[var(--border)] bg-[var(--paper)] flex items-center justify-center relative overflow-hidden group shadow-sm"
+                      >
+                        {/* Dual-layer portraits */}
+                        <ProtectedImage
+                          imageId={member.photoId?.imageId}
+                          variant="member_card"
+                          alt=""
+                          aria-hidden="true"
+                          className="absolute inset-0 w-full h-full object-cover blur-md scale-110 opacity-35 pointer-events-none"
                         />
-                      ))}
-                </div>
+                        <ProtectedImage
+                          imageId={member.photoId?.imageId}
+                          variant="member_card"
+                          alt={member.fullName}
+                          className="relative z-10 max-w-[92%] max-h-[92%] w-auto h-auto object-contain drop-shadow-sm opacity-95"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[var(--ink)]/10 via-transparent to-[var(--circuit)]/5 z-20 pointer-events-none" />
+                        <div className="absolute bottom-1.5 left-1.5 right-1.5 bg-[var(--paper)]/92 backdrop-blur-sm border border-[var(--border)] px-2 py-1 flex justify-between items-center z-30">
+                          <span className="font-mono text-[8px] font-bold text-[var(--ink)] uppercase truncate">
+                            {member.fullName}
+                          </span>
+                          <span className="font-mono text-[8px] text-[var(--circuit)] font-bold">
+                            {String(i + 1).padStart(2, '0')}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  : Array.from({ length: 4 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="aspect-[4/5] border border-[var(--border)] bg-[var(--paper-dim)] animate-pulse"
+                      />
+                    ))}
               </div>
             </div>
           </div>
@@ -691,9 +746,9 @@ export default function Members() {
       </section>
 
       {/* ── STATISTICS STRIP ── */}
-      <section className="py-12 bg-slate-900 dark:bg-[#050914] text-white border-b border-slate-800">
-        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4 divide-x-0 md:divide-x divide-slate-800" data-reveal="stagger-children">
+      <section className="py-12 bg-[var(--ink)] text-[var(--paper)] border-b border-[var(--ink)]">
+        <div className="mx-auto max-w-7xl px-6 lg:px-20">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4 divide-x-0 md:divide-x divide-[var(--ink-soft)]/30">
             {[
               { label: 'Active Members', value: members.length.toString().padStart(2, '0') },
               { label: 'Teams', value: groupedDomains.length.toString().padStart(2, '0') },
@@ -701,10 +756,10 @@ export default function Members() {
               { label: 'Events Hosted', value: '20+' },
             ].map((stat, idx) => (
               <div key={idx} className="flex flex-col items-center justify-center text-center px-4">
-                <span className="font-heading font-black text-3xl sm:text-4xl lg:text-5xl uppercase tracking-tighter text-white mb-2">
+                <span className="font-heading font-black text-3xl sm:text-4xl lg:text-5xl uppercase tracking-tighter text-[var(--paper)] mb-2">
                   {stat.value}
                 </span>
-                <span className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-brand-secondary">
+                <span className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-[var(--spark)]">
                   {stat.label}
                 </span>
               </div>
@@ -713,30 +768,67 @@ export default function Members() {
         </div>
       </section>
 
+      {/* ── FILTERS + SEARCH (sticky, matches Events page) ── */}
+      <section className="sticky top-16 z-30 bg-[var(--paper)] border-b border-[var(--border)] px-6 lg:px-20 py-4">
+        <div className="mx-auto max-w-7xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex flex-wrap gap-2 items-center">
+            {FILTERS.map((f, i) => {
+              const badge = i === 0 ? f : DOMAIN_METADATA[f]?.badge || f;
+              return (
+                <button
+                  key={f}
+                  onClick={() => setActiveFilter(f)}
+                  className={`font-mono text-[9px] font-bold tracking-[0.2em] uppercase px-3 py-1.5 border transition-all ${
+                    activeFilter === f
+                      ? 'border-spark bg-spark text-ink'
+                      : 'border-[var(--border)] text-[var(--ink-soft)] hover:border-[var(--circuit)] hover:text-[var(--ink)]'
+                  }`}
+                >
+                  {badge}
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="font-mono text-[9px] tracking-[0.2em] font-bold uppercase text-[var(--ink-soft)] border border-[var(--border)] px-2.5 py-1.5 whitespace-nowrap">
+              {visibleCount} SHOWN
+            </div>
+            <div className="relative flex-1 sm:flex-none">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-soft)]" />
+              <input
+                type="text"
+                placeholder="Search members…"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="pl-9 pr-4 py-2 font-mono text-[11px] tracking-wider bg-[var(--paper-dim)] border border-[var(--border)] text-[var(--ink)] placeholder-[var(--ink-soft)] outline-none focus:border-[var(--circuit)] transition-colors w-full sm:w-60"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── DIRECTORY SECTION ── */}
-      <section className="py-24 md:py-32 bg-slate-50 dark:bg-slate-900/20">
-        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]">
+      <section className="px-6 lg:px-20 py-20 bg-[var(--paper-dim)] border-b border-[var(--border)]">
+        <div className="mx-auto max-w-7xl">
 
           {isLoading ? (
             <div className="flex justify-center items-center py-32">
-              <div className="font-mono text-sm tracking-[0.2em] font-bold text-brand-primary uppercase animate-pulse">
+              <div className="font-mono text-sm tracking-[0.2em] font-bold text-[var(--circuit)] uppercase animate-pulse">
                 Loading Directory…
               </div>
             </div>
           ) : error ? (
             <div className="flex justify-center items-center py-32">
-              <div className="font-mono text-sm tracking-[0.2em] font-bold text-red-500 uppercase border border-red-500/20 bg-red-500/5 px-6 py-4 rounded-sm">
+              <div className="font-mono text-sm tracking-[0.2em] font-bold text-red-600 uppercase border border-red-500/20 bg-red-500/5 px-6 py-4">
                 {error}
               </div>
             </div>
-          ) : groupedDomains.length === 0 ? (
-            <div className="flex justify-center items-center py-32">
-              <div className="font-mono text-sm tracking-[0.2em] font-bold text-slate-500 dark:text-slate-400 uppercase">
-                No active members found.
-              </div>
+          ) : filteredDomains.length === 0 ? (
+            <div className="py-20 text-center font-mono text-sm tracking-widest uppercase text-[var(--ink-soft)] border border-[var(--border)] bg-[var(--paper)]">
+              {searchQuery || activeFilter !== 'ALL' ? 'NO MEMBERS MATCH YOUR FILTERS.' : 'NO ACTIVE MEMBERS FOUND.'}
             </div>
           ) : (
-            groupedDomains.map((domain, idx) => (
+            filteredDomains.map((domain, idx) => (
               <DomainSection
                 key={domain.key}
                 domain={domain}
@@ -749,17 +841,18 @@ export default function Members() {
       </section>
 
       {/* ── CTA SECTION ── */}
-      <section className="py-24 md:py-32 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800">
-        <div className="container mx-auto px-6 lg:px-12 max-w-[1440px] text-center flex flex-col items-center" data-reveal="up">
-          <h2 className="font-heading font-black text-4xl md:text-6xl uppercase tracking-tight text-slate-900 dark:text-white mb-6">
+      <section className="px-6 lg:px-20 py-24 md:py-32 bg-[var(--paper)]">
+        <div className="mx-auto max-w-7xl text-center flex flex-col items-center">
+          <p className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-[var(--circuit)] mb-3">Join The Roster</p>
+          <h2 className="font-heading font-black text-4xl md:text-6xl uppercase tracking-tight text-[var(--ink)] mb-6">
             HAVE AN IDEA?
           </h2>
-          <p className="font-body text-lg md:text-xl text-slate-600 dark:text-slate-400 font-light max-w-2xl mb-12">
+          <p className="font-body text-lg md:text-xl text-[var(--ink-soft)] font-light max-w-2xl mb-12">
             Turn your curiosity into something real. The Brainstorm community is always looking for new builders.
           </p>
           <Link
             to="/ideas"
-            className="bg-slate-900 dark:bg-brand-primary text-white px-10 py-5 rounded-full font-mono text-sm font-bold tracking-widest uppercase hover:scale-105 transition-transform flex items-center justify-center gap-2 group shadow-xl shadow-brand-primary/20"
+            className="bg-spark text-ink px-10 py-5 font-mono text-sm font-bold tracking-widest uppercase hover:bg-spark-soft transition-colors flex items-center justify-center gap-2 group shadow-xl shadow-spark/20 hover:-translate-y-0.5"
           >
             SUBMIT AN IDEA
             <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
