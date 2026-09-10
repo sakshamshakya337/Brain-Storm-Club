@@ -8,6 +8,7 @@ import mongoSanitize from 'express-mongo-sanitize';
 import xss from 'xss-clean';
 import cookieParser from 'cookie-parser';
 import mongoose from 'mongoose';
+import { connectDB } from './utils/db.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -166,7 +167,7 @@ app.use((err, req, res, next) => {
 });
 
 // Database Connection
-mongoose.connect(process.env.MONGODB_URI)
+connectDB()
   .then(() => {
     console.log('Connected to MongoDB');
     // ViteExpress binds Vite with Express, serving frontend and backend on same port

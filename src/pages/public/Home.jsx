@@ -1,642 +1,99 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ArrowUpRight, Calendar, Clock, MapPin, ChevronRight, PlayCircle, Users, Lightbulb, Zap, MessageSquare } from 'lucide-react';
+import anime from 'animejs';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
 import Footer from '../../components/layout/Footer';
-import IdeasFlow from '../../components/sections/IdeasFlow';
-import { usePageReveal } from '../../hooks/usePageReveal';
-import { useScrollReveal } from '../../hooks/useScrollReveal';
-import { useMagneticButton } from '../../hooks/useMagneticButton';
-import ProtectedImage from '../../components/common/ProtectedImage';
 
 gsap.registerPlugin(ScrollTrigger);
 
+const events = [
+  { id: 'ideation-workshop', date: '15 Jan 2027', venue: 'Main Hall', title: 'Ideation workshop', description: 'A focused room for turning loose observations into practical event concepts.' },
+  { id: 'tech-talk-ai', date: '05 Feb 2027', venue: 'Auditorium 1', title: 'Tech talk: AI', description: 'A conversation about the tools, people, and questions shaping applied AI.' },
+  { id: 'spring-hackathon', date: '20 Mar 2027', venue: 'Campus Center', title: 'Spring hackathon', description: 'Forty-eight hours to make a useful thing with a team that shares your curiosity.' },
+];
+const nodes = [[5,75,'amber'],[11,83,'blue'],[18,60,'amber'],[25,87,'amber'],[34,70,'blue'],[42,88,'amber'],[53,72,'amber'],[61,84,'blue'],[69,66,'amber'],[77,87,'amber'],[84,59,'blue'],[92,79,'amber']];
+const showcaseImages = [
+  { src: '/workshop.jpg', label: '01 / 04', category: 'Event', title: 'Workshop' },
+  { src: '/session.jpg', label: '02 / 04', category: 'Session', title: 'Brainstorm' },
+  { src: '/build.jpg', label: '03 / 04', category: 'Build', title: 'Projects' },
+  { src: '/meetup.jpg', label: '04 / 04', category: 'Community', title: 'Meetup' },
+];
+const people = [
+  { name: 'Sujal Bhatia', role: 'President', image: '/sujal.png', featured: true },
+  { name: 'Satyam Shakti', role: 'Media head', image: '/satyam.jpeg' },
+  { name: 'Meharjot Singh', role: 'Head coordinator', image: '/Meharjot.jpg' },
+  { name: 'Saksham Shakya', role: 'Technical head', image: '/saksham.png' },
+];
+
+function SparkMotes({ enabled, fieldRef }) {
+  const refs = useRef([]);
+  const motes = useMemo(() => Array.from({ length: 22 }, (_, id) => ({ id, left: 3 + ((id * 37) % 94), size: 2 + ((id * 13) % 5), duration: 6 + ((id * 29) % 9), delay: -((id * 17) % 12), drift: 15 + ((id * 11) % 26) })), []);
+  useEffect(() => {
+    const active = refs.current.filter(Boolean);
+    if (!enabled || !active.length) return undefined;
+    const animations = active.map((element, index) => anime({ targets: element, translateY: ['-12vh', '105vh'], translateX: [0, motes[index].drift, -motes[index].drift, 0], opacity: [0, 0.45 + ((index % 5) * 0.1), 0.4, 0], rotate: [0, index % 2 ? 90 : -90], duration: motes[index].duration * 1000, delay: motes[index].delay * 1000, easing: 'linear', loop: true }));
+    const visibility = () => animations.forEach(item => document.hidden ? item.pause() : item.play());
+    document.addEventListener('visibilitychange', visibility);
+    return () => { document.removeEventListener('visibilitychange', visibility); animations.forEach(item => item.pause()); anime.remove(active); };
+  }, [enabled, motes]);
+  if (!enabled) return <div className="absolute inset-0 bg-[radial-gradient(circle_at_82%_60%,var(--spark-soft),transparent_18%)] opacity-30" />;
+  return <div ref={fieldRef} className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">{motes.map((mote, index) => <span key={mote.id} ref={el => { refs.current[index] = el; }} className="absolute rounded-full bg-[radial-gradient(circle,var(--spark)_0%,var(--spark-soft)_40%,transparent_72%)]" style={{ left: `${mote.left}%`, width: mote.size, height: mote.size, boxShadow: '0 0 10px var(--spark-glow)' }} />)}</div>;
+}
+
 export default function Home() {
-  const containerRef = useRef(null);
-  usePageReveal(containerRef);
-  useScrollReveal(containerRef);
-
-  const ctaRef = useMagneticButton(0.4);
-  const statsSectionRef = useRef(null);
-
-  // Live Members API Integration
-  const [liveMembers, setLiveMembers] = useState([]);
-  const [isMembersLoading, setIsMembersLoading] = useState(true);
-
+  const mainRef = useRef(null), heroRef = useRef(null), backgroundRef = useRef(null), fieldRef = useRef(null), nodeRefs = useRef([]), statsRef = useRef(null), showcaseRef = useRef(null);
+  const [capable, setCapable] = useState(false), [slide, setSlide] = useState(0);
+  useEffect(() => { const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches; const enoughPower = window.innerWidth >= 768 && (navigator.hardwareConcurrency || 8) > 4; setCapable(!reduced && enoughPower); }, []);
   useEffect(() => {
-    let mounted = true;
-    fetch('/api/public/members')
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch');
-        return res.json();
-      })
-      .then((data) => {
-        if (mounted && data.status === 'success') {
-          setLiveMembers(data.data.members || []);
-        }
-      })
-      .catch((err) => console.error('Members fetch error:', err))
-      .finally(() => {
-        if (mounted) setIsMembersLoading(false);
-      });
-    return () => { mounted = false; };
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduced) return undefined;
+    const interval = window.setInterval(() => setSlide(current => (current + 1) % showcaseImages.length), 4500);
+    return () => window.clearInterval(interval);
   }, []);
-
-  const getHomepageMembers = () => {
-    const getRole = (m) => (m.role || '').toLowerCase();
-    
-    // Sort by status to prefer 'approved' or active if duplicates exist (assuming API returns sorted/approved)
-    const members = [...liveMembers];
-
-    const president = members.find(m => {
-      const r = getRole(m);
-      return r === 'president' || (r.includes('president') && !r.includes('vice'));
-    });
-
-    const vp = members.find(m => {
-      const r = getRole(m);
-      return r.includes('vice president') || r === 'vp';
-    });
-
-    const mediaHead = members.find(m => {
-      const r = getRole(m);
-      return r.includes('media head') || r.includes('social media head');
-    });
-
-    const headCoord = members.find(m => {
-      const r = getRole(m);
-      return r.includes('head coord') || r.includes('head coordinator');
-    });
-
-    const techHead = members.find(m => {
-      const r = getRole(m);
-      return r.includes('technical head') || r.includes('tech head') || r.includes('technical lead');
-    });
-
-    return { president, vp, mediaHead, headCoord, techHead };
-  };
-
-  const { president, vp, mediaHead, headCoord, techHead } = getHomepageMembers();
-
-  const supportingSlots = [
-    { roleLabel: 'Vice President', member: vp },
-    { roleLabel: 'Media Head', member: mediaHead },
-    { roleLabel: 'Head Coordinator', member: headCoord },
-    { roleLabel: 'Technical Head', member: techHead }
-  ].filter(slot => slot.member); // Safely omit missing roles
-
-  // Stats Counter Animation
+  useEffect(() => {
+    if (!capable) return undefined;
+    const animations = nodeRefs.current.filter(Boolean).map((node, index) => anime({ targets: node, scale: [0.75, 1.25, 0.8], opacity: [0.3, 1, 0.45], duration: 1500 + ((index * 379) % 1700), delay: (index * 173) % 900, direction: 'alternate', easing: 'easeInOutSine', loop: true }));
+    const visibility = () => animations.forEach(item => document.hidden ? item.pause() : item.play());
+    document.addEventListener('visibilitychange', visibility);
+    return () => { document.removeEventListener('visibilitychange', visibility); animations.forEach(item => item.pause()); anime.remove(nodeRefs.current); };
+  }, [capable]);
   useGSAP(() => {
-    if (!statsSectionRef.current) return;
-
-    const statCards = gsap.utils.toArray('.stat-card', statsSectionRef.current);
-    const statElements = gsap.utils.toArray('.stat-counter', statsSectionRef.current);
-    const statLabels = gsap.utils.toArray('.stat-label', statsSectionRef.current);
-    const statNums = gsap.utils.toArray('.stat-num', statsSectionRef.current);
-    if (!statElements.length) return;
-
-    // Respect prefers-reduced-motion: skip animation, show final values
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReducedMotion) {
-      gsap.set([statCards, statElements, statLabels, statNums], { opacity: 1, y: 0 });
-      statElements.forEach((el) => { el.innerText = el.dataset.value; });
-      return;
-    }
-
-    // Set initial hidden states
-    gsap.set(statCards, { opacity: 0, y: 20 });
-    gsap.set(statNums, { opacity: 0 });
-
-    const tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: statsSectionRef.current,
-        start: 'top 82%',
-        once: true,
+    if (!heroRef.current) return undefined;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const lowPower = window.innerWidth < 768 || (navigator.hardwareConcurrency || 8) <= 4;
+    const ctx = gsap.context(() => {
+      const intro = !reduced ? gsap.timeline().from('.reveal-navbar', { opacity: 0, y: -12, duration: .45, clearProps: 'all' }).from(backgroundRef.current, { opacity: 0, scale: 1.025, duration: .7, clearProps: 'all' }, .1).from('[data-hero-line]', { opacity: 0, y: 30, duration: .65, stagger: .12, clearProps: 'all' }, .35).from('[data-hero-copy]', { opacity: 0, y: 12, duration: .45, stagger: .08, clearProps: 'all' }, .8) : null;
+      const electric = !reduced ? gsap.timeline({ repeat: -1 }).to('.electric-trace', { strokeDashoffset: -192, duration: 2.8, ease: 'none', stagger: .45 }, 0).to('.electric-trace-reverse', { strokeDashoffset: 192, duration: 3.2, ease: 'none', stagger: .45 }, 0) : null;
+      const visibility = () => { [intro, electric].filter(Boolean).forEach(animation => document.hidden ? animation.pause() : animation.play()); };
+      document.addEventListener('visibilitychange', visibility);
+      const values = statsRef.current?.querySelectorAll('[data-stat-value]') || [];
+      ScrollTrigger.create({ trigger: statsRef.current, start: 'top 82%', once: true, onEnter: () => values.forEach(element => { const value = { count: 0 }; gsap.to(value, { count: Number(element.dataset.statValue), duration: reduced ? 0 : 1.15, ease: 'power2.out', onUpdate: () => { element.textContent = `${Math.round(value.count)}${element.dataset.suffix || ''}`; } }); }) });
+      if (!reduced && !lowPower) {
+        gsap.to(backgroundRef.current, { yPercent: 9, ease: 'none', scrollTrigger: { trigger: heroRef.current, start: 'top top', end: 'bottom top', scrub: true } });
+        gsap.to(fieldRef.current, { yPercent: 22, ease: 'none', scrollTrigger: { trigger: heroRef.current, start: 'top top', end: 'bottom top', scrub: true } });
+        const move = event => { const x = (event.clientX / window.innerWidth - .5) * 2, y = (event.clientY / window.innerHeight - .5) * 2; gsap.to(backgroundRef.current, { x: x * 8, y: y * 5, overwrite: 'auto', duration: .7 }); gsap.to(fieldRef.current, { x: x * 24, y: y * 16, overwrite: 'auto', duration: .7 }); };
+        window.addEventListener('pointermove', move, { passive: true }); return () => { document.removeEventListener('visibilitychange', visibility); window.removeEventListener('pointermove', move); };
       }
-    });
-
-    // Staggered card reveal
-    tl.to(statCards, {
-      opacity: 1,
-      y: 0,
-      duration: 0.7,
-      stagger: 0.1,
-      ease: 'power3.out',
-    });
-
-    // Index number reveal
-    tl.to(statNums, {
-      opacity: 1,
-      duration: 0.4,
-      stagger: 0.1,
-      ease: 'power2.out',
-    }, '-=0.5');
-
-    // Count-up for each stat number
-    statElements.forEach((el, index) => {
-      const finalValue = el.dataset.value;
-      const numericMatch = finalValue.match(/[\d.]+/);
-      if (!numericMatch) return;
-
-      const targetNum = parseFloat(numericMatch[0]);
-      const suffix = finalValue.replace(numericMatch[0], '');
-      const isDecimal = numericMatch[0].includes('.');
-
-      // Reserve min-width to prevent layout shift during count-up
-      el.style.minWidth = `${el.offsetWidth}px`;
-
-      // Start at zero with the same suffix formatting to avoid layout shift
-      el.innerText = isDecimal ? `0.0${suffix}` : `0${suffix}`;
-
-      const proxy = { val: 0 };
-
-      tl.to(proxy, {
-        val: targetNum,
-        duration: 1.5,
-        ease: 'power2.out',
-        onUpdate() {
-          const v = isDecimal
-            ? proxy.val.toFixed(1)
-            : Math.floor(proxy.val);
-          el.innerText = `${v}${suffix}`;
-        },
-        onComplete() {
-          // Guarantee exact final value
-          el.innerText = finalValue;
-          // Release min-width constraint once settled
-          el.style.minWidth = '';
-        },
-      }, index * 0.15 + 0.2); // Subtle per-counter stagger, starts after card reveal
-    });
-
-  }, { scope: statsSectionRef });
-
-  // Carousel State
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const showcaseImages = [
-    { src: '/workshop.jpg', label: '01 / THINK', type: 'EVENT', title: 'WORKSHOP' },
-    { src: '/session.jpg', label: '02 / BUILD', type: 'BRAINSTORM', title: 'SESSION' },
-    { src: '/build.jpg', label: '03 / CONNECT', type: 'HACKATHON', title: 'PROJECTS' },
-    { src: '/meetup.jpg', label: '04 / IMPACT', type: 'COMMUNITY', title: 'MEETUP' }
-  ];
-
-  useEffect(() => {
-    // Auto-advance carousel
-    const interval = setInterval(() => {
-      setCurrentImageIndex((prev) => (prev + 1) % showcaseImages.length);
-    }, 4500);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <div ref={containerRef} className="w-full">
-      {/* SECTION 1: HERO */}
-      <section className="relative min-h-[100svh] flex items-center pt-6 md:pt-10 pb-12 overflow-hidden border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
-        {/* Subtle Decorative Grid */}
-        <div
-          className="absolute inset-0 z-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
-          style={{ backgroundImage: 'linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)', backgroundSize: '64px 64px', color: 'currentColor' }}
-        />
-
-        <div className="w-full mx-auto px-6 lg:px-12 max-w-[1440px] relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center lg:items-start">
-
-            {/* LEFT: Typography */}
-            <div className="col-span-1 lg:col-span-6 flex flex-col items-start">
-              <div className="reveal-eyebrow flex flex-wrap items-center gap-4 mb-8">
-                <span className="font-mono text-xs font-bold tracking-[0.2em] text-slate-500 dark:text-slate-400 uppercase border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-sm bg-slate-50 dark:bg-slate-900/50 backdrop-blur-sm">
-                  LPU SCA / BRAINSTORM CLUB
-                </span>
-                <span className="w-8 h-px bg-slate-300 dark:bg-slate-700 hidden sm:block"></span>
-                <span className="font-mono text-xs tracking-widest text-brand-primary font-bold uppercase hidden sm:block">
-                  Innovation Community
-                </span>
-              </div>
-
-              <h1 className="font-heading font-black text-[clamp(3rem,10vw,6rem)] leading-[0.9] tracking-tighter text-slate-900 dark:text-white mb-6 uppercase flex flex-col">
-                <span className="overflow-hidden"><span className="reveal-heading-line block">WHERE</span></span>
-                <span className="overflow-hidden"><span className="reveal-heading-line block">ACADEMIA</span></span>
-                <span className="overflow-hidden"><span className="reveal-heading-line block">MEETS</span></span>
-                <span className="overflow-hidden pb-4">
-                  <span className="reveal-heading-line block text-brand-primary relative">
-                    INNOVATION.
-                    <span className="absolute -bottom-2 left-0 w-full h-1 bg-gradient-to-r from-brand-primary to-transparent opacity-50"></span>
-                  </span>
-                </span>
-              </h1>
-
-              <p className="reveal-text font-body text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-xl mb-10 leading-relaxed font-light">
-                A student-led technology community at Lovely Professional University where students think, build, connect and turn ideas into action.
-              </p>
-
-              <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-                <Link ref={ctaRef} to="/events" className="reveal-cta bg-slate-900 dark:bg-brand-primary text-white px-8 py-4 rounded-full font-mono text-sm font-bold tracking-widest uppercase hover:scale-105 transition-transform flex items-center justify-center gap-2 group shadow-xl shadow-brand-primary/20 relative">
-                  Explore Events
-                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                </Link>
-                <Link to="/join-us" className="reveal-cta bg-transparent border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white px-8 py-4 rounded-full font-mono text-sm font-bold tracking-widest uppercase hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors flex items-center justify-center gap-2 group">
-                  Join the Community
-                  <ArrowUpRight size={16} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                </Link>
-              </div>
-
-              {/* Scroll Indicator (Integrated into Left Column Flow) */}
-              <div className="reveal-meta mt-16 md:mt-24 flex flex-col items-start gap-3 opacity-60">
-                <span className="font-mono text-[10px] tracking-[0.3em] font-bold uppercase text-slate-500 dark:text-slate-400">Scroll to explore</span>
-                <div className="w-[1px] h-12 bg-slate-300 dark:bg-slate-700 overflow-hidden relative ml-0.5">
-                  <div className="absolute top-0 left-0 w-full h-full bg-brand-primary origin-top animate-[scroll_2s_ease-in-out_infinite]" />
-                </div>
-              </div>
-            </div>
-
-            {/* RIGHT: Automatic Image Showcase */}
-            <div className="reveal-image col-span-1 lg:col-span-6 relative min-h-[400px] lg:h-[700px] w-full bg-slate-100 dark:bg-slate-900/50 flex flex-col p-6 overflow-hidden">
-              {/* Dynamic Image Container */}
-              <div className="absolute inset-0 z-0 bg-slate-950">
-                {showcaseImages.map((img, idx) => (
-                  <div
-                    key={idx}
-                    className="absolute inset-0 transition-all duration-1000 ease-in-out origin-center"
-                    style={{
-                      opacity: currentImageIndex === idx ? 1 : 0,
-                      transform: currentImageIndex === idx ? 'scale(1)' : 'scale(1.05)',
-                      visibility: currentImageIndex === idx ? 'visible' : 'hidden'
-                    }}
-                  >
-                    <img
-                      src={img.src}
-                      alt={img.label}
-                      className="w-full h-full object-cover mix-blend-luminosity opacity-60"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-90"></div>
-                    <div className="absolute inset-0 bg-gradient-to-r from-slate-950/50 via-transparent to-transparent"></div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Overlay Content */}
-              <div className="relative z-10 h-full flex flex-col justify-between pointer-events-none">
-                <div className="flex justify-between items-start w-full">
-                  {/* Subtle technical labels */}
-                  <div className="bg-white/90 dark:bg-slate-950/90 backdrop-blur-md px-3 py-1.5 font-mono text-[10px] tracking-widest flex items-center gap-2 text-slate-900 dark:text-white font-bold uppercase transition-all duration-500">
-                    <span className="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse"></span>
-                    {showcaseImages[currentImageIndex].label}
-                  </div>
-
-                  {/* Progress Indicator */}
-                  <div className="reveal-meta flex flex-col items-end gap-2">
-                    <div className="font-mono text-xs font-bold text-white tracking-widest">
-                      0{currentImageIndex + 1} <span className="text-slate-400">/ 0{showcaseImages.length}</span>
-                    </div>
-                    <div className="flex gap-1">
-                      {showcaseImages.map((_, idx) => (
-                        <div key={idx} className="h-0.5 w-6 bg-slate-800 overflow-hidden">
-                          <div
-                            className="h-full bg-brand-primary transition-all duration-1000"
-                            style={{
-                              width: idx === currentImageIndex ? '100%' : (idx < currentImageIndex ? '100%' : '0%')
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="reveal-meta flex flex-col items-start pb-4">
-                  <div className="font-mono text-[10px] tracking-widest text-brand-primary mb-2 font-bold bg-brand-primary/10 px-2 py-1 rounded-sm">
-                    {showcaseImages[currentImageIndex].type}
-                  </div>
-                  <h3 className="font-heading text-4xl text-white font-bold tracking-tight uppercase">
-                    {showcaseImages[currentImageIndex].title}
-                  </h3>
-                </div>
-              </div>
-
-              {/* Technical Grid Elements overlay */}
-              <div className="absolute top-1/2 -right-4 -translate-y-1/2 flex flex-col gap-2 z-20">
-                <div className="w-1 h-8 bg-slate-800"></div>
-                <div className="w-1 h-4 bg-brand-secondary"></div>
-                <div className="w-1 h-12 bg-slate-800"></div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-        <style>{`
-          @keyframes scroll {
-            0% { transform: scaleY(0); transform-origin: top; }
-            50% { transform: scaleY(1); transform-origin: top; }
-            50.1% { transform: scaleY(1); transform-origin: bottom; }
-            100% { transform: scaleY(0); transform-origin: bottom; }
-          }
-        `}</style>
-      </section>
-
-      {/* SECTION 2: TECHNICAL STRIP */}
-      <div className="w-full bg-slate-950 text-white py-3 overflow-hidden border-b border-slate-900 relative">
-        <div className="absolute inset-0 bg-brand-primary/5"></div>
-        <div className="flex whitespace-nowrap animate-pulse font-mono text-[10px] sm:text-xs tracking-[0.3em] font-bold opacity-70 relative z-10">
-          <style>{`
-            @keyframes marquee {
-                0% { transform: translateX(0); }
-                100% { transform: translateX(-50%); }
-            }
-            .animate-marquee {
-                animation: marquee 30s linear infinite;
-            }
-          `}</style>
-          <div className="flex animate-marquee">
-            <span className="mx-6 sm:mx-12">BRAINSTORM</span> •
-            <span className="mx-6 sm:mx-12">LPU SCA</span> •
-            <span className="mx-6 sm:mx-12 text-brand-primary">EVENTS</span> •
-            <span className="mx-6 sm:mx-12">IDEAS</span> •
-            <span className="mx-6 sm:mx-12 text-brand-secondary">COMMUNITY</span> •
-            <span className="mx-6 sm:mx-12">INNOVATION</span> •
-            <span className="mx-6 sm:mx-12">BUILD</span> •
-            <span className="mx-6 sm:mx-12 text-brand-primary">IMPACT</span> •
-            {/* Repeat for seamless loop */}
-            <span className="mx-6 sm:mx-12">BRAINSTORM</span> •
-            <span className="mx-6 sm:mx-12">LPU SCA</span> •
-            <span className="mx-6 sm:mx-12 text-brand-primary">EVENTS</span> •
-            <span className="mx-6 sm:mx-12">IDEAS</span> •
-            <span className="mx-6 sm:mx-12 text-brand-secondary">COMMUNITY</span> •
-            <span className="mx-6 sm:mx-12">INNOVATION</span> •
-            <span className="mx-6 sm:mx-12">BUILD</span> •
-            <span className="mx-6 sm:mx-12 text-brand-primary">IMPACT</span> •
-          </div>
-        </div>
-      </div>
-
-      {/* SECTION 3: STATISTICS (Editorial Grid) */}
-      <section ref={statsSectionRef} className="py-16 border-y border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/20">
-        <div className="container mx-auto px-6 md:px-12 max-w-[1440px]">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-0 lg:divide-x divide-slate-200 dark:divide-slate-800" data-reveal="stagger-children">
-            {[
-              { num: '01', value: '45+', label: 'EVENTS HOSTED' },
-              { num: '02', value: '30+', label: 'ACTIVE MEMBERS' },
-              { num: '03', value: '250+', label: 'IDEAS PITCHED' },
-              { num: '04', value: '50+', label: 'LIVE PROJECTS' }
-            ].map((stat, i) => (
-              <div key={i} className="stat-card flex flex-col lg:px-10">
-                <div className="stat-num font-mono text-[10px] font-bold tracking-widest text-brand-primary mb-4">{stat.num}</div>
-                <div
-                  className="stat-counter font-heading font-black text-5xl md:text-6xl lg:text-7xl tracking-tighter text-slate-900 dark:text-white mb-2 tabular-nums"
-                  data-value={stat.value}
-                >
-                  {stat.value}
-                </div>
-                <div className="stat-label font-mono text-xs font-medium tracking-[0.2em] uppercase text-slate-500 dark:text-slate-400">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 5: WHAT WE DO */}
-      <section className="py-20 md:py-32 bg-white dark:bg-slate-950">
-        <div className="container mx-auto px-6 md:px-12 max-w-[1440px]">
-          <h2 className="font-heading font-black text-4xl md:text-5xl lg:text-[4rem] tracking-tight text-slate-900 dark:text-white uppercase mb-16 max-w-2xl leading-[0.9]" data-reveal="up">
-            WHAT WE DO
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" data-reveal="stagger-children">
-            {[
-              { num: '01 / THINK', title: 'Explore ideas', desc: 'Dive into emerging technologies and new possibilities.', icon: <Lightbulb size={24} />, weight: 'lg:col-span-1 lg:row-span-2 bg-slate-100 dark:bg-slate-900' },
-              { num: '02 / BUILD', title: 'Turn concepts into reality', desc: 'Practical projects built by students, for the world.', icon: <Zap size={24} />, weight: 'lg:col-span-2 bg-brand-primary text-white' },
-              { num: '03 / COMPETE', title: 'Hackathons & Contests', desc: 'Take part in coding challenges on a national scale.', icon: <PlayCircle size={24} />, weight: 'lg:col-span-1 bg-slate-900 text-white' },
-              { num: '04 / CONNECT', title: 'Meet Innovators', desc: 'Meet students, mentors and industry experts.', icon: <Users size={24} />, weight: 'lg:col-span-3 bg-slate-50 dark:bg-slate-800' }
-            ].map((item, i) => (
-              <div key={i} className={`p-8 md:p-10 flex flex-col justify-between group hover:scale-[1.02] transition-transform duration-300 border border-transparent hover:border-brand-secondary/30 ${item.weight}`}>
-                <div className={`font-mono text-[10px] font-bold tracking-widest uppercase mb-8 ${i === 1 || i === 2 ? 'text-white/70' : 'text-slate-500 dark:text-slate-400'}`}>
-                  {item.num}
-                </div>
-                <div>
-                  <div className={`mb-4 ${i === 1 || i === 2 ? 'text-white' : 'text-slate-900 dark:text-white'}`}>{item.icon}</div>
-                  <h4 className={`font-heading font-bold text-2xl tracking-tight mb-3 ${i === 1 || i === 2 ? 'text-white' : 'text-slate-900 dark:text-white'}`}>{item.title}</h4>
-                  <p className={`font-body font-light ${i === 1 || i === 2 ? 'text-white/90' : 'text-slate-600 dark:text-slate-400'}`}>{item.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 6: WHAT'S HAPPENING (Featured Events Grid) */}
-      <section className="py-20 md:py-32 bg-slate-50 dark:bg-slate-900/30 border-t border-slate-200 dark:border-slate-800">
-        <div className="container mx-auto px-6 md:px-12 max-w-[1440px]">
-          <div className="mb-16 max-w-2xl" data-reveal="up">
-            <h2 className="font-heading font-black text-4xl md:text-5xl lg:text-[4rem] tracking-tight text-slate-900 dark:text-white uppercase leading-[0.9] mb-6">
-              WHAT'S <br />HAPPENING.
-            </h2>
-            <p className="font-body text-lg text-slate-600 dark:text-slate-400 font-light">
-              Explore workshops, hackathons, seminars, contests and community events.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4" data-reveal="stagger-children">
-            {/* ONE LARGE EVENT */}
-            <div className="md:col-span-8 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 group overflow-hidden relative min-h-[400px] flex flex-col justify-end p-8">
-              <img src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=2070&auto=format&fit=crop" className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-40 group-hover:scale-105 transition-transform duration-700" alt="Event" />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent"></div>
-
-              <div className="relative z-10 text-white">
-                <div className="flex gap-3 mb-4">
-                  <span className="font-mono text-[10px] font-bold tracking-widest bg-brand-primary px-2 py-1 uppercase">Workshop</span>
-                  <span className="font-mono text-[10px] font-bold tracking-widest border border-white/30 px-2 py-1 uppercase">Live</span>
-                </div>
-                <h3 className="font-heading font-bold text-3xl md:text-4xl uppercase tracking-tight mb-2">AI Masterclass</h3>
-                <div className="font-mono text-xs tracking-widest text-slate-300 mb-6 uppercase">OCT 20 • AUDITORIUM 1</div>
-                <button className="font-mono text-xs font-bold tracking-widest uppercase flex items-center gap-2 hover:text-brand-primary transition-colors">
-                  View Event <ArrowRight size={16} />
-                </button>
-              </div>
-            </div>
-
-            {/* TWO SMALL EVENTS */}
-            <div className="md:col-span-4 flex flex-col gap-4">
-              <div className="flex-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-6 flex flex-col justify-between group hover:border-brand-primary/50 transition-colors">
-                <div>
-                  <span className="font-mono text-[10px] font-bold tracking-widest text-brand-secondary uppercase block mb-3">Seminar</span>
-                  <h3 className="font-heading font-bold text-xl uppercase tracking-tight text-slate-900 dark:text-white mb-2">Future of Web3</h3>
-                  <div className="font-mono text-[10px] tracking-widest text-slate-500 dark:text-slate-400 uppercase">NOV 05 • ONLINE</div>
-                </div>
-                <ArrowRight size={20} className="text-slate-300 dark:text-slate-700 group-hover:text-brand-primary transition-colors mt-4" />
-              </div>
-              <div className="flex-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-6 flex flex-col justify-between group hover:border-brand-primary/50 transition-colors">
-                <div>
-                  <span className="font-mono text-[10px] font-bold tracking-widest text-brand-secondary uppercase block mb-3">Meetup</span>
-                  <h3 className="font-heading font-bold text-xl uppercase tracking-tight text-slate-900 dark:text-white mb-2">Founder Connect</h3>
-                  <div className="font-mono text-[10px] tracking-widest text-slate-500 dark:text-slate-400 uppercase">NOV 12 • LAB 32</div>
-                </div>
-                <ArrowRight size={20} className="text-slate-300 dark:text-slate-700 group-hover:text-brand-primary transition-colors mt-4" />
-              </div>
-            </div>
-
-            {/* ONE HORIZONTAL EVENT */}
-            <div className="md:col-span-12 bg-slate-900 text-white border border-slate-800 p-6 md:p-10 flex flex-col md:flex-row md:items-center justify-between gap-6 group">
-              <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-12">
-                <div className="text-5xl font-mono font-black text-slate-600 dark:text-slate-500">04</div>
-                <div>
-                  <span className="font-mono text-[10px] font-bold tracking-widest text-brand-accent uppercase block mb-2">Contest</span>
-                  <h3 className="font-heading font-bold text-2xl uppercase tracking-tight mb-2">Code Sprint Winter</h3>
-                  <div className="font-mono text-[10px] tracking-widest text-slate-400 uppercase">DEC 01 • CAMPUS WIDE</div>
-                </div>
-              </div>
-              <button className="px-6 py-3 border border-white/20 font-mono text-xs font-bold tracking-widest uppercase hover:bg-white hover:text-slate-900 transition-colors flex items-center gap-2 whitespace-nowrap">
-                Register <ArrowUpRight size={16} />
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 7: IDEAS SECTION */}
-      <IdeasFlow />
-
-      {/* SECTION 8: PEOPLE SECTION */}
-      <section className="py-20 md:py-32 bg-slate-50 dark:bg-slate-900/30 border-t border-slate-200 dark:border-slate-800">
-        <div className="container mx-auto px-6 md:px-12 max-w-[1440px]">
-          <div className="mb-16 flex flex-col md:flex-row md:items-end justify-between gap-6" data-reveal="up">
-            <h2 className="font-heading font-black text-4xl md:text-5xl lg:text-[4rem] tracking-tight text-slate-900 dark:text-white uppercase leading-[0.9]">
-              THE PEOPLE <br />BEHIND THE IDEAS.
-            </h2>
-            <Link to="/members" className="flex items-center gap-2 font-mono text-xs font-bold tracking-widest text-brand-primary hover:text-slate-900 dark:hover:text-white transition-colors uppercase group">
-              Meet The Team
-              <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </div>
-
-          {!isMembersLoading && liveMembers.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-              {/* LARGE PORTRAIT (President) */}
-              {president && (
-                <div className="md:col-span-6 bg-slate-200 dark:bg-slate-800 relative h-[400px] md:h-[600px] group overflow-hidden">
-                  <ProtectedImage 
-                    imageId={president.photoId?.imageId} 
-                    alt={president.fullName} 
-                    variant="member_card"
-                    className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80 group-hover:scale-105 transition-transform duration-700" 
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80"></div>
-                  <div className="absolute bottom-8 left-8 text-white z-10">
-                    <span className="font-mono text-[10px] font-bold tracking-widest uppercase block mb-2 text-brand-secondary">President</span>
-                    <h4 className="font-heading font-bold text-3xl uppercase tracking-tight mb-1">{president.fullName}</h4>
-                    <p className="font-mono text-[10px] tracking-widest uppercase text-slate-300">
-                      {president.course} {president.year ? `(${president.year})` : ''}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* SMALLER PORTRAITS */}
-              {supportingSlots.length > 0 && (
-                <div className="md:col-span-6 grid grid-cols-2 gap-4">
-                  {supportingSlots.map((slot, i) => (
-                    <div key={slot.member._id || i} className="relative h-[190px] md:h-auto bg-slate-200 dark:bg-slate-800 group overflow-hidden">
-                      <ProtectedImage 
-                        imageId={slot.member.photoId?.imageId} 
-                        alt={slot.member.fullName} 
-                        variant="member_card"
-                        className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80 group-hover:scale-105 transition-transform duration-700" 
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-90"></div>
-                      <div className="absolute bottom-4 left-4 text-white z-10">
-                        <span className="font-mono text-[9px] font-bold tracking-widest uppercase block mb-1 text-brand-primary">{slot.roleLabel}</span>
-                        <h4 className="font-heading font-bold text-lg uppercase tracking-tight mb-0.5">{slot.member.fullName}</h4>
-                        <p className="font-mono text-[9px] tracking-widest uppercase text-slate-400">
-                          {slot.member.course} {slot.member.year ? `(${slot.member.year})` : ''}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* SECTION 9: GALLERY SECTION */}
-      <section className="py-20 md:py-32 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800">
-        <div className="container mx-auto px-6 md:px-12 max-w-[1440px]">
-          <h2 className="font-heading font-black text-4xl md:text-5xl lg:text-[4rem] tracking-tight text-slate-900 dark:text-white uppercase leading-[0.9] mb-16 text-center" data-reveal="up">
-            MOMENTS <br />IN MOTION.
-          </h2>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 auto-rows-[200px] md:auto-rows-[300px]" data-reveal="stagger-children">
-            {/* Large */}
-            <div className="col-span-2 row-span-2 bg-slate-100 dark:bg-slate-900 relative group overflow-hidden cursor-crosshair">
-              <img src="/build.jpg" className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80 group-hover:scale-105 group-hover:mix-blend-normal transition-all duration-700" alt="Gallery" />
-            </div>
-            {/* Small */}
-            <div className="col-span-1 row-span-1 bg-slate-100 dark:bg-slate-900 relative group overflow-hidden cursor-crosshair">
-              <img src="https://i.ibb.co/Q7RCV1Pm/home3.jpg" className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80 group-hover:scale-105 group-hover:mix-blend-normal transition-all duration-700" alt="Gallery" />
-            </div>
-            {/* Tall */}
-            <div className="col-span-1 row-span-2 bg-slate-100 dark:bg-slate-900 relative group overflow-hidden cursor-crosshair">
-              <img src="https://i.ibb.co/fdSKSrtM/IMG-9328.jpg" className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80 group-hover:scale-105 group-hover:mix-blend-normal transition-all duration-700" alt="Gallery" />
-            </div>
-            {/* Small */}
-            <div className="col-span-1 row-span-1 bg-slate-100 dark:bg-slate-900 relative group overflow-hidden cursor-crosshair">
-              <img src="/home2.jpg" className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80 group-hover:scale-105 group-hover:mix-blend-normal transition-all duration-700" alt="Gallery" />
-            </div>
-            {/* Horizontal */}
-            <div className="col-span-2 row-span-1 bg-slate-100 dark:bg-slate-900 relative group overflow-hidden cursor-crosshair">
-              <img src="https://i.ibb.co/HLyJY5vd/IMG-2302.jpg" className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80 group-hover:scale-105 group-hover:mix-blend-normal transition-all duration-700" alt="Gallery" />
-            </div>
-            {/* Small */}
-            <div className="col-span-2 row-span-1 bg-slate-100 dark:bg-slate-900 relative group overflow-hidden cursor-crosshair">
-              <img src="https://i.ibb.co/d4SMztF1/IMG-7797.jpg" className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80 group-hover:scale-105 group-hover:mix-blend-normal transition-all duration-700" alt="Gallery" />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 10: BRAND STATEMENT & FINAL CTA */}
-      <section className="py-32 md:py-48 bg-slate-950 text-white border-t border-slate-900 relative overflow-hidden">
-        {/* Abstract Geometry Background */}
-        <div className="absolute inset-0 z-0">
-          <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-brand-primary/20 via-slate-950 to-slate-950"></div>
-          <div className="absolute bottom-0 left-0 w-1/2 h-1/2 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-brand-secondary/10 via-transparent to-transparent"></div>
-        </div>
-
-        <div className="container mx-auto px-6 md:px-12 max-w-[1440px] relative z-10 flex flex-col items-center text-center">
-          <div className="font-mono text-xs font-bold tracking-[0.3em] uppercase text-brand-secondary mb-8 flex items-center gap-4">
-            <span className="w-12 h-px bg-brand-secondary/50"></span>
-            Join The Mission
-            <span className="w-12 h-px bg-brand-secondary/50"></span>
-          </div>
-
-          <h2 className="font-heading font-black text-[clamp(3.5rem,12vw,8rem)] tracking-tighter uppercase leading-[0.85] mb-12 flex flex-col items-center">
-            <span>THINK.</span>
-            <span>BUILD.</span>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-secondary to-brand-primary">CHANGE</span>
-            <span>THE FUTURE.</span>
-          </h2>
-
-          <p className="font-body text-xl md:text-2xl text-slate-400 font-light max-w-2xl mb-16">
-            Join a community of students building what comes next.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-6">
-            <Link to="/join-us" className="bg-white text-slate-950 px-10 py-5 rounded-full font-mono text-sm font-bold tracking-widest uppercase hover:bg-brand-primary hover:text-white transition-colors flex items-center justify-center gap-2 group">
-              Join Brainstorm
-              <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-            </Link>
-            <Link to="/ideas" className="bg-transparent border border-white/20 text-white px-10 py-5 rounded-full font-mono text-sm font-bold tracking-widest uppercase hover:bg-white/10 transition-colors flex items-center justify-center gap-2 group">
-              Submit An Idea
-              <ArrowUpRight size={16} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      <Footer />
-    </div>
-  );
+      return () => document.removeEventListener('visibilitychange', visibility);
+    }, heroRef); return () => ctx.revert();
+  }, { scope: heroRef, dependencies: [capable] });
+  const handleTextClick = event => {
+    if (!capable || !event.target.closest('h1, h2, h3, p, a')) return;
+    const target = event.target.closest('[data-depth]') || showcaseRef.current || heroRef.current;
+    gsap.fromTo(target, { rotationX: 0, rotationY: 0, z: 0 }, { rotationX: -2, rotationY: 3, z: 14, duration: .16, ease: 'power2.out', yoyo: true, repeat: 1, transformPerspective: 900, overwrite: 'auto' });
+  };
+  return <main ref={mainRef} onClick={handleTextClick} className="homepage min-h-screen overflow-x-hidden bg-paper font-body text-ink selection:bg-spark-soft" style={{ perspective: '1200px' }}>
+    <section ref={heroRef} className="relative isolate flex min-h-[min(680px,84svh)] items-center overflow-hidden px-6 pb-12 pt-20 md:px-12 md:pt-24 lg:px-20">
+      <div ref={backgroundRef} className="absolute inset-0 -z-20 overflow-hidden pointer-events-none"><img src="/circuit-horizon.png" alt="" className="h-full w-full object-cover object-bottom opacity-30" /></div><div className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,var(--paper)_15%,transparent_65%,var(--paper)_100%)] pointer-events-none" />
+      <svg className="absolute inset-0 z-10 h-full w-full pointer-events-none opacity-70" aria-hidden="true" viewBox="0 0 1440 780" preserveAspectRatio="none"><path className="electric-trace-reverse" d="M0 170 H150 L210 220 H415 L470 155 H650 L710 205 H920 L980 145 H1190 L1250 195 H1440" fill="none" stroke="var(--circuit)" strokeWidth="1.25" strokeDasharray="10 38" /><path className="electric-trace-reverse" d="M0 110 H95 L145 150 H330 L390 95 H590 L640 145 H830 L890 90 H1080 L1140 135 H1440" fill="none" stroke="var(--spark)" strokeWidth="1.15" strokeDasharray="8 48" /><path className="electric-trace" d="M0 590 H190 L240 540 H440 L490 600 H710 L760 530 H970 L1020 570 H1240 L1300 505 H1440" fill="none" stroke="var(--circuit)" strokeWidth="1.4" strokeDasharray="10 38" /><path className="electric-trace" d="M0 650 H130 L205 610 H390 L450 670 H670 L725 620 H920 L970 680 H1170 L1230 610 H1440" fill="none" stroke="var(--spark)" strokeWidth="1.3" strokeDasharray="8 48" /></svg><div className="absolute inset-0 z-0 pointer-events-none">{nodes.map(([left, top, color], index) => <span key={`${left}-${top}`} ref={el => { nodeRefs.current[index] = el; }} className={`absolute h-2 w-2 rounded-full ${color === 'blue' ? 'bg-circuit' : 'bg-spark'}`} style={{ left: `${left}%`, top: `${top}%`, boxShadow: `0 0 12px ${color === 'blue' ? 'var(--circuit)' : 'var(--spark-glow)'}` }} />)}</div><SparkMotes enabled={capable} fieldRef={fieldRef} />
+      <div className="relative z-20 mx-auto grid w-full max-w-7xl items-center gap-10 lg:grid-cols-[1.05fr_.95fr]"><div data-depth className="max-w-3xl" style={{ transformStyle: 'preserve-3d' }}><p data-hero-copy className="mb-5 font-mono text-sm text-circuit">LPU SCA / Brainstorm Club</p><h1 className="font-heading text-5xl font-bold leading-[.9] tracking-tight md:text-7xl"><span data-hero-line className="block">Where academia</span><span data-hero-line className="block">meets <span className="text-circuit">innovation.</span></span></h1><p data-hero-copy className="mt-7 max-w-xl text-lg leading-relaxed text-ink-soft md:text-xl">A student-led technology community at Lovely Professional University where students think, build, connect and turn ideas into action.</p><div data-hero-copy className="mt-9 flex flex-wrap gap-3"><Link to="/events" className="rounded-[10px] bg-spark px-7 py-3.5 font-medium text-ink transition-transform hover:-translate-y-0.5">Explore Events</Link><Link to="/join-us" className="rounded-[10px] border border-circuit bg-paper px-7 py-3.5 font-medium text-ink transition-colors hover:bg-paper-dim">Join the community</Link></div></div><div ref={showcaseRef} data-depth className="relative mx-auto hidden h-[570px] w-full max-w-xl overflow-hidden rounded-[10px] border border-border bg-paper-dim lg:block" style={{ transformStyle: 'preserve-3d' }} aria-label="Club activity showcase">{showcaseImages.map((item, index) => <img key={item.src} src={item.src} alt="Students collaborating at a Brainstorm Club event" className="absolute inset-0 h-full w-full object-cover transition-all duration-1000" style={{ opacity: slide === index ? 1 : 0, transform: slide === index ? 'scale(1)' : 'scale(1.04)' }} />)}<div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_45%,var(--ink)_100%)] opacity-70" /><div className="absolute inset-x-6 top-6 flex items-start justify-between"><span className="rounded bg-paper px-3 py-2 font-mono text-xs text-ink">{showcaseImages[slide].label}</span><div className="flex gap-1.5">{showcaseImages.map((item, index) => <span key={item.label} className={`h-0.5 w-7 ${index <= slide ? 'bg-spark' : 'bg-paper'}`} />)}</div></div><div className="absolute bottom-7 left-7"><p className="font-mono text-xs text-spark">{showcaseImages[slide].category}</p><h2 className="mt-2 font-heading text-4xl font-bold text-paper">{showcaseImages[slide].title}</h2></div></div></div>
+    </section>
+    <section ref={statsRef} className="border-y border-border bg-paper px-6 py-14 md:px-12 lg:px-20"><div className="mx-auto grid max-w-7xl grid-cols-2 gap-9 md:grid-cols-4">{[['42','Events'],['18','Ideas'],['6','Teams'],['120','Members','+']].map(([number,label,suffix]) => <div key={label}><div data-stat-value={number} data-suffix={suffix || ''} className="font-mono text-4xl font-semibold text-ink md:text-5xl">{number}{suffix}</div><div className="mt-2 text-sm text-ink-soft">{label}</div></div>)}</div></section>
+    <section className="bg-paper-dim px-6 py-24 md:px-12 lg:px-20"><div className="mx-auto max-w-7xl"><h2 className="border-b border-border pb-5 font-heading text-4xl font-bold">Upcoming events</h2><div className="mt-10 grid gap-5 md:grid-cols-3">{events.map((event,index) => <article data-depth key={event.id} className={`flex min-h-72 flex-col rounded-[10px] border border-border bg-paper p-7 shadow-sys ${index === 1 ? 'md:translate-y-7' : index === 2 ? 'md:translate-y-14' : ''}`} style={{ transformStyle: 'preserve-3d' }}><p className="font-mono text-xs text-circuit">{event.date} / {event.venue}</p><h3 className="mt-6 font-heading text-2xl font-bold">{event.title}</h3><p className="mt-4 leading-relaxed text-ink-soft">{event.description}</p><Link to="/events" className="mt-auto pt-8 font-medium text-circuit hover:text-ink">View event</Link></article>)}</div></div></section>
+    <section className="bg-paper px-6 py-24 md:px-12 lg:px-20"><div className="mx-auto grid max-w-7xl gap-10 md:grid-cols-3">{[['Vision','Create a culture where student ideas become meaningful real-world experiences.'],['Mission','Turn student ideas into collaborative projects, events, experiments, and action.'],['What we run','Workshops, hackathons, ideation sessions, technical events, and community-building experiences.']].map(([heading,copy]) => <article key={heading} className="border-l-2 border-spark pl-6"><h2 className="font-heading text-2xl font-bold">{heading}</h2><p className="mt-4 text-lg leading-relaxed text-ink-soft">{copy}</p></article>)}</div></section>
+    <section className="bg-paper-dim px-6 py-24 md:px-12 lg:px-20"><div className="mx-auto max-w-7xl"><div className="flex flex-col justify-between gap-6 md:flex-row md:items-end"><h2 className="font-heading text-4xl font-bold leading-tight md:text-5xl">The people<br />behind the ideas.</h2><Link to="/members" className="font-mono text-sm text-circuit hover:text-ink">Meet the team</Link></div><div className="mt-12 grid gap-4 md:grid-cols-12">{people.map((person, index) => <article data-depth key={person.name} className={`group relative min-h-80 overflow-hidden bg-paper ${person.featured ? 'md:col-span-6 md:row-span-2 md:min-h-[620px]' : 'md:col-span-3 md:min-h-[300px]'}`} style={{ transformStyle: 'preserve-3d' }}><img src={person.image} alt={person.name} className="h-full w-full object-cover object-top grayscale transition duration-500 group-hover:scale-105 group-hover:grayscale-0" /><div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_40%,var(--ink)_100%)] opacity-75" /><div className="absolute bottom-6 left-6"><p className="font-mono text-xs text-spark">{person.role}</p><h3 className="mt-2 font-heading text-2xl font-bold text-paper">{person.name}</h3></div></article>)}</div></div></section>
+    <section className="bg-paper-dim px-6 py-24 text-center md:px-12 lg:px-20"><div className="mx-auto max-w-3xl"><p className="font-mono text-sm text-circuit">A thought is better in the open.</p><h2 className="mt-4 font-heading text-5xl font-bold tracking-tight md:text-6xl">Got an idea? Pitch it.</h2><Link to="/ideas" className="mt-9 inline-flex rounded-[10px] bg-spark px-8 py-4 font-medium text-ink transition-transform hover:-translate-y-0.5">Pitch Your Idea</Link></div></section><div className="homepage-footer"><Footer /></div>
+  </main>;
 }

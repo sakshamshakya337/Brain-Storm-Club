@@ -63,7 +63,21 @@ export default function Navbar({ theme, toggleTheme }) {
   }, [mobileMenuOpen]);
 
   // ── GSAP slide animation — scoped to the portalled menu node ──────────────
+  const navRef = useRef(null);
+
   useGSAP(() => {
+    // 1. Homepage initial entrance
+    if (location.pathname === '/') {
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (!prefersReducedMotion && navRef.current) {
+        gsap.fromTo(navRef.current,
+          { opacity: 0, y: -15 },
+          { opacity: 1, y: 0, duration: 0.8, ease: 'power2.out' }
+        );
+      }
+    }
+
+    // 2. Mobile menu slide animation
     if (!mobileMenuRef.current) return;
 
     if (mobileMenuOpen) {
@@ -86,7 +100,7 @@ export default function Navbar({ theme, toggleTheme }) {
         ease: 'power3.in',
       });
     }
-  }, { dependencies: [mobileMenuOpen] });
+  }, { dependencies: [mobileMenuOpen, location.pathname] });
 
   const navLinks = [
     { name: 'Events',  path: '/events'  },
@@ -194,26 +208,25 @@ export default function Navbar({ theme, toggleTheme }) {
   return (
     <>
       <nav
+        ref={navRef}
         className={cn(
           'reveal-navbar fixed top-0 w-full transition-all duration-300',
           // z-50 on the bar itself is sufficient — menu is portalled out of this element
           'z-50',
           scrolled
-            ? 'bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800'
-            : 'bg-transparent border-transparent'
+            ? 'bg-paper/95 backdrop-blur-md border-b border-border shadow-sm'
+            : 'bg-paper/90 border-b border-border'
         )}
       >
-        <div className="flex justify-between items-center h-20 px-6 lg:px-8 max-w-[1440px] mx-auto">
+        <div className="flex justify-between items-center h-16 px-6 lg:h-[4.5rem] lg:px-8 max-w-[1440px] mx-auto">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 group h-full">
             <img
-              src={theme === 'dark' ? '/favicon.jpg' : '/logo.png'}
+              src="/logo.png"
               alt="Brainstorm Logo"
               className={cn(
                 'object-contain origin-left transition-transform drop-shadow-sm',
-                theme === 'dark'
-                  ? 'h-10 md:h-12 w-auto group-hover:scale-105'
-                  : 'h-20 md:h-28 w-auto group-hover:scale-[1.15] scale-110'
+                'h-14 md:h-[4.25rem] w-auto group-hover:scale-105'
               )}
             />
           </Link>
@@ -225,10 +238,10 @@ export default function Navbar({ theme, toggleTheme }) {
                 key={link.name}
                 to={link.path}
                 className={cn(
-                  'hover:text-slate-900 dark:hover:text-white transition-colors',
+                  'hover:text-ink transition-colors',
                   location.pathname === link.path
                     ? 'text-brand-primary font-semibold'
-                    : 'text-slate-600 dark:text-slate-400'
+                    : 'text-ink-soft'
                 )}
               >
                 {link.name}
@@ -240,7 +253,7 @@ export default function Navbar({ theme, toggleTheme }) {
           <div className="flex items-center gap-4">
             <Link
               to="/ideas"
-              className="hidden md:block bg-slate-900 dark:bg-brand-primary text-white px-6 py-2.5 rounded-full font-mono text-xs font-bold tracking-wider uppercase hover:bg-brand-primary dark:hover:bg-brand-primary/80 transition-colors scale-95 active:scale-90"
+              className="hidden md:block bg-spark text-ink px-6 py-2.5 rounded-full font-mono text-xs font-bold tracking-wider uppercase hover:bg-spark-soft transition-colors scale-95 active:scale-90"
             >
               Submit an Idea
             </Link>

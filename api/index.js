@@ -14,52 +14,13 @@ import publicRoutes from '../routes/public.js';
 import imageRoutes from '../routes/image.js';
 import { maintenanceGuard, getMaintenanceState } from '../middleware/maintenance.js';
 
-// ─── MongoDB Connection with Connection Caching for Serverless ─────────────────
-let connectionPromise = null;
-
-export const connectToDB = () => {
-  // Already connected — return immediately
-  if (mongoose.connection.readyState === 1) {
-    return Promise.resolve();
-  }
-  // Connection is in progress — join the existing promise
-  if (connectionPromise) {
-    return connectionPromise;
-  }
-  if (!process.env.MONGODB_URI) {
-    const err = new Error('MONGODB_URI environment variable is not defined');
-    console.error('[MongoDB]', err.message);
-    return Promise.reject(err);
-  }
-  // First call — start connecting and cache the promise
-  connectionPromise = mongoose
-    .connect(process.env.MONGODB_URI, {
-      bufferCommands: false,
-      maxPoolSize: 5,
-      minPoolSize: 1,
-      serverSelectionTimeoutMS: 5000,  // Fail fast: 5s max
-      socketTimeoutMS: 20000,
-      connectTimeoutMS: 5000,
-      heartbeatFrequencyMS: 30000,
-    })
-    .then(() => {
-      console.log('[MongoDB] Connected successfully');
-    })
-    .catch((err) => {
-      // Reset so future requests can retry the connection
-      connectionPromise = null;
-      console.error('[MongoDB] Connection failed:', err.message);
-      throw err;
-    });
-
-  return connectionPromise;
-};
+import { connectDB } from '../utils/db.js';
 
 // ─── Database Middleware (Per-Route Connection) ──────────────────────────────
 // Only database-dependent routes await this; ping/health/status remain independent.
 const ensureDB = async (req, res, next) => {
   try {
-    await connectToDB();
+    await connectDB();
     next();
   } catch (err) {
     console.error('[DB Middleware Error]', err.message);
@@ -166,7 +127,7 @@ const createApp = () => {
   // Database health check (bounded timeout)
   app.get('/api/health/db', async (req, res) => {
     try {
-      await connectToDB();
+      await connectDB();
       res.status(200).json({
         success: true,
         database: 'connected'

@@ -4,27 +4,33 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
-  darkMode: 'class', // Enable dark mode using 'class' strategy
   theme: {
     extend: {
       colors: {
-        bg: { primary: 'var(--bg-primary)', secondary: 'var(--bg-secondary)', card: 'var(--bg-card)', elevated: 'var(--bg-elevated)' },
-        text: { primary: 'var(--text-primary)', secondary: 'var(--text-secondary)', muted: 'var(--text-muted)' },
-        slate: {
-          800: 'var(--color-slate-800, #1e293b)',
-          900: 'var(--color-slate-900, #0f172a)',
-          950: 'var(--color-slate-950, #020617)',
-        },
-        brand: { primary: 'var(--brand-primary)', secondary: 'var(--brand-secondary)', accent: 'var(--brand-accent)' },
-        state: { success: 'var(--success)', warning: 'var(--warning)', danger: 'var(--danger)' },
+        paper: 'var(--paper)',
+        'paper-dim': 'var(--paper-dim)',
+        ink: 'var(--ink)',
+        'ink-soft': 'var(--ink-soft)',
+        spark: 'var(--spark)',
+        'spark-soft': 'var(--spark-soft)',
+        'spark-glow': 'var(--spark-glow)',
+        circuit: 'var(--circuit)',
         border: 'var(--border)',
+        
+        // Retain existing background/text structures for other pages compatibility
+        bg: { primary: 'var(--paper)', secondary: 'var(--paper-dim)', card: 'var(--paper)', elevated: 'var(--paper)' },
+        text: { primary: 'var(--ink)', secondary: 'var(--ink-soft)', muted: 'var(--ink-soft)' },
+        brand: { primary: 'var(--circuit)', secondary: 'var(--spark)', accent: 'var(--spark)' }
       },
       fontFamily: {
         heading: ['"Space Grotesk"', 'sans-serif'],
-        body: ['Inter', 'sans-serif'],
-        mono: ['"IBM Plex Mono"', 'monospace'],
+        body: ['"IBM Plex Sans"', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'monospace'],
       },
-      borderRadius: { card: '1rem' },
+      borderRadius: { card: '10px' },
+      boxShadow: {
+        'sys': '0 4px 20px rgba(25, 26, 31, 0.05)',
+      }
     },
   },
   plugins: [],
