@@ -33,6 +33,27 @@
   html {
     color-scheme: light;
   }
+
+  body {
+    background-color: var(--paper);
+    color: var(--ink);
+  }
+
+  .dark {
+    color-scheme: dark;
+    --paper: #121317;
+    --paper-dim: #1B1C22;
+    --ink: #F5F4F0;
+    --ink-soft: #A6A6AE;
+    --spark: #F2A70B;
+    --spark-soft: #3A2B10;
+    --spark-glow: rgba(242, 167, 11, 0.45);
+    --circuit: #6C8EF5;
+    --border: #2A2B33;
+    --success: #34D399;
+    --warning: #FB923C;
+    --danger: #F87171;
+  }
 }
 
 .homepage-footer footer { background: var(--paper-dim) !important; border-color: var(--border) !important; color: var(--ink-soft) !important; }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Sun, Moon } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
@@ -161,6 +161,14 @@ export default function Navbar({ theme, toggleTheme }) {
           </Link>
 
           <div className="flex items-center gap-3">
+            {/* Theme Toggle (Mobile) */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 text-ink-soft hover:text-ink hover:bg-paper-dim rounded-md transition-colors"
+              aria-label="Toggle theme"
+            >
+              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
             <button
               onClick={() => setMobileMenuOpen(false)}
               aria-label="Close mobile menu"
@@ -257,6 +265,14 @@ export default function Navbar({ theme, toggleTheme }) {
             >
               Submit an Idea
             </Link>
+
+            <button
+              onClick={toggleTheme}
+              className="hidden md:flex p-2 text-ink-soft hover:text-ink hover:bg-paper-dim rounded-md transition-colors"
+              aria-label="Toggle theme"
+            >
+              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
 
             <button
               onClick={() => setMobileMenuOpen(true)}
