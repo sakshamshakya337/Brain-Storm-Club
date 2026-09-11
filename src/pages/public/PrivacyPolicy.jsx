@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+﻿import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Shield, Lock, Eye, FileText, Mail } from 'lucide-react';
 import Footer from '../../components/layout/Footer';
@@ -135,7 +135,7 @@ export default function PrivacyPolicy() {
               <div className="flex items-center gap-4 shrink-0">
                 <Link
                   to="/contact"
-                  className="bg-brand-primary text-white px-6 py-3.5 rounded-sm font-mono text-xs font-bold tracking-widest uppercase hover:bg-brand-secondary transition-colors inline-flex items-center gap-2"
+                  className="bg-brand-primary text-ink px-6 py-3.5 rounded-sm font-mono text-xs font-bold tracking-widest uppercase hover:bg-brand-secondary transition-colors inline-flex items-center gap-2"
                 >
                   CONTACT US
                 </Link>

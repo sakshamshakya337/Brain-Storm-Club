@@ -287,9 +287,9 @@ export default function About() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
             {[
               { img: '/satyam.jpeg', name: 'Satyam Shakti', role: 'Social Media', interest: 'Social Media' },
-              { img: '/ashvi.jpeg', name: 'Ashvi Gupta', role: 'Research', interest: 'Patent' },
+              { img: '/ashvi.jpg', name: 'Ashvi Gupta', role: 'Research', interest: 'Patent' },
               { img: '/sujal.png', name: 'Sujal Bhatia', role: 'President', interest: 'Revenue Generation' },
-              { img: '/HarshSharma.jpeg', name: 'Harsh Sharma', role: 'Development', interest: 'Freelancing' },
+              { img: '/harsh.jpg', name: 'Harsh Sharma', role: 'Development', interest: 'Freelancing' },
             ].map((member, idx) => (
               <div key={idx} className="bg-paper border border-border p-4 group hover:border-circuit transition-colors">
                 <div className="aspect-[3/4] w-full relative overflow-hidden mb-4 bg-paper-dim">

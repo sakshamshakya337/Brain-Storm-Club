@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import {
   Lightbulb, Search, Filter, ChevronLeft, ChevronRight,
   X, FileText, ExternalLink, CheckCircle, Clock, Star,
@@ -332,7 +332,7 @@ export default function AdminIdeas() {
               className={cn(
                 'px-3 py-1.5 text-xs font-mono font-bold tracking-wider uppercase rounded-sm border transition-colors',
                 activeStatus === s
-                  ? 'bg-brand-primary border-brand-primary text-white'
+                  ? 'bg-brand-primary border-brand-primary text-ink'
                   : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400'
               )}
             >
@@ -588,7 +588,7 @@ export default function AdminIdeas() {
                     className={cn(
                       'w-7 h-7 rounded-md text-xs font-mono font-bold border transition-colors',
                       p === page
-                        ? 'bg-brand-primary border-brand-primary text-white'
+                        ? 'bg-brand-primary border-brand-primary text-ink'
                         : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
                     )}
                   >
@@ -718,7 +718,7 @@ export default function AdminIdeas() {
                         <button
                           type="button"
                           onClick={() => setPdfViewerOpen(true)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-bold tracking-wider uppercase bg-brand-primary text-white rounded-sm hover:bg-brand-primary/80 transition-colors cursor-pointer shadow-sm"
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-bold tracking-wider uppercase bg-brand-primary text-ink rounded-sm hover:bg-brand-primary/80 transition-colors cursor-pointer shadow-sm"
                         >
                           <Eye size={12} /> View PDF
                         </button>
@@ -783,7 +783,7 @@ export default function AdminIdeas() {
                   <button
                     onClick={handleStatusUpdate}
                     disabled={updatingStatus || (pendingStatus === selected.status && statusNote === (selected.adminNotes || ''))}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-brand-primary text-white text-sm font-heading font-semibold tracking-wider uppercase rounded-sm hover:bg-brand-primary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-brand-primary/20"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-brand-primary text-ink text-sm font-heading font-semibold tracking-wider uppercase rounded-sm hover:bg-brand-primary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-brand-primary/20"
                   >
                     {updatingStatus ? (
                       <><RefreshCw size={14} className="animate-spin" /> Saving…</>
@@ -1086,7 +1086,7 @@ function PdfViewerModal({ idea, onClose }) {
                 <button
                   type="button"
                   onClick={fetchPdf}
-                  className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-mono font-bold tracking-wider uppercase bg-brand-primary text-white rounded hover:bg-brand-primary/90 transition-colors cursor-pointer shadow-sm"
+                  className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-mono font-bold tracking-wider uppercase bg-brand-primary text-ink rounded hover:bg-brand-primary/90 transition-colors cursor-pointer shadow-sm"
                 >
                   <RefreshCw size={13} /> Retry
                 </button>
@@ -1127,7 +1127,7 @@ function PdfViewerModal({ idea, onClose }) {
                   <a
                     href={blobUrl}
                     download={displayName}
-                    className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-white text-xs font-bold rounded uppercase tracking-wider shadow-sm"
+                    className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-ink text-xs font-bold rounded uppercase tracking-wider shadow-sm"
                   >
                     <Download size={14} /> Download PDF
                   </a>

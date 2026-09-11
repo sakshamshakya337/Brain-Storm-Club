@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CheckCircle2, Upload, X, FileWarning, AlertCircle, ShieldAlert, Crop } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Upload, X, FileWarning, AlertCircle, ShieldAlert, Crop, Lock, Phone } from 'lucide-react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
@@ -26,9 +26,24 @@ const ADMIN_ROLES = [
 ];
 
 export default function MemberRegistration() {
-  const [formState, setFormState] = useState('DEFAULT'); // DEFAULT, SENDING, SUCCESS, DUPLICATE, ERROR
+  const [gateChecked, setGateChecked]   = useState(false);
+  const [registrationOpen, setRegistrationOpen] = useState(false); // default closed until API confirms open
+  const [formState, setFormState]       = useState('DEFAULT'); // DEFAULT, SENDING, SUCCESS, DUPLICATE
   const [errorMessage, setErrorMessage] = useState('');
-  
+
+  // ── Check if registration gate is open ─────────────────────────
+  useEffect(() => {
+    fetch('/api/site/status', { cache: 'no-store' })
+      .then(r => r.json())
+      .then(json => {
+        setRegistrationOpen(json?.data?.memberRegistrationOpen ?? false);
+      })
+      .catch(() => {
+        setRegistrationOpen(false); // fail closed — admin must explicitly open it
+      })
+      .finally(() => setGateChecked(true));
+  }, []);
+
   const [formData, setFormData] = useState({
     name: '',
     regNo: '',
@@ -244,6 +259,80 @@ export default function MemberRegistration() {
     });
   };
 
+  // ── Gate loading ───────────────────────────────────────────────
+  if (!gateChecked) {
+    return (
+      <div className="w-full bg-paper min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-spark border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // ── Registration CLOSED state ──────────────────────────────────
+  if (!registrationOpen) {
+    return (
+      <div className="w-full bg-paper min-h-screen text-ink font-body flex flex-col">
+        <section className="flex-1 flex flex-col items-center justify-center px-6 py-24 relative overflow-hidden">
+          {/* Background decoration */}
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,var(--paper)_0%,var(--paper-dim)_100%)] pointer-events-none" />
+          <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-40 z-0" aria-hidden="true" viewBox="0 0 1440 600" preserveAspectRatio="none">
+            <path d="M0 80 H200 L260 130 H500 L560 70 H780 L840 120 H1080 L1140 60 H1440" fill="none" stroke="var(--border)" strokeWidth="1.2" strokeDasharray="8 36" />
+            <path d="M0 520 H180 L240 470 H460 L520 540 H740 L800 480 H1020 L1080 550 H1440" fill="none" stroke="var(--border)" strokeWidth="1" strokeDasharray="6 42" />
+          </svg>
+
+          <div className="relative z-10 max-w-lg mx-auto text-center flex flex-col items-center">
+            {/* Icon */}
+            <div className="w-20 h-20 rounded-full bg-paper border-2 border-border flex items-center justify-center mb-8 shadow-sys">
+              <Lock size={36} className="text-ink-soft" />
+            </div>
+
+            {/* Label */}
+            <div className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-ink-soft border border-border px-3 py-1.5 rounded-sm bg-paper mb-6">
+              REGISTRATION / CLOSED
+            </div>
+
+            {/* Heading */}
+            <h1 className="font-heading font-black text-4xl md:text-5xl uppercase tracking-tight text-ink leading-[0.92] mb-6">
+              REGISTRATION IS<br />
+              <span className="text-ink-soft">CURRENTLY CLOSED.</span>
+            </h1>
+
+            {/* Body */}
+            <p className="font-body text-base text-ink-soft max-w-sm mx-auto leading-relaxed mb-10">
+              Member registrations are not being accepted at this time. Please check back later or contact the Brainstorm team for more information.
+            </p>
+
+            {/* Actions */}
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <Link
+                to="/contact"
+                className="flex items-center gap-2 rounded-sm bg-spark px-8 py-4 font-heading font-bold text-sm tracking-widest uppercase text-ink transition-transform hover:-translate-y-0.5 shadow-lg shadow-spark/20 group"
+              >
+                <Phone size={14} />
+                Contact the Team
+                <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+              </Link>
+              <Link
+                to="/"
+                className="flex items-center gap-2 rounded-sm border border-border bg-paper px-8 py-4 font-heading font-bold text-sm tracking-widest uppercase text-ink-soft hover:text-ink hover:bg-paper-dim transition-colors"
+              >
+                Back to Home
+              </Link>
+            </div>
+
+            {/* Divider note */}
+            <div className="mt-12 pt-8 border-t border-border w-full">
+              <p className="font-mono text-[10px] tracking-widest uppercase text-ink-soft">
+                BRAINSTORM CLUB · LPU SCA · MEMBER ENROLLMENT PORTAL
+              </p>
+            </div>
+          </div>
+        </section>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div ref={containerRef} className="w-full bg-paper min-h-screen text-ink font-body">
       
@@ -262,7 +351,7 @@ export default function MemberRegistration() {
           <div className="max-w-5xl flex flex-col items-start">
             
             <div data-register-hero-copy className="flex flex-wrap gap-4 mb-8">
-              <div className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-circuit border border-circuit/30 px-3 py-1.5 rounded-sm bg-circuit/5">
+              <div className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-spark border border-spark/30 px-3 py-1.5 rounded-sm bg-spark/5">
                 LPU SCA / BRAINSTORM CLUB
               </div>
               <div className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-ink-soft border border-border px-3 py-1.5 rounded-sm bg-paper">
@@ -308,9 +397,9 @@ export default function MemberRegistration() {
                     Complete your registration to officially join the club. Ensure your registration number is accurate.
                   </p>
                   
-                  <div className="p-6 border border-circuit/30 bg-circuit/5 rounded-sm flex flex-col gap-2 relative overflow-hidden">
-                    <div className="absolute inset-0 bg-circuit/5 pointer-events-none"></div>
-                    <div className="flex items-center gap-2 text-circuit font-mono text-[10px] font-bold tracking-widest uppercase relative z-10">
+                  <div className="p-6 border border-spark/30 bg-spark/5 rounded-sm flex flex-col gap-2 relative overflow-hidden">
+                    <div className="absolute inset-0 bg-spark/5 pointer-events-none"></div>
+                    <div className="flex items-center gap-2 text-spark font-mono text-[10px] font-bold tracking-widest uppercase relative z-10">
                       <ShieldAlert size={14} /> SECURITY NOTICE
                     </div>
                     <p className="text-sm font-body text-ink font-medium relative z-10">One registration per student.</p>
@@ -332,7 +421,7 @@ export default function MemberRegistration() {
                       { step: '04', title: 'BUILD TOGETHER', desc: 'Welcome to the Brainstorm club.' }
                     ].map((item, i) => (
                       <div key={i} className="flex items-start gap-6 relative z-10">
-                        <div className="w-[19px] h-[19px] rounded-full bg-paper-dim border-2 border-circuit flex items-center justify-center mt-0.5">
+                        <div className="w-[19px] h-[19px] rounded-full bg-paper-dim border-2 border-spark flex items-center justify-center mt-0.5">
                            <div className="w-1.5 h-1.5 bg-circuit rounded-full"></div>
                         </div>
                         <div className="flex flex-col">
@@ -352,12 +441,12 @@ export default function MemberRegistration() {
               
               {/* SUCCESS STATE */}
               {formState === 'SUCCESS' && (
-                <div className="w-full bg-paper border border-circuit/30 p-8 md:p-16 rounded-sm shadow-sys flex flex-col items-center justify-center text-center animate-in fade-in zoom-in duration-500 min-h-[600px] relative overflow-hidden">
-                  <div className="absolute inset-0 bg-circuit/5"></div>
-                  <div className="w-20 h-20 rounded-full bg-circuit/10 flex items-center justify-center mb-8 text-circuit border border-circuit/20 relative z-10">
+                <div className="w-full bg-paper border border-spark/30 p-8 md:p-16 rounded-sm shadow-sys flex flex-col items-center justify-center text-center animate-in fade-in zoom-in duration-500 min-h-[600px] relative overflow-hidden">
+                  <div className="absolute inset-0 bg-spark/5"></div>
+                  <div className="w-20 h-20 rounded-full bg-spark/10 flex items-center justify-center mb-8 text-spark border border-spark/20 relative z-10">
                     <CheckCircle2 size={40} />
                   </div>
-                  <div className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-circuit mb-4 relative z-10">
+                  <div className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-spark mb-4 relative z-10">
                     REGISTRATION STATUS / ✓ REGISTERED
                   </div>
                   <h2 className="font-heading font-black text-3xl md:text-4xl uppercase text-ink mb-6 relative z-10">
@@ -433,7 +522,7 @@ export default function MemberRegistration() {
                           <input 
                             type="text" name="name" required placeholder="Enter your full name"
                             value={formData.name} onChange={handleInputChange}
-                            className="w-full bg-paper-dim border border-border px-5 py-4 font-body text-ink placeholder-ink-soft focus:outline-none focus:border-circuit transition-colors rounded-sm shadow-sys"
+                            className="w-full bg-paper-dim border border-border px-5 py-4 font-body text-ink placeholder-ink-soft focus:outline-none focus:border-spark transition-colors rounded-sm shadow-sys"
                           />
                         </div>
                         <div className="flex flex-col gap-2">
@@ -441,7 +530,7 @@ export default function MemberRegistration() {
                           <input 
                             type="text" name="regNo" required placeholder="Enter your registration number"
                             value={formData.regNo} onChange={handleInputChange}
-                            className="w-full bg-paper-dim border border-border px-5 py-4 font-body text-ink placeholder-ink-soft focus:outline-none focus:border-circuit transition-colors rounded-sm shadow-sys"
+                            className="w-full bg-paper-dim border border-border px-5 py-4 font-body text-ink placeholder-ink-soft focus:outline-none focus:border-spark transition-colors rounded-sm shadow-sys"
                           />
                         </div>
                       </div>
@@ -458,7 +547,7 @@ export default function MemberRegistration() {
                           <select 
                             name="course" required 
                             value={formData.course} onChange={handleInputChange}
-                            className="w-full bg-paper-dim border border-border px-5 py-4 font-body text-ink focus:outline-none focus:border-circuit transition-colors rounded-sm appearance-none cursor-pointer invalid:text-ink-soft"
+                            className="w-full bg-paper-dim border border-border px-5 py-4 font-body text-ink focus:outline-none focus:border-spark transition-colors rounded-sm appearance-none cursor-pointer invalid:text-ink-soft"
                           >
                             <option value="" disabled hidden>Select your course</option>
                             <option value="MCA" className="text-ink">MCA</option>
@@ -472,7 +561,7 @@ export default function MemberRegistration() {
                           <input 
                             type="text" name="section" required placeholder="Enter your section"
                             value={formData.section} onChange={handleInputChange}
-                            className="w-full bg-paper-dim border border-border px-5 py-4 font-body text-ink placeholder-ink-soft focus:outline-none focus:border-circuit transition-colors rounded-sm shadow-sys"
+                            className="w-full bg-paper-dim border border-border px-5 py-4 font-body text-ink placeholder-ink-soft focus:outline-none focus:border-spark transition-colors rounded-sm shadow-sys"
                           />
                         </div>
                       </div>
@@ -488,7 +577,7 @@ export default function MemberRegistration() {
                         <input 
                           type="email" name="email" required placeholder="you@example.com"
                           value={formData.email} onChange={handleInputChange}
-                          className="w-full bg-paper-dim border border-border px-5 py-4 font-body text-ink placeholder-ink-soft focus:outline-none focus:border-circuit transition-colors rounded-sm shadow-sys"
+                          className="w-full bg-paper-dim border border-border px-5 py-4 font-body text-ink placeholder-ink-soft focus:outline-none focus:border-spark transition-colors rounded-sm shadow-sys"
                         />
                       </div>
 
@@ -498,7 +587,7 @@ export default function MemberRegistration() {
                           <input 
                             type="tel" name="phone" required placeholder="Enter your phone number"
                             value={formData.phone} onChange={handleInputChange}
-                            className="w-full bg-paper-dim border border-border px-5 py-4 font-body text-ink placeholder-ink-soft focus:outline-none focus:border-circuit transition-colors rounded-sm shadow-sys"
+                            className="w-full bg-paper-dim border border-border px-5 py-4 font-body text-ink placeholder-ink-soft focus:outline-none focus:border-spark transition-colors rounded-sm shadow-sys"
                           />
                         </div>
                         <div className="flex flex-col gap-2">
@@ -510,7 +599,7 @@ export default function MemberRegistration() {
                                   type="checkbox" 
                                   checked={sameAsPhone}
                                   onChange={(e) => setSameAsPhone(e.target.checked)}
-                                  className="appearance-none w-4 h-4 border border-border bg-paper-dim rounded-[2px] checked:bg-circuit checked:border-circuit cursor-pointer transition-colors"
+                                  className="appearance-none w-4 h-4 border border-border bg-paper-dim rounded-[2px] checked:bg-spark checked:border-spark cursor-pointer transition-colors"
                                 />
                                 {sameAsPhone && <CheckCircle2 size={12} className="absolute text-paper pointer-events-none" strokeWidth={4} />}
                               </div>
@@ -522,7 +611,7 @@ export default function MemberRegistration() {
                             value={formData.whatsapp} 
                             onChange={handleInputChange}
                             readOnly={sameAsPhone}
-                            className={`w-full bg-paper-dim border border-border px-5 py-4 font-body text-ink placeholder-ink-soft focus:outline-none focus:border-circuit transition-colors rounded-sm shadow-sys ${sameAsPhone ? 'opacity-70 cursor-not-allowed' : ''}`}
+                            className={`w-full bg-paper-dim border border-border px-5 py-4 font-body text-ink placeholder-ink-soft focus:outline-none focus:border-spark transition-colors rounded-sm shadow-sys ${sameAsPhone ? 'opacity-70 cursor-not-allowed' : ''}`}
                           />
                         </div>
                       </div>
@@ -540,7 +629,7 @@ export default function MemberRegistration() {
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           {PUBLIC_ROLES.map(r => (
-                            <label key={r} className={`flex items-center gap-3 p-4 border rounded-sm cursor-pointer transition-colors ${formData.role === r ? 'border-circuit bg-circuit/5' : 'border-border bg-paper-dim hover:border-circuit/50'}`}>
+                            <label key={r} className={`flex items-center gap-3 p-4 border rounded-sm cursor-pointer transition-colors ${formData.role === r ? 'border-spark bg-spark/5' : 'border-border bg-paper-dim hover:border-spark/50'}`}>
                               <div className="relative flex items-center justify-center">
                                 <input 
                                   type="radio" 
@@ -548,9 +637,9 @@ export default function MemberRegistration() {
                                   value={r}
                                   checked={formData.role === r}
                                   onChange={handleInputChange}
-                                  className="appearance-none w-4 h-4 border border-border rounded-full checked:border-circuit transition-colors"
+                                  className="appearance-none w-4 h-4 border border-border rounded-full checked:border-spark transition-colors"
                                 />
-                                {formData.role === r && <div className="absolute w-2 h-2 rounded-full bg-circuit pointer-events-none" />}
+                                {formData.role === r && <div className="absolute w-2 h-2 rounded-full bg-spark pointer-events-none" />}
                               </div>
                               <span className={`font-body text-sm font-medium ${formData.role === r ? 'text-ink' : 'text-ink-soft'}`}>{r}</span>
                             </label>
@@ -565,7 +654,7 @@ export default function MemberRegistration() {
                         {!imagePreview ? (
                           <div 
                             onClick={() => fileInputRef.current?.click()}
-                            className="relative w-full border-2 border-dashed border-border bg-paper-dim hover:bg-paper hover:border-circuit/50 transition-all rounded-sm flex flex-col items-center justify-center p-12 group cursor-pointer"
+                            className="relative w-full border-2 border-dashed border-border bg-paper-dim hover:bg-paper hover:border-spark/50 transition-all rounded-sm flex flex-col items-center justify-center p-12 group cursor-pointer"
                           >
                             <input 
                               ref={fileInputRef}
@@ -574,9 +663,9 @@ export default function MemberRegistration() {
                               onChange={handleImageUpload}
                               className="hidden" 
                             />
-                            <div className="w-12 h-12 rounded-full bg-circuit/10 flex items-center justify-center text-circuit mb-4 group-hover:scale-110 transition-transform">
+                            <div className="w-12 h-12 rounded-full bg-spark/10 flex items-center justify-center text-spark mb-4 group-hover:scale-110 transition-transform">
                               {imageProcessing ? (
-                                 <div className="w-5 h-5 border-2 border-circuit border-t-transparent rounded-full animate-spin"></div>
+                                 <div className="w-5 h-5 border-2 border-spark border-t-transparent rounded-full animate-spin"></div>
                               ) : (
                                  <Upload size={20} />
                               )}
@@ -618,7 +707,7 @@ export default function MemberRegistration() {
                                 <button
                                   type="button"
                                   onClick={() => setCropModalOpen(true)}
-                                  className="font-mono text-[10px] font-bold text-circuit hover:underline uppercase flex items-center gap-1"
+                                  className="font-mono text-[10px] font-bold text-spark hover:underline uppercase flex items-center gap-1"
                                 >
                                   <Crop size={12} />
                                   Adjust Crop

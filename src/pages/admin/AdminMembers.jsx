@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import {
   Loader2, Search, Filter, Edit, Trash2, Eye, Mail, Phone,
   Download, UserPlus, X, Upload, CheckCircle2, AlertCircle,
-  Users, GraduationCap, Crop
+  Users, GraduationCap, Lock, Unlock, ExternalLink
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Link } from 'react-router-dom';
@@ -200,7 +200,7 @@ function AddMemberModal({ onClose, onCreated }) {
                 onClick={() => { setMemberType('student'); setStep(2); }}
                 className="flex flex-col items-center gap-3 p-6 border-2 border-slate-200 rounded-xl hover:border-brand-primary hover:bg-brand-primary/5 transition-all group"
               >
-                <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center group-hover:bg-brand-primary group-hover:text-white transition-colors">
+                <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center group-hover:bg-brand-primary group-hover:text-ink transition-colors">
                   <GraduationCap size={22} />
                 </div>
                 <div className="text-center">
@@ -214,7 +214,7 @@ function AddMemberModal({ onClose, onCreated }) {
                 onClick={() => { setMemberType('faculty'); set('status', 'Approved'); setStep(2); }}
                 className="flex flex-col items-center gap-3 p-6 border-2 border-slate-200 rounded-xl hover:border-brand-primary hover:bg-brand-primary/5 transition-all group"
               >
-                <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center group-hover:bg-brand-primary group-hover:text-white transition-colors">
+                <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center group-hover:bg-brand-primary group-hover:text-ink transition-colors">
                   <Users size={22} />
                 </div>
                 <div className="text-center">
@@ -511,7 +511,7 @@ function AddMemberModal({ onClose, onCreated }) {
               <button
                 type="submit"
                 disabled={saving || imageProcessing}
-                className="px-5 py-2 text-sm font-semibold text-white bg-brand-primary rounded-lg hover:bg-brand-primary/90 transition-colors disabled:opacity-60 flex items-center gap-2 shadow-sm"
+                className="px-5 py-2 text-sm font-semibold text-ink bg-brand-primary rounded-lg hover:bg-brand-primary/90 transition-colors disabled:opacity-60 flex items-center gap-2 shadow-sm"
               >
                 {saving && <Loader2 size={14} className="animate-spin" />}
                 Create Member
@@ -563,6 +563,12 @@ export default function AdminMembers() {
   // Add member modal
   const [addModalOpen, setAddModalOpen] = useState(false);
 
+  // ── Member Registration Gate ───────────────────────────────────
+  const [regOpen, setRegOpen]       = useState(false);
+  const [regLoading, setRegLoading] = useState(true);
+  const [regSaving, setRegSaving]   = useState(false);
+  const [regConfirm, setRegConfirm] = useState(null); // null | 'open' | 'close'
+
   useEffect(() => {
     return () => {
       if (editPhotoPreview) URL.revokeObjectURL(editPhotoPreview);
@@ -571,6 +577,39 @@ export default function AdminMembers() {
   }, []);
 
   useEffect(() => { fetchMembers(); }, []);
+
+  // Fetch member registration gate status
+  useEffect(() => {
+    fetch('/api/admin/settings', { credentials: 'include' })
+      .then(r => r.json())
+      .then(json => {
+        if (json.success && json.data.settings) {
+          setRegOpen(json.data.settings.memberRegistrationOpen ?? false);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setRegLoading(false));
+  }, []);
+
+  const handleRegToggle = async (next) => {
+    setRegConfirm(null);
+    setRegSaving(true);
+    try {
+      const res  = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memberRegistrationOpen: next }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || 'Failed to update');
+      setRegOpen(json.data.settings.memberRegistrationOpen ?? next);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setRegSaving(false);
+    }
+  };
 
   const fetchMembers = async () => {
     try {
@@ -771,7 +810,7 @@ export default function AdminMembers() {
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setAddModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-white rounded-md text-sm font-semibold hover:bg-brand-primary/90 transition-colors shadow-sm"
+            className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-ink rounded-md text-sm font-semibold hover:bg-brand-primary/90 transition-colors shadow-sm"
           >
             <UserPlus size={16} />
             Add Member
@@ -792,9 +831,115 @@ export default function AdminMembers() {
         </div>
       </div>
 
+      {/* ── Registration Gate confirm dialog ──────────────────────────── */}
+      {regConfirm && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center px-4"
+          onClick={() => setRegConfirm(null)}
+        >
+          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" />
+          <div
+            className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-200"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className={cn('p-5 border-b', regConfirm === 'close' ? 'border-red-100' : 'border-slate-200')}>
+              <div className="flex items-start gap-3">
+                <div className={cn('w-10 h-10 rounded-xl shrink-0 flex items-center justify-center', regConfirm === 'close' ? 'bg-red-50' : 'bg-brand-primary/10')}>
+                  {regConfirm === 'close' ? <Lock size={18} className="text-red-500" /> : <Unlock size={18} className="text-brand-primary" />}
+                </div>
+                <h3 className="font-heading font-bold text-lg text-slate-900 leading-snug pt-1">
+                  {regConfirm === 'open' ? 'Open Member Registration?' : 'Close Member Registration?'}
+                </h3>
+              </div>
+            </div>
+            <div className="p-5">
+              <p className="text-sm text-slate-600 leading-relaxed">
+                {regConfirm === 'open'
+                  ? 'Students will be able to access /members/register and submit a membership application.'
+                  : 'The /members/register page will show a Registration Closed notice. No new applications can be submitted.'}
+              </p>
+            </div>
+            <div className="px-5 pb-5 pt-1 flex gap-3 justify-end">
+              <button
+                onClick={() => setRegConfirm(null)}
+                className="px-4 py-2.5 rounded-lg border border-slate-200 bg-white text-slate-700 text-xs font-bold font-mono tracking-widest uppercase hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleRegToggle(regConfirm === 'open')}
+                className={cn(
+                  'px-4 py-2.5 rounded-lg text-xs font-bold font-mono tracking-widest uppercase transition-colors',
+                  regConfirm === 'close'
+                    ? 'bg-red-600 hover:bg-red-700 text-white'
+                    : 'bg-brand-primary hover:bg-brand-secondary text-ink'
+                )}
+              >
+                {regConfirm === 'open' ? 'Yes, Open' : 'Yes, Close'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Member Registration Gate card ──────────────────────────────── */}
+      <div className={cn(
+        'flex items-center justify-between gap-4 px-5 py-3.5 rounded-xl border shadow-sm',
+        regOpen
+          ? 'bg-emerald-50 border-emerald-200'
+          : 'bg-red-50 border-red-200'
+      )}>
+        <div className="flex items-center gap-3 min-w-0">
+          <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center shrink-0', regOpen ? 'bg-emerald-100' : 'bg-red-100')}>
+            {regLoading || regSaving
+              ? <Loader2 size={15} className="animate-spin text-slate-500" />
+              : regOpen
+              ? <Unlock size={15} className="text-emerald-600" />
+              : <Lock   size={15} className="text-red-500" />}
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-slate-900">Member Registration</span>
+              <span className={cn(
+                'px-2 py-0.5 rounded text-[10px] font-mono font-bold tracking-widest uppercase',
+                regOpen ? 'bg-emerald-200 text-emerald-800' : 'bg-red-200 text-red-800'
+              )}>
+                {regOpen ? 'OPEN' : 'CLOSED'}
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5 truncate">
+              {regOpen
+                ? 'Students can access /members/register and submit applications'
+                : '/members/register is gated — students see a closed notice'}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <Link
+            to="/members/register"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hidden sm:flex items-center gap-1.5 px-3 py-2 text-xs font-mono font-bold tracking-widest uppercase text-slate-600 border border-slate-200 bg-white rounded-lg hover:bg-slate-50 transition-colors"
+          >
+            <ExternalLink size={12} /> Preview
+          </Link>
+          <button
+            disabled={regLoading || regSaving}
+            onClick={() => setRegConfirm(regOpen ? 'close' : 'open')}
+            className={cn(
+              'px-4 py-2 rounded-lg text-xs font-bold font-mono tracking-widest uppercase transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-1.5',
+              regOpen
+                ? 'bg-red-500 hover:bg-red-600 text-white'
+                : 'bg-brand-primary hover:bg-brand-secondary text-ink'
+            )}
+          >
+            {regOpen ? <><Lock size={12} /> Close</> : <><Unlock size={12} /> Open</>}
+          </button>
+        </div>
+      </div>
+
       {/* Table card */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-
         {/* Toolbar */}
         <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col gap-3">
 
@@ -832,7 +977,7 @@ export default function AdminMembers() {
                 className={cn(
                   'px-3 py-1 text-xs font-mono font-bold tracking-wider uppercase rounded-sm border transition-colors',
                   typeFilter === t
-                    ? 'bg-brand-primary border-brand-primary text-white'
+                    ? 'bg-brand-primary border-brand-primary text-ink'
                     : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400'
                 )}
               >
@@ -1438,7 +1583,7 @@ export default function AdminMembers() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-4 py-2 bg-brand-primary text-white rounded-lg text-sm font-medium hover:bg-brand-primary/90 transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50"
+                  className="px-4 py-2 bg-brand-primary text-ink rounded-lg text-sm font-medium hover:bg-brand-primary/90 transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50"
                 >
                   {saving && <Loader2 className="animate-spin" size={16} />}
                   Save Changes

@@ -20,7 +20,7 @@ export default {
         // Retain existing background/text structures for other pages compatibility
         bg: { primary: 'var(--paper)', secondary: 'var(--paper-dim)', card: 'var(--paper)', elevated: 'var(--paper)' },
         text: { primary: 'var(--ink)', secondary: 'var(--ink-soft)', muted: 'var(--ink-soft)' },
-        brand: { primary: 'var(--circuit)', secondary: 'var(--spark)', accent: 'var(--spark)' }
+        brand: { primary: 'var(--spark)', secondary: 'var(--circuit)', accent: 'var(--circuit)' }
       },
       fontFamily: {
         heading: ['"Space Grotesk"', 'sans-serif'],

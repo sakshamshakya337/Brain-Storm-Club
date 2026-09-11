@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   Loader2, Search, Filter, Plus, Calendar, Clock, MapPin, MoreVertical, 
   Edit, Trash2, Users, Image as ImageIcon, Upload, ChevronUp, ChevronDown, 
@@ -317,7 +317,7 @@ export default function AdminEvents() {
           <h2 className="text-2xl font-heading font-bold text-slate-900">Events Management</h2>
           <p className="text-sm font-mono text-slate-500">Create and manage club events and activities.</p>
         </div>
-        <button onClick={openCreateModal} className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-white rounded-md text-sm font-medium hover:bg-brand-secondary transition-colors shadow-sm">
+        <button onClick={openCreateModal} className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-ink rounded-md text-sm font-medium hover:bg-brand-secondary transition-colors shadow-sm">
           <Plus size={16} />
           Create Event
         </button>
@@ -663,7 +663,7 @@ export default function AdminEvents() {
                             <div className="flex items-center gap-2">
                               <span className={cn(
                                 "px-1.5 py-0.5 rounded text-[9px] font-mono font-bold tracking-wider uppercase",
-                                img.isCover ? "bg-brand-primary text-white shadow-xs" : "bg-slate-100 text-slate-600"
+                                img.isCover ? "bg-brand-primary text-ink shadow-xs" : "bg-slate-100 text-slate-600"
                               )}>
                                 {img.isCover ? "COVER" : `PHOTO #${idx + 1}`}
                               </span>
@@ -733,7 +733,7 @@ export default function AdminEvents() {
                 <button 
                   type="submit"
                   disabled={saving}
-                  className="px-4 py-2 bg-brand-primary text-white rounded-lg text-sm font-medium hover:bg-brand-secondary transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50"
+                  className="px-4 py-2 bg-brand-primary text-ink rounded-lg text-sm font-medium hover:bg-brand-secondary transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50"
                 >
                   {saving && <Loader2 className="animate-spin" size={16} />}
                   {isEditing ? 'Save Changes' : 'Create Event'}

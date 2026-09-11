@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   Download,
   FileSpreadsheet,
@@ -107,7 +107,7 @@ function Toast({ message, type = 'success', onClose }) {
 function StepLabel({ number, label }) {
   return (
     <div className="flex items-center gap-3 mb-5">
-      <span className="flex items-center justify-center w-6 h-6 rounded-full bg-brand-primary text-white font-mono text-xs font-bold shrink-0">
+      <span className="flex items-center justify-center w-6 h-6 rounded-full bg-brand-primary text-ink font-mono text-xs font-bold shrink-0">
         {number}
       </span>
       <h3 className="text-xs font-bold uppercase tracking-widest text-slate-900 font-mono">
@@ -366,7 +366,7 @@ export default function AdminExports() {
             <button
               type="submit"
               disabled={exporting || (resource === 'event-registrations' && !selectedEventId && events.length > 0)}
-              className="flex items-center gap-2.5 px-7 py-3 bg-brand-primary text-white rounded-lg text-sm font-bold font-mono tracking-widest uppercase hover:bg-brand-secondary transition-all shadow-md shadow-brand-primary/20 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+              className="flex items-center gap-2.5 px-7 py-3 bg-brand-primary text-ink rounded-lg text-sm font-bold font-mono tracking-widest uppercase hover:bg-brand-secondary transition-all shadow-md shadow-brand-primary/20 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
             >
               {exporting ? (
                 <>

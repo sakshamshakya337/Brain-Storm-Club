@@ -1,9 +1,10 @@
 import mongoose from 'mongoose';
 
 const systemSettingsSchema = new mongoose.Schema({
-  maintenanceMode: { type: Boolean, default: false },
-  publicSiteActive: { type: Boolean, default: true },
-  registrationOpen: { type: Boolean, default: true },
+  maintenanceMode:        { type: Boolean, default: false },
+  publicSiteActive:       { type: Boolean, default: true },
+  registrationOpen:       { type: Boolean, default: true },
+  memberRegistrationOpen: { type: Boolean, default: false },
   notificationsEnabled: {
     memberRegistration: { type: Boolean, default: true },
     joinUs: { type: Boolean, default: true },

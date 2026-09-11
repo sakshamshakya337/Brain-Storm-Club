@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+﻿import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ShieldCheck, Lock, AlertTriangle, Bug, KeyRound,
@@ -152,7 +152,7 @@ export default function SecurityPolicy() {
             <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto shrink-0">
               <a 
                 href="mailto:sakshamshakya319@gmail.com?subject=Vulnerability%20Disclosure%20-%20LPU%20SCA%20Brainstorm"
-                className="px-6 py-3.5 bg-brand-primary text-white text-xs font-mono font-bold tracking-wider uppercase rounded-sm hover:bg-brand-primary/90 transition-colors shadow-md shadow-brand-primary/20 text-center flex items-center justify-center gap-2"
+                className="px-6 py-3.5 bg-brand-primary text-ink text-xs font-mono font-bold tracking-wider uppercase rounded-sm hover:bg-brand-primary/90 transition-colors shadow-md shadow-brand-primary/20 text-center flex items-center justify-center gap-2"
               >
                 <Mail size={14} /> Email Security Lead
               </a>

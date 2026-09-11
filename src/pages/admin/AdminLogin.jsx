@@ -117,7 +117,7 @@ export default function AdminLogin() {
                     required
                     value={formData.email}
                     onChange={handleChange}
-                    className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-md text-slate-900 focus:ring-1 focus:ring-brand-primary focus:border-brand-primary sm:text-sm transition-colors outline-none bg-slate-50 focus:bg-white"
+                    className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-md text-slate-900 focus:ring-1 focus:ring-spark focus:border-spark sm:text-sm transition-colors outline-none bg-slate-50 focus:bg-white"
                     placeholder="admin@brainstorm.com"
                   />
                 </div>
@@ -135,7 +135,7 @@ export default function AdminLogin() {
                     required
                     value={formData.password}
                     onChange={handleChange}
-                    className="block w-full pl-10 pr-10 py-3 border border-slate-200 rounded-md text-slate-900 focus:ring-1 focus:ring-brand-primary focus:border-brand-primary sm:text-sm transition-colors outline-none bg-slate-50 focus:bg-white"
+                    className="block w-full pl-10 pr-10 py-3 border border-slate-200 rounded-md text-slate-900 focus:ring-1 focus:ring-spark focus:border-spark sm:text-sm transition-colors outline-none bg-slate-50 focus:bg-white"
                     placeholder="••••••••"
                   />
                   <button
@@ -157,7 +157,7 @@ export default function AdminLogin() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex justify-center py-4 px-4 border border-transparent rounded-md shadow-lg shadow-brand-primary/20 text-sm font-mono tracking-widest uppercase font-bold text-white bg-brand-primary hover:bg-brand-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary disabled:opacity-70 transition-all"
+                className="w-full flex justify-center py-4 px-4 border border-transparent rounded-md shadow-lg shadow-spark/20 text-sm font-mono tracking-widest uppercase font-bold text-ink bg-brand-primary hover:bg-brand-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-spark disabled:opacity-70 transition-all"
               >
                 {loading ? <Loader2 className="animate-spin" size={20} /> : 'Request Access'}
               </button>

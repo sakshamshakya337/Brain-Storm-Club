@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   Search, ArrowLeft, Home, Calendar, Users, Lightbulb,
@@ -132,7 +132,7 @@ export default function NotFound() {
               />
               <button
                 type="submit"
-                className="absolute right-1.5 px-4 py-2 bg-brand-primary text-white text-xs font-mono font-bold tracking-wider uppercase rounded hover:bg-brand-primary/90 transition-colors shadow-sm cursor-pointer"
+                className="absolute right-1.5 px-4 py-2 bg-brand-primary text-ink text-xs font-mono font-bold tracking-wider uppercase rounded hover:bg-brand-primary/90 transition-colors shadow-sm cursor-pointer"
               >
                 Search
               </button>
@@ -184,7 +184,7 @@ export default function NotFound() {
           <div className="flex flex-wrap items-center justify-center gap-4 mb-16">
             <Link
               to="/"
-              className="flex items-center gap-2 px-6 py-3 bg-brand-primary text-white text-xs font-mono font-bold tracking-widest uppercase rounded-sm hover:bg-brand-primary/90 transition-all shadow-md shadow-brand-primary/20 hover:shadow-lg"
+              className="flex items-center gap-2 px-6 py-3 bg-brand-primary text-ink text-xs font-mono font-bold tracking-widest uppercase rounded-sm hover:bg-brand-primary/90 transition-all shadow-md shadow-brand-primary/20 hover:shadow-lg"
             >
               <Home size={15} />
               Return Home

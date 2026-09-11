@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   Loader2, Search, Filter, Mail, CheckCircle2, MoreVertical, ExternalLink, 
   ChevronLeft, ChevronRight, Send, Reply, Clock, User, AlertCircle, Calendar, Check 
@@ -535,7 +535,7 @@ export default function AdminContact() {
                     type="button"
                     onClick={handleSendReply}
                     disabled={sendingReply || !replyText.trim() || replyText.trim().length < 5 || replyText.trim().length > 5000}
-                    className="flex items-center gap-2 px-4 py-2 bg-brand-primary hover:bg-brand-secondary text-white rounded-lg text-xs font-semibold shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center gap-2 px-4 py-2 bg-brand-primary hover:bg-brand-secondary text-ink rounded-lg text-xs font-semibold shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {sendingReply ? (
                       <>

@@ -13,6 +13,7 @@ import adminRoutes from '../routes/admin.js';
 import publicRoutes from '../routes/public.js';
 import imageRoutes from '../routes/image.js';
 import { maintenanceGuard, getMaintenanceState } from '../middleware/maintenance.js';
+import SystemSettings from '../models/SystemSettings.js';
 
 import { connectDB } from '../utils/db.js';
 
@@ -141,26 +142,30 @@ const createApp = () => {
     }
   });
 
-  // ─── Site Status (Fast, non-blocking) ────────────────────────────────────────
+  // ─── Site Status ─────────────────────────────────────────────────────────────
   app.get('/api/site/status', async (req, res) => {
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     try {
-      let maintenanceMode = false;
-      if (mongoose.connection.readyState === 1) {
-        maintenanceMode = await Promise.race([
-          getMaintenanceState(),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 2000))
-        ]).catch(() => false);
-      }
+      // Always connect — this is a lightweight cached connection, not a cold connect each time
+      await connectDB();
+
+      const [maintenanceMode, settings] = await Promise.all([
+        getMaintenanceState(),
+        SystemSettings.findOne().select('memberRegistrationOpen').lean().catch(() => null),
+      ]);
+
       res.status(200).json({
         success: true,
-        data: { maintenanceMode: !!maintenanceMode }
+        data: {
+          maintenanceMode:        !!maintenanceMode,
+          memberRegistrationOpen: !!(settings?.memberRegistrationOpen),
+        }
       });
     } catch (error) {
       console.error('[Site Status Error]', error);
       res.status(200).json({
         success: true,
-        data: { maintenanceMode: false }
+        data: { maintenanceMode: false, memberRegistrationOpen: false }
       });
     }
   });

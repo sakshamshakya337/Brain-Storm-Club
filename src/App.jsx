@@ -39,6 +39,7 @@ import AdminExports from './pages/admin/AdminExports';
 import AdminLinks from './pages/admin/AdminLinks';
 import AdminSettings from './pages/admin/AdminSettings';
 import AdminNotifications from './pages/admin/AdminNotifications';
+import AdminMemberRegistration from './pages/admin/AdminMemberRegistration';
 import AdminLayout from './components/admin/AdminLayout';
 
 import Preloader from './components/layout/Preloader';
@@ -169,6 +170,7 @@ function AppContent() {
               <Route path="/control/analytics" element={<Analytics />} />
               <Route path="/control/settings" element={<AdminSettings />} />
               <Route path="/control/notifications" element={<AdminNotifications />} />
+              <Route path="/control/member-registration" element={<AdminMemberRegistration />} />
             </Route>
 
             {/* 404 Catch-All Route */}

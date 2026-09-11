@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
@@ -193,7 +193,7 @@ export default function Navbar({ theme, toggleTheme }) {
             <Link
               to="/ideas"
               onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center justify-center w-full bg-slate-900 dark:bg-brand-primary text-white py-4 rounded-xl font-mono text-sm font-bold tracking-wider uppercase active:scale-[0.98] transition-transform"
+              className="flex items-center justify-center w-full bg-slate-900 dark:bg-brand-primary text-ink py-4 rounded-xl font-mono text-sm font-bold tracking-wider uppercase active:scale-[0.98] transition-transform"
             >
               Submit an Idea
             </Link>

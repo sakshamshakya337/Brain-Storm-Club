@@ -56,7 +56,7 @@ function ConfirmDialog({ open, title, description, confirmLabel, cancelLabel, on
           <button
             onClick={onConfirm}
             className={cn(
-              'px-4 py-2.5 rounded-lg text-white text-xs font-bold font-mono tracking-widest uppercase transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2',
+              'px-4 py-2.5 rounded-lg text-ink text-xs font-bold font-mono tracking-widest uppercase transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2',
               toneClasses.confirm
             )}
           >
@@ -426,7 +426,7 @@ export default function AdminSettings() {
                 </div>
 
                 <div className="pt-4 flex justify-end">
-                  <button type="submit" disabled={saving} className="px-6 py-3 bg-brand-primary text-white rounded-lg text-xs font-bold font-mono tracking-widest uppercase hover:bg-brand-secondary transition-colors flex items-center gap-2">
+                  <button type="submit" disabled={saving} className="px-6 py-3 bg-brand-primary text-ink rounded-lg text-xs font-bold font-mono tracking-widest uppercase hover:bg-brand-secondary transition-colors flex items-center gap-2">
                     {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Save Preferences
                   </button>
                 </div>
@@ -534,7 +534,7 @@ export default function AdminSettings() {
                 </div>
 
                 <div className="pt-4 flex justify-end">
-                  <button type="submit" disabled={saving} className="px-6 py-3 bg-brand-primary text-white rounded-lg text-xs font-bold font-mono tracking-widest uppercase hover:bg-brand-secondary transition-colors flex items-center gap-2">
+                  <button type="submit" disabled={saving} className="px-6 py-3 bg-brand-primary text-ink rounded-lg text-xs font-bold font-mono tracking-widest uppercase hover:bg-brand-secondary transition-colors flex items-center gap-2">
                     {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Save System Settings
                   </button>
                 </div>

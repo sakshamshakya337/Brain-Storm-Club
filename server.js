@@ -18,6 +18,7 @@ import adminRoutes from './routes/admin.js';
 import publicRoutes from './routes/public.js';
 import imageRoutes from './routes/image.js';
 import { maintenanceGuard, getMaintenanceState } from './middleware/maintenance.js';
+import SystemSettings from './models/SystemSettings.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -99,21 +100,21 @@ app.use('/api/admin', adminRoutes);
 
 app.get('/api/site/status', async (req, res) => {
   try {
-    const maintenanceMode = await getMaintenanceState();
+    const [maintenanceMode, settings] = await Promise.all([
+      getMaintenanceState(),
+      SystemSettings.findOne().select('memberRegistrationOpen').lean().catch(() => null),
+    ]);
+    const memberRegistrationOpen = settings?.memberRegistrationOpen ?? false;
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.status(200).json({
       success: true,
-      data: {
-        maintenanceMode
-      }
+      data: { maintenanceMode, memberRegistrationOpen }
     });
   } catch (error) {
     console.error('[Site Status Error]', error);
     res.status(200).json({
       success: true,
-      data: {
-        maintenanceMode: false
-      }
+      data: { maintenanceMode: false, memberRegistrationOpen: false }
     });
   }
 });

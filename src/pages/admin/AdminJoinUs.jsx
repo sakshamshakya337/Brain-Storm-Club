@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Loader2, Search, Filter, Download, Eye, Pencil, CheckCircle2,
@@ -300,7 +300,7 @@ function EditModal({ req, onClose, onSaved }) {
         </div>
         <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">Cancel</button>
-          <button type="submit" disabled={saving} className="px-4 py-2 text-sm font-semibold text-white bg-brand-primary rounded-lg hover:bg-brand-primary/90 transition-colors disabled:opacity-60 flex items-center gap-2 shadow-sm">
+          <button type="submit" disabled={saving} className="px-4 py-2 text-sm font-semibold text-ink bg-brand-primary rounded-lg hover:bg-brand-primary/90 transition-colors disabled:opacity-60 flex items-center gap-2 shadow-sm">
             {saving && <Loader2 size={14} className="animate-spin" />}
             Save Changes
           </button>

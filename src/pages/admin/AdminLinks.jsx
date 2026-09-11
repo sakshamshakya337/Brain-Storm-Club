@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   Loader2, Plus, Edit, Trash2, GripVertical, Copy, Check, 
   Link as LinkIcon, Instagram, Linkedin, Youtube, Twitter, 
@@ -290,7 +290,7 @@ export default function AdminLinks() {
           </button>
           <button 
             onClick={() => openModal()}
-            className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-white rounded-md text-sm font-medium hover:bg-brand-secondary transition-colors shadow-sm"
+            className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-ink rounded-md text-sm font-medium hover:bg-brand-secondary transition-colors shadow-sm"
           >
             <Plus size={16} />
             Add Link
@@ -317,7 +317,7 @@ export default function AdminLinks() {
             <p className="text-sm text-slate-500 mb-6 max-w-md">Create a Linktree-style page to share all your important Brainstorm Club platforms in one place.</p>
             <button 
               onClick={() => openModal()}
-              className="px-6 py-2 bg-brand-primary text-white rounded-lg text-sm font-semibold hover:bg-brand-secondary transition-colors"
+              className="px-6 py-2 bg-brand-primary text-ink rounded-lg text-sm font-semibold hover:bg-brand-secondary transition-colors"
             >
               Add Link
             </button>
@@ -524,7 +524,7 @@ export default function AdminLinks() {
                   type="submit"
                   form="linkForm"
                   disabled={saving}
-                  className="px-6 py-2 bg-brand-primary text-white rounded-lg text-sm font-bold hover:bg-brand-secondary transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50"
+                  className="px-6 py-2 bg-brand-primary text-ink rounded-lg text-sm font-bold hover:bg-brand-secondary transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50"
                 >
                   {saving && <Loader2 className="animate-spin" size={16} />}
                   Save Link

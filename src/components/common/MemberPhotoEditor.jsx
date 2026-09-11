@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+﻿import React, { useState, useCallback, useEffect } from 'react';
 import Cropper from 'react-easy-crop';
 import { X, ZoomIn, ZoomOut, RotateCw, RotateCcw, Check, Loader2 } from 'lucide-react';
 import getCroppedImg from '../../utils/cropImage';
@@ -298,7 +298,7 @@ export default function MemberPhotoEditor({
             type="button"
             onClick={handleConfirm}
             disabled={isGenerating}
-            className="flex items-center gap-2 px-5 py-2 text-xs font-mono font-bold tracking-wider uppercase text-white bg-brand-primary hover:bg-brand-primary/90 rounded-lg transition-all shadow-md active:scale-95 disabled:opacity-60 disabled:pointer-events-none"
+            className="flex items-center gap-2 px-5 py-2 text-xs font-mono font-bold tracking-wider uppercase text-ink bg-brand-primary hover:bg-brand-primary/90 rounded-lg transition-all shadow-md active:scale-95 disabled:opacity-60 disabled:pointer-events-none"
           >
             {isGenerating ? (
               <>

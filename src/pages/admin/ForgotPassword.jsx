@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ShieldAlert, Loader2, Mail, CheckCircle } from 'lucide-react';
 
@@ -98,7 +98,7 @@ export default function ForgotPassword() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex justify-center py-4 px-4 border border-transparent rounded-md shadow-lg shadow-brand-primary/20 text-sm font-mono tracking-widest uppercase font-bold text-white bg-brand-primary hover:bg-brand-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary disabled:opacity-70 transition-all"
+                className="w-full flex justify-center py-4 px-4 border border-transparent rounded-md shadow-lg shadow-brand-primary/20 text-sm font-mono tracking-widest uppercase font-bold text-ink bg-brand-primary hover:bg-brand-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary disabled:opacity-70 transition-all"
               >
                 {loading ? <Loader2 className="animate-spin" size={20} /> : 'Send Recovery Link'}
               </button>

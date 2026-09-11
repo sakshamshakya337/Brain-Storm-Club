@@ -22,9 +22,9 @@
     --text-primary: var(--ink);
     --text-secondary: var(--ink-soft);
     --text-muted: var(--ink-soft);
-    --brand-primary: var(--circuit);
-    --brand-secondary: var(--spark);
-    --brand-accent: var(--spark);
+    --brand-primary: var(--spark);
+    --brand-secondary: var(--circuit);
+    --brand-accent: var(--circuit);
     --success: #16A34A;
     --warning: #D97706;
     --danger: #DC2626;
