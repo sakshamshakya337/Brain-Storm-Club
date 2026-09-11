@@ -1,8 +1,27 @@
 import Admin from '../models/Admin.js';
+import AdminActivity from '../models/AdminActivity.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { sendPasswordResetEmail, sendAdminLoginOTP } from '../utils/email.js';
+
+const logSecurityEvent = async (req, emailAttempted, adminId, action, description, status) => {
+  try {
+    const ipAddress = req.headers['x-forwarded-for']?.split(',')[0] || req.connection?.remoteAddress || req.socket?.remoteAddress || req.ip || 'Unknown';
+    const userAgent = req.headers['user-agent'] || 'Unknown';
+    await AdminActivity.create({
+      action,
+      description,
+      adminId,
+      emailAttempted,
+      ipAddress,
+      userAgent,
+      status
+    });
+  } catch (err) {
+    console.error('Failed to log security event:', err);
+  }
+};
 
 export const requestOTP = async (req, res) => {
   try {
@@ -17,12 +36,14 @@ export const requestOTP = async (req, res) => {
     const admin = await Admin.findOne({ email: new RegExp(`^${normalizedEmail}$`, 'i') });
     
     if (!admin || !admin.isActive) {
+      await logSecurityEvent(req, email, null, 'LOGIN_ATTEMPT_FAILED', 'Invalid credentials (User not found or inactive)', 'FAILED');
       // Return generic error to prevent email enumeration
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     const isMatch = await bcrypt.compare(password, admin.passwordHash);
     if (!isMatch) {
+      await logSecurityEvent(req, email, admin._id, 'LOGIN_ATTEMPT_FAILED', 'Invalid credentials (Wrong password)', 'FAILED');
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
@@ -43,6 +64,7 @@ export const requestOTP = async (req, res) => {
     // 5. Send real email
     try {
       await sendAdminLoginOTP(admin.email, rawOtp);
+      await logSecurityEvent(req, email, admin._id, 'LOGIN_OTP_SENT', 'OTP sent for login', 'INFO');
     } catch (emailError) {
       return res.status(503).json({ 
         message: 'Unable to send verification email. Please try again later.' 
@@ -71,6 +93,7 @@ export const verifyOTP = async (req, res) => {
     const admin = await Admin.findOne({ email: new RegExp(`^${normalizedEmail}$`, 'i') });
     
     if (!admin || !admin.otpHash) {
+      await logSecurityEvent(req, email, admin?._id || null, 'LOGIN_VERIFY_FAILED', 'Invalid or expired OTP', 'FAILED');
       return res.status(400).json({ message: 'Invalid or expired OTP' });
     }
 
@@ -81,6 +104,7 @@ export const verifyOTP = async (req, res) => {
       admin.otpExpiresAt = undefined;
       admin.otpAttempts = 0;
       await admin.save();
+      await logSecurityEvent(req, email, admin._id, 'LOGIN_VERIFY_FAILED', 'OTP expired', 'FAILED');
       return res.status(400).json({ message: 'OTP has expired. Please request a new one.' });
     }
 
@@ -89,6 +113,7 @@ export const verifyOTP = async (req, res) => {
       admin.otpHash = undefined;
       admin.otpExpiresAt = undefined;
       await admin.save();
+      await logSecurityEvent(req, email, admin._id, 'LOGIN_VERIFY_FAILED', 'Max OTP attempts reached', 'FAILED');
       return res.status(400).json({ message: 'Maximum attempts reached. Please request a new OTP.' });
     }
 
@@ -107,6 +132,7 @@ export const verifyOTP = async (req, res) => {
     if (!isMatch) {
       admin.otpAttempts += 1;
       await admin.save();
+      await logSecurityEvent(req, email, admin._id, 'LOGIN_VERIFY_FAILED', 'Incorrect OTP', 'FAILED');
       return res.status(400).json({ message: 'Invalid OTP' });
     }
 
@@ -115,6 +141,8 @@ export const verifyOTP = async (req, res) => {
     admin.otpExpiresAt = undefined;
     admin.otpAttempts = 0;
     await admin.save();
+    
+    await logSecurityEvent(req, email, admin._id, 'LOGIN_SUCCESS', 'Successfully logged in', 'SUCCESS');
 
     // Issue JWT
     const token = jwt.sign(

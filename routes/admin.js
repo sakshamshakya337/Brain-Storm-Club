@@ -14,7 +14,8 @@ import {
   getIdeaById,
   getIdeaPdf,
   updateIdeaStatus,
-  deleteIdea
+  deleteIdea,
+  getSecurityLogs
 } from '../controllers/adminController.js';
 import { 
   getAllMembersAdmin, 
@@ -56,6 +57,9 @@ router.use(protectAdmin);
 
 // Dashboard
 router.get('/stats', getDashboardStats);
+
+// Security Logs
+router.get('/security-logs', getSecurityLogs);
 
 // Join Us Requests
 router.route('/join-us')

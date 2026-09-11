@@ -21,6 +21,7 @@ gsap.registerPlugin(ScrollTrigger);
 const DOMAIN_ORDER = [
   'Faculty',
   'President',
+  'VicePresident',
   'Secretariat',
   'Technical',
   'Media',
@@ -36,9 +37,14 @@ const DOMAIN_METADATA = {
     leadBadge: 'Faculty Lead',
   },
   President: {
-    title: 'President & Vice President',
+    title: 'President & CEO',
     badge: 'Leadership',
     leadBadge: 'President',
+  },
+  VicePresident: {
+    title: 'Vice President',
+    badge: 'Leadership',
+    leadBadge: 'Vice President',
   },
   Secretariat: {
     title: 'Secretariat',
@@ -101,6 +107,8 @@ const DOMAIN_LEAD_PRIORITIES = {
   ],
   President: [
     'president',
+  ],
+  VicePresident: [
     'vice president',
     'vp',
   ],
@@ -193,16 +201,22 @@ const resolveMemberDomain = (member) => {
     return 'Faculty';
   }
 
-  // 2. President section — ONLY President and Vice President
+  // 2. President section — ONLY President
   if (
     role === 'president' ||
     (role.includes('president') && !role.includes('vice')) ||
-    role.includes('vice president') ||
-    role.includes('vice-president') ||
-    role === 'vp' ||
     domain === 'president'
   ) {
     return 'President';
+  }
+
+  // 2.5 Vice President section
+  if (
+    role.includes('vice president') ||
+    role.includes('vice-president') ||
+    role === 'vp'
+  ) {
+    return 'VicePresident';
   }
 
   // 3. Secretariat — Secretary only

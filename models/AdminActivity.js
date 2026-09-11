@@ -23,6 +23,23 @@ const adminActivitySchema = new mongoose.Schema({
     ref: 'Admin',
     required: false, // sometimes system-generated, e.g., new join request
   },
+  status: {
+    type: String,
+    enum: ['SUCCESS', 'FAILED', 'INFO'],
+    default: 'INFO'
+  },
+  ipAddress: {
+    type: String,
+    required: false
+  },
+  userAgent: {
+    type: String,
+    required: false
+  },
+  emailAttempted: {
+    type: String,
+    required: false
+  },
   createdAt: {
     type: Date,
     default: Date.now,

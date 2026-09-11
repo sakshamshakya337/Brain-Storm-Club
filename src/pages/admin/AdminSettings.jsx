@@ -68,6 +68,136 @@ function ConfirmDialog({ open, title, description, confirmLabel, cancelLabel, on
   );
 }
 
+function SecurityLogTab() {
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  useEffect(() => {
+    fetchLogs(page);
+  }, [page]);
+
+  const fetchLogs = async (pageNum) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await fetch(`/api/admin/security-logs?page=${pageNum}&limit=20`);
+      const json = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(json.message || 'Failed to fetch security logs');
+      }
+      
+      setLogs(json.data.logs);
+      setTotalPages(json.data.pagination.pages);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading && logs.length === 0) {
+    return (
+      <div className="p-8 flex justify-center">
+        <Loader2 className="animate-spin text-slate-400" size={24} />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 text-center">
+        <Shield size={48} className="mx-auto text-slate-300 mb-4" />
+        <h3 className="text-lg font-bold text-slate-900 mb-2">Access Denied</h3>
+        <p className="text-slate-500 max-w-sm mx-auto">{error}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 sm:p-8 space-y-6">
+      <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+        <div>
+          <h3 className="font-heading font-bold text-lg text-slate-900">Security & Activity Log</h3>
+          <p className="text-sm text-slate-500">Monitor admin actions and login attempts.</p>
+        </div>
+      </div>
+      
+      <div className="overflow-x-auto rounded-xl border border-slate-200">
+        <table className="w-full text-left text-sm whitespace-nowrap">
+          <thead className="bg-slate-50 border-b border-slate-200">
+            <tr>
+              <th className="px-4 py-3 font-mono text-xs font-bold uppercase tracking-widest text-slate-500">Timestamp</th>
+              <th className="px-4 py-3 font-mono text-xs font-bold uppercase tracking-widest text-slate-500">Event</th>
+              <th className="px-4 py-3 font-mono text-xs font-bold uppercase tracking-widest text-slate-500">Admin / Target</th>
+              <th className="px-4 py-3 font-mono text-xs font-bold uppercase tracking-widest text-slate-500">IP Address</th>
+              <th className="px-4 py-3 font-mono text-xs font-bold uppercase tracking-widest text-slate-500">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {logs.length === 0 ? (
+              <tr>
+                <td colSpan="5" className="px-4 py-8 text-center text-slate-500">No logs found.</td>
+              </tr>
+            ) : (
+              logs.map(log => (
+                <tr key={log._id} className="hover:bg-slate-50 transition-colors">
+                  <td className="px-4 py-3 text-slate-600 font-mono text-xs">
+                    {new Date(log.createdAt).toLocaleString()}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="font-bold text-slate-900">{log.action}</span>
+                    <p className="text-xs text-slate-500 mt-0.5 truncate max-w-[200px]" title={log.description}>{log.description}</p>
+                  </td>
+                  <td className="px-4 py-3 text-slate-600">
+                    {log.emailAttempted || (log.adminId ? log.adminId.email : 'System / Unknown')}
+                  </td>
+                  <td className="px-4 py-3 text-slate-500 font-mono text-xs">
+                    {log.ipAddress || '-'}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={cn(
+                      "inline-flex px-2 py-0.5 rounded text-[10px] font-bold font-mono tracking-wider uppercase",
+                      log.status === 'SUCCESS' ? "bg-emerald-100 text-emerald-800" :
+                      log.status === 'FAILED' ? "bg-red-100 text-red-800" :
+                      "bg-blue-100 text-blue-800"
+                    )}>
+                      {log.status || 'INFO'}
+                    </span>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+      
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-4">
+          <button
+            disabled={page === 1}
+            onClick={() => setPage(p => p - 1)}
+            className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold font-mono uppercase text-slate-600 disabled:opacity-50 hover:bg-slate-50"
+          >
+            Previous
+          </button>
+          <span className="text-xs font-mono text-slate-500">Page {page} of {totalPages}</span>
+          <button
+            disabled={page === totalPages}
+            onClick={() => setPage(p => p + 1)}
+            className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold font-mono uppercase text-slate-600 disabled:opacity-50 hover:bg-slate-50"
+          >
+            Next
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminSettings() {
   const [activeTab, setActiveTab] = useState('account');
   const [loading, setLoading] = useState(true);
@@ -303,10 +433,20 @@ export default function AdminSettings() {
           >
             System
           </button>
+          <button 
+            onClick={() => setActiveTab('security-logs')}
+            className={cn("text-left px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-lg text-xs sm:text-sm font-bold tracking-widest font-mono uppercase transition-colors whitespace-nowrap shrink-0", activeTab === 'security-logs' ? "bg-white border border-slate-200 shadow-sm text-brand-primary" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900")}
+          >
+            Security Log
+          </button>
         </div>
 
         <div className="flex-1 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           
+          {activeTab === 'security-logs' && (
+            <SecurityLogTab />
+          )}
+
           {activeTab === 'account' && (
             <div className="p-4 sm:p-8 space-y-6">
               <h3 className="font-heading font-bold text-lg text-slate-900 border-b border-slate-100 pb-4">Account Information</h3>

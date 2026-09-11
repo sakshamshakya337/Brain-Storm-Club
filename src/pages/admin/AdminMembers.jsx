@@ -1,8 +1,8 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Loader2, Search, Filter, Edit, Trash2, Eye, Mail, Phone,
   Download, UserPlus, X, Upload, CheckCircle2, AlertCircle,
-  Users, GraduationCap, Lock, Unlock, ExternalLink
+  Users, GraduationCap, Lock, Unlock, ExternalLink, Crop
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Link } from 'react-router-dom';

@@ -15,6 +15,7 @@ import Members from './pages/public/Members';
 import MemberDetail from './pages/public/MemberDetail';
 import Contact from './pages/public/Contact';
 import JoinUs from './pages/public/JoinUs';
+import JoinUsRules from './pages/public/JoinUsRules';
 import Ideas from './pages/public/Ideas';
 import MemberRegistration from './pages/public/MemberRegistration';
 import PrivacyPolicy from './pages/public/PrivacyPolicy';
@@ -140,6 +141,7 @@ function AppContent() {
             <Route path="/members/:slug" element={<MemberDetail />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/join-us" element={<JoinUs />} />
+            <Route path="/join-us/rules" element={<JoinUsRules />} />
             <Route path="/ideas" element={<Ideas />} />
             <Route path="/submit-idea" element={<Ideas />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />

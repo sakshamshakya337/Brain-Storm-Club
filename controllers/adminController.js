@@ -578,3 +578,34 @@ export const deleteIdea = async (req, res) => {
   }
 };
 
+export const getSecurityLogs = async (req, res) => {
+  try {
+    if (req.admin.email !== 'sakshamshakya231@gmail.com') {
+      return res.status(403).json({ success: false, message: 'Forbidden: Only the master admin can access security logs' });
+    }
+
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, parseInt(req.query.limit, 10) || 50);
+
+    const [total, logs] = await Promise.all([
+      AdminActivity.countDocuments(),
+      AdminActivity.find()
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .populate('adminId', 'email')
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        logs,
+        pagination: { page, limit, total, pages: Math.ceil(total / limit) }
+      }
+    });
+  } catch (error) {
+    console.error('[getSecurityLogs error]', error);
+    res.status(500).json({ success: false, message: 'Error fetching security logs' });
+  }
+};
+

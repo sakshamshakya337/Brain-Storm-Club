@@ -1,4 +1,4 @@
-﻿import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import Cropper from 'react-easy-crop';
 import { X, ZoomIn, ZoomOut, RotateCw, RotateCcw, Check, Loader2 } from 'lucide-react';
 import getCroppedImg from '../../utils/cropImage';
@@ -81,10 +81,10 @@ export default function MemberPhotoEditor({
       return;
     }
 
-    try {
-      setIsGenerating(true);
-      setError('');
+    setIsGenerating(true);
+    setError('');
 
+    try {
       const croppedBlob = await getCroppedImg(
         imageSrc,
         croppedAreaPixels,
@@ -103,38 +103,52 @@ export default function MemberPhotoEditor({
     } catch (err) {
       console.error('Crop export failed:', err);
       setError(err.message || 'Failed to generate cropped image. Please try again.');
+    } finally {
       setIsGenerating(false);
     }
   };
 
+
   if (!isOpen || !imageSrc) return null;
 
-  const isDarkEnabled = theme === 'auto';
+  const isPublic = theme === 'auto';
 
   // Theme styling tokens
-  const modalBg = isDarkEnabled
-    ? 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800'
+  const modalBg = isPublic
+    ? 'bg-paper border border-border'
     : 'bg-white border border-slate-200';
 
-  const headerBg = isDarkEnabled
-    ? 'border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60'
+  const headerBg = isPublic
+    ? 'border-b border-border bg-paper-dim'
     : 'border-b border-slate-100 bg-slate-50';
 
-  const textPrimary = isDarkEnabled
-    ? 'text-slate-900 dark:text-white'
+  const textPrimary = isPublic
+    ? 'text-ink'
     : 'text-slate-900';
 
-  const textMuted = isDarkEnabled
-    ? 'text-slate-500 dark:text-slate-400'
+  const textMuted = isPublic
+    ? 'text-ink-soft'
     : 'text-slate-500';
 
-  const controlPanelBg = isDarkEnabled
-    ? 'bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800'
+  const controlPanelBg = isPublic
+    ? 'bg-paper-dim border border-border'
     : 'bg-slate-50 border border-slate-200';
 
-  const footerBg = isDarkEnabled
-    ? 'border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60'
+  const footerBg = isPublic
+    ? 'border-t border-border bg-paper-dim'
     : 'border-t border-slate-100 bg-slate-50';
+
+  const iconBtn = isPublic
+    ? 'text-ink-soft hover:bg-paper-dim hover:text-ink'
+    : 'text-slate-500 hover:bg-slate-200 hover:text-slate-900';
+
+  const sliderTrack = isPublic
+    ? 'bg-border'
+    : 'bg-slate-300';
+
+  const actionBtn = isPublic
+    ? 'border-border text-ink-soft hover:bg-paper-dim hover:text-ink'
+    : 'border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-900';
 
   return (
     <div
@@ -163,7 +177,7 @@ export default function MemberPhotoEditor({
             type="button"
             onClick={onCancel}
             disabled={isGenerating}
-            className={`p-1.5 rounded-md ${textMuted} hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors disabled:opacity-50`}
+            className={`p-1.5 rounded-md transition-colors disabled:opacity-50 ${iconBtn}`}
             aria-label="Close"
           >
             <X size={18} />
@@ -229,7 +243,7 @@ export default function MemberPhotoEditor({
                 type="button"
                 onClick={() => setZoom((prev) => Math.max(1, +(prev - 0.1).toFixed(2)))}
                 disabled={zoom <= 1 || isGenerating}
-                className={`p-1.5 rounded text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors disabled:opacity-30`}
+                className={`p-1.5 rounded transition-colors disabled:opacity-30 ${iconBtn}`}
                 aria-label="Zoom out"
               >
                 <ZoomOut size={16} />
@@ -243,7 +257,7 @@ export default function MemberPhotoEditor({
                 value={zoom}
                 onChange={(e) => setZoom(Number(e.target.value))}
                 disabled={isGenerating}
-                className="flex-1 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-brand-primary"
+                className={`flex-1 h-1.5 rounded-lg appearance-none cursor-pointer accent-brand-primary ${sliderTrack}`}
                 aria-label="Zoom slider"
               />
 
@@ -251,7 +265,7 @@ export default function MemberPhotoEditor({
                 type="button"
                 onClick={() => setZoom((prev) => Math.min(3, +(prev + 0.1).toFixed(2)))}
                 disabled={zoom >= 3 || isGenerating}
-                className={`p-1.5 rounded text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors disabled:opacity-30`}
+                className={`p-1.5 rounded transition-colors disabled:opacity-30 ${iconBtn}`}
                 aria-label="Zoom in"
               >
                 <ZoomIn size={16} />
@@ -265,7 +279,7 @@ export default function MemberPhotoEditor({
               type="button"
               onClick={handleReset}
               disabled={isGenerating || (zoom === 1 && crop.x === 0 && crop.y === 0 && rotation === 0)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono font-bold tracking-wider uppercase border border-slate-200 dark:border-slate-800 ${textMuted} hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-40`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono font-bold tracking-wider uppercase border transition-colors disabled:opacity-40 ${actionBtn}`}
             >
               <RotateCcw size={13} />
               Reset
@@ -275,7 +289,7 @@ export default function MemberPhotoEditor({
               type="button"
               onClick={handleRotate}
               disabled={isGenerating}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono font-bold tracking-wider uppercase border border-slate-200 dark:border-slate-800 ${textMuted} hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-40`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono font-bold tracking-wider uppercase border transition-colors disabled:opacity-40 ${actionBtn}`}
             >
               <RotateCw size={13} />
               Rotate 90°
@@ -289,7 +303,7 @@ export default function MemberPhotoEditor({
             type="button"
             onClick={onCancel}
             disabled={isGenerating}
-            className={`px-4 py-2 text-xs font-mono font-bold tracking-wider uppercase rounded-lg border border-slate-200 dark:border-slate-700 ${textMuted} hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50`}
+            className={`px-4 py-2 text-xs font-mono font-bold tracking-wider uppercase rounded-lg border transition-colors disabled:opacity-50 ${actionBtn}`}
           >
             Cancel
           </button>

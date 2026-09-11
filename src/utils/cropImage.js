@@ -8,7 +8,11 @@ export const createImage = (url) =>
     const image = new Image();
     image.addEventListener('load', () => resolve(image));
     image.addEventListener('error', (error) => reject(error));
-    image.setAttribute('crossOrigin', 'anonymous');
+    // Only set crossOrigin for http/https URLs.
+    // Blob URLs (object URLs) must NOT have crossOrigin set or they fail CORS.
+    if (url && !url.startsWith('blob:')) {
+      image.setAttribute('crossOrigin', 'anonymous');
+    }
     image.src = url;
   });
 

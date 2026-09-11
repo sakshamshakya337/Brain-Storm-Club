@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
@@ -146,16 +146,16 @@ export default function Navbar({ theme, toggleTheme }) {
           // Pointer events — only active when open (avoids invisible overlay bug)
           pointerEvents:   mobileMenuOpen ? 'auto' : 'none',
         }}
-        className="bg-white dark:bg-slate-950"
+        className="bg-paper"
       >
         {/* Menu header */}
-        <div className="flex justify-between items-center h-16 px-6 max-w-[1440px] mx-auto w-full border-b border-slate-100 dark:border-slate-900 shrink-0">
+        <div className="flex justify-between items-center h-16 px-6 max-w-[1440px] mx-auto w-full border-b border-border shrink-0">
           <Link
             to="/"
             onClick={() => setMobileMenuOpen(false)}
             className="flex items-center gap-3"
           >
-            <span className="font-heading font-bold text-lg text-slate-900 dark:text-white tracking-tight uppercase">
+            <span className="font-heading font-bold text-lg text-ink tracking-tight uppercase">
               Brainstorm
             </span>
           </Link>
@@ -164,7 +164,7 @@ export default function Navbar({ theme, toggleTheme }) {
             <button
               onClick={() => setMobileMenuOpen(false)}
               aria-label="Close mobile menu"
-              className="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-md transition-colors"
+              className="p-2 text-ink-soft hover:text-ink hover:bg-paper-dim rounded-md transition-colors"
             >
               <X size={24} />
             </button>
@@ -182,7 +182,7 @@ export default function Navbar({ theme, toggleTheme }) {
                 'mobile-nav-link text-2xl font-heading font-bold uppercase tracking-tight',
                 location.pathname === link.path
                   ? 'text-brand-primary'
-                  : 'text-slate-900 dark:text-white'
+                  : 'text-ink'
               )}
             >
               {link.name}
@@ -193,7 +193,7 @@ export default function Navbar({ theme, toggleTheme }) {
             <Link
               to="/ideas"
               onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center justify-center w-full bg-slate-900 dark:bg-brand-primary text-ink py-4 rounded-xl font-mono text-sm font-bold tracking-wider uppercase active:scale-[0.98] transition-transform"
+              className="flex items-center justify-center w-full bg-spark hover:bg-spark-soft text-ink py-4 rounded-xl font-mono text-sm font-bold tracking-wider uppercase active:scale-[0.98] transition-all"
             >
               Submit an Idea
             </Link>
@@ -263,7 +263,7 @@ export default function Navbar({ theme, toggleTheme }) {
               aria-label="Open mobile menu"
               aria-expanded={mobileMenuOpen}
               aria-controls="mobile-nav-panel"
-              className="md:hidden p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-md transition-colors"
+              className="md:hidden p-2 text-ink-soft hover:text-ink hover:bg-paper-dim rounded-md transition-colors"
             >
               <Menu size={24} />
             </button>

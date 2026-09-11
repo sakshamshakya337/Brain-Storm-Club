@@ -68,6 +68,16 @@ export const submitMemberRegistration = async (req, res) => {
 export const submitJoinUs = async (req, res) => {
   try {
     const { registrationNumber } = req.body;
+
+    // ── Server-side rules acknowledgement gate ─────────────────────────────
+    // The frontend must have sent rulesAccepted=true. This protects against
+    // direct API calls that bypass the checkbox in the UI.
+    if (req.body.rulesAccepted !== 'true' && req.body.rulesAccepted !== true) {
+      return res.status(422).json({
+        message: 'You must read and accept the Club Rules & Guidelines before submitting your application.'
+      });
+    }
+
     if (!registrationNumber || !registrationNumber.trim()) {
       return res.status(400).json({ message: 'Registration number is required' });
     }
