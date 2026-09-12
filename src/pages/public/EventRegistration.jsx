@@ -25,6 +25,7 @@ export default function EventRegistration() {
   const emptyMember = { fullName: '', registrationNumber: '', phone: '' };
 
   const [formData, setFormData] = useState({
+    teamName: '',
     leader: { ...emptyLeader },
     members: [{ ...emptyMember }], // Minimum 1 member required for team (i.e. size 2 team)
     transactionId: '',
@@ -167,6 +168,7 @@ export default function EventRegistration() {
       };
       if (registrationType === 'team') {
         payloadData.members = formData.members;
+        payloadData.teamName = formData.teamName;
       }
       fd.append('data', JSON.stringify(payloadData));
 
@@ -328,8 +330,33 @@ export default function EventRegistration() {
                           <label className={`flex-1 p-4 border ${registrationType === 'team' ? 'border-[var(--circuit)] bg-[var(--paper-dim)]' : 'border-[var(--border)] bg-[var(--paper)]'} cursor-pointer text-center transition-colors`}>
                             <input type="radio" name="registrationType" value="team" checked={registrationType === 'team'} onChange={() => setRegistrationType('team')} className="hidden" />
                             <div className="font-heading font-bold uppercase text-[var(--ink)] mb-1">Team</div>
-                            <div className="text-xs text-[var(--ink-soft)]">Register as a team (2-5 members)</div>
+                            <div className="text-xs text-[var(--ink-soft)]">Register as a team (2-{event.maxTeamSize || 5} members)</div>
                           </label>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Team Details (if team) */}
+                    {registrationType === 'team' && (
+                      <div className="mb-10">
+                        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-[var(--border)]">
+                          <span className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-[var(--circuit)]">01</span>
+                          <span className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-[var(--ink-soft)]">Team Name</span>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="md:col-span-2">
+                            <label className={LABEL_CLASS}>Team Name <span className="text-[var(--spark)]">*</span></label>
+                            <input 
+                              type="text" 
+                              name="teamName" 
+                              required 
+                              maxLength={100} 
+                              value={formData.teamName} 
+                              onChange={(e) => setFormData({...formData, teamName: e.target.value})} 
+                              className={FIELD_CLASS} 
+                              placeholder="e.g. Code Ninjas"
+                            />
+                          </div>
                         </div>
                       </div>
                     )}
@@ -337,7 +364,9 @@ export default function EventRegistration() {
                     {/* Leader Details */}
                     <div>
                       <div className="flex items-center gap-3 mb-6 pb-4 border-b border-[var(--border)]">
-                        <span className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-[var(--circuit)]">01</span>
+                        <span className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-[var(--circuit)]">
+                          {registrationType === 'team' ? '02' : '01'}
+                        </span>
                         <span className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-[var(--ink-soft)]">
                           {registrationType === 'team' ? 'Team Leader Details' : 'Student Details'}
                         </span>
@@ -384,7 +413,7 @@ export default function EventRegistration() {
                     {registrationType === 'team' && (
                       <div>
                         <div className="flex items-center gap-3 mb-6 pb-4 border-b border-[var(--border)]">
-                          <span className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-[var(--circuit)]">02</span>
+                          <span className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-[var(--circuit)]">03</span>
                           <span className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-[var(--ink-soft)]">Team Members</span>
                         </div>
                         
@@ -414,9 +443,9 @@ export default function EventRegistration() {
                             </div>
                           ))}
 
-                          {formData.members.length < 4 && (
+                          {formData.members.length < (event.maxTeamSize ? event.maxTeamSize - 1 : 4) && (
                             <button type="button" onClick={addMember} className="w-full p-4 border border-dashed border-[var(--border)] hover:border-[var(--circuit)] transition-colors flex items-center justify-center gap-2 font-mono text-[10px] font-bold tracking-widest uppercase text-[var(--ink)]">
-                              <Plus size={14} /> Add Another Member (Max 4)
+                              <Plus size={14} /> Add Another Member (Max {event.maxTeamSize ? event.maxTeamSize - 1 : 4})
                             </button>
                           )}
                         </div>

@@ -447,7 +447,7 @@ export default function Ideas() {
                       </legend>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <FormField label="Idea Title *" name="title" maxLength={150} placeholder="Give your idea a name" value={formData.title} onChange={handleInput} className="md:col-span-1" />
+                        <FormField label="Idea Title *" name="title" maxLength={150} placeholder="Give your idea a name" value={formData.title} onChange={handleInput} containerClassName="md:col-span-1" />
                         <div className="flex flex-col gap-2">
                           <label className={labelCls}>CATEGORY</label>
                           <select name="category" value={formData.category} onChange={handleInput} className={selectCls}>
@@ -577,15 +577,15 @@ const selectCls =
   inputCls + ' appearance-none cursor-pointer';
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
-function FormField({ label, name, placeholder, value, onChange, type = 'text', maxLength, ...props }) {
+function FormField({ label, name, placeholder, value, onChange, type = 'text', maxLength, className = '', containerClassName = '', ...props }) {
   return (
-    <div className="flex flex-col gap-2">
+    <div className={`flex flex-col gap-2 ${containerClassName}`.trim()}>
       <label htmlFor={name} className={labelCls}>{label}</label>
       <input
         id={name} name={name} type={type} required
         placeholder={placeholder} value={value} onChange={onChange}
         maxLength={maxLength}
-        className={inputCls}
+        className={`${inputCls} ${className}`.trim()}
         {...props}
       />
     </div>

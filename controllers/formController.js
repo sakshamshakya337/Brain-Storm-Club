@@ -4,6 +4,7 @@ import Contact from '../models/Contact.js';
 import Idea from '../models/Idea.js';
 import EventRegistration from '../models/EventRegistration.js';
 import Event from '../models/Event.js';
+import Team from '../models/Team.js';
 import Notification from '../models/Notification.js';
 import SystemSettings from '../models/SystemSettings.js';
 import { getMaintenanceState } from '../middleware/maintenance.js';
@@ -358,25 +359,51 @@ export const submitEventRegistration = async (req, res) => {
     };
     
     let members = [];
-    if (registrationType === 'team' && dataPayload.members) {
-      for (let i = 0; i < dataPayload.members.length; i++) {
-        const m = dataPayload.members[i];
-        const mErrors = [
-          validateName(m.fullName, `Member ${i+1} name`),
-          validateRegistrationNumber(m.registrationNumber),
-          validatePhone(m.phone, `Member ${i+1} phone`)
-        ].filter(Boolean);
+    let trimmedTeamName = '';
+    if (registrationType === 'team') {
+      const maxTeamSize = event.maxTeamSize || 5;
+      const totalMembers = 1 + (dataPayload.members ? dataPayload.members.length : 0);
+      
+      if (!dataPayload.teamName || dataPayload.teamName.trim() === '') {
+        return res.status(400).json({ success: false, message: 'Team name is required for team registrations.' });
+      }
+      
+      trimmedTeamName = dataPayload.teamName.trim();
+      const normalizedTeamName = trimmedTeamName.toLowerCase().replace(/\s+/g, ' ');
+      
+      // Check if team already exists globally
+      const existingTeam = await Team.findOne({ normalizedTeamName });
+      if (existingTeam) {
+        return res.status(409).json({ success: false, message: 'Team name already exists. Please choose a different name.' });
+      }
+      
+      if (totalMembers < 2) {
+        return res.status(400).json({ success: false, message: 'A team must have at least 2 members.' });
+      }
+      if (totalMembers > maxTeamSize) {
+        return res.status(400).json({ success: false, message: `Maximum team size is ${maxTeamSize} members.` });
+      }
 
-        if (mErrors.length > 0) {
-          return res.status(400).json({ success: false, message: mErrors[0], errors: mErrors });
+      if (dataPayload.members) {
+        for (let i = 0; i < dataPayload.members.length; i++) {
+          const m = dataPayload.members[i];
+          const mErrors = [
+            validateName(m.fullName, `Member ${i+1} name`),
+            validateRegistrationNumber(m.registrationNumber),
+            validatePhone(m.phone, `Member ${i+1} phone`)
+          ].filter(Boolean);
+
+          if (mErrors.length > 0) {
+            return res.status(400).json({ success: false, message: mErrors[0], errors: mErrors });
+          }
+          
+          members.push({
+            ...m,
+            fullName: m.fullName.trim(),
+            phone: m.phone.trim(),
+            registrationNumber: m.registrationNumber.trim().toUpperCase()
+          });
         }
-        
-        members.push({
-          ...m,
-          fullName: m.fullName.trim(),
-          phone: m.phone.trim(),
-          registrationNumber: m.registrationNumber.trim().toUpperCase()
-        });
       }
     }
 
@@ -402,6 +429,7 @@ export const submitEventRegistration = async (req, res) => {
     const regData = {
       eventId,
       registrationType: registrationType || 'individual',
+      teamName: registrationType === 'team' ? trimmedTeamName : undefined,
       leader,
       members,
       transactionId,
@@ -410,6 +438,17 @@ export const submitEventRegistration = async (req, res) => {
     };
 
     const registration = await EventRegistration.create(regData);
+
+    // Create the team globally if it's a team registration
+    if (registrationType === 'team' && trimmedTeamName) {
+      const normalizedTeamName = trimmedTeamName.toLowerCase().replace(/\s+/g, ' ');
+      // Handle potential race conditions gracefully
+      await Team.updateOne(
+        { normalizedTeamName },
+        { $setOnInsert: { name: trimmedTeamName, normalizedTeamName } },
+        { upsert: true }
+      );
+    }
 
     await Notification.create({
       type: 'EVENT_REGISTRATION',

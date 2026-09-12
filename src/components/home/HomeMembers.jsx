@@ -1,4 +1,4 @@
-﻿import React, { useRef } from 'react';
+import React, { useRef } from 'react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -11,7 +11,7 @@ gsap.registerPlugin(ScrollTrigger);
 function LeaderFeaturedCard({ member }) {
   if (!member) return null;
   return (
-    <div className="relative w-full h-full min-h-[700px] bg-slate-100 group overflow-hidden border border-slate-200">
+    <div className="relative w-full h-full aspect-[1.05/1] bg-slate-100 group overflow-hidden border border-slate-200">
       <ProtectedImage
         imageId={member.photoId?.imageId}
         alt={member.fullName}
@@ -25,7 +25,7 @@ function LeaderFeaturedCard({ member }) {
       {/* Featured badge */}
       <div className="absolute top-6 left-6 flex items-center gap-2 z-10">
         <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse flex-shrink-0"></span>
-        <span className="font-mono text-[9px] font-bold tracking-[0.3em] uppercase text-white/60">FEATURED</span>
+        <span className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-white">PRESIDENT</span>
       </div>
 
       {/* Info block at bottom */}
@@ -50,13 +50,13 @@ function LeaderFeaturedCard({ member }) {
 function LeaderCompactCard({ member, roleLabel }) {
   if (!member) return null;
   return (
-    <div className="relative bg-slate-100 group overflow-hidden border border-slate-200 h-[320px]">
+    <div className="relative w-full h-full aspect-[1.55/1] lg:aspect-auto bg-slate-100 group overflow-hidden border border-slate-200">
       <ProtectedImage
         imageId={member.photoId?.imageId}
         alt={member.fullName}
-        variant="member_card"
+        variant="member_compact_card"
         className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
-        style={{ objectPosition: 'center 8%' }}
+        style={{ objectPosition: 'center center' }}
       />
       {/* Very subtle top fade so face is fully visible */}
       <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/10 to-transparent pointer-events-none" />
@@ -126,11 +126,11 @@ export default function HomeMembers({ isMembersLoading, liveMembers, president, 
 
         {/* Loading skeleton */}
         {isMembersLoading && (
-          <div className="grid grid-cols-1 lg:grid-cols-[5fr_7fr] gap-4">
-            <div className="h-[700px] bg-slate-100 animate-pulse border border-slate-200" />
-            <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-[0.78fr_1.22fr] gap-4 items-start">
+            <div className="w-full aspect-[1.05/1] bg-slate-100 animate-pulse border border-slate-200" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 content-start">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-[338px] bg-slate-100 animate-pulse border border-slate-200" />
+                <div key={i} className="w-full aspect-[1.55/1] bg-slate-100 animate-pulse border border-slate-200" />
               ))}
             </div>
           </div>
@@ -138,20 +138,20 @@ export default function HomeMembers({ isMembersLoading, liveMembers, president, 
 
         {/* Main grid */}
         {!isMembersLoading && liveMembers.length > 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-[5fr_7fr] gap-4 items-stretch">
+          <div className="grid grid-cols-1 lg:grid-cols-[0.78fr_1.22fr] gap-4 items-start lg:items-stretch">
 
             {/* President — tall left card */}
             {president && (
-              <div className="leader-card-anim">
+              <div className="leader-card-anim w-full lg:h-full">
                 <LeaderFeaturedCard member={president} />
               </div>
             )}
 
-            {/* Supporting heads — 2×2 right side */}
+            {/* Supporting heads — 2×2 compact grid */}
             {supportingSlots.length > 0 && (
-              <div className="grid grid-cols-2 grid-rows-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-rows-2 gap-4 lg:h-full w-full">
                 {supportingSlots.slice(0, 4).map((slot, i) => (
-                  <div key={slot.member._id || i} className="leader-card-anim">
+                  <div key={slot.member._id || i} className="leader-card-anim w-full lg:h-full">
                     <LeaderCompactCard member={slot.member} roleLabel={slot.roleLabel} />
                   </div>
                 ))}

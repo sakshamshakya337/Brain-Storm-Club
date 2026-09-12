@@ -36,6 +36,7 @@ const eventSchema = new mongoose.Schema({
   registrationOpen: { type: Boolean, default: true },
   allowIndividualRegistration: { type: Boolean, default: true },
   allowTeamRegistration: { type: Boolean, default: false },
+  maxTeamSize: { type: Number, min: 2, max: 10, default: 5 },
   paymentRequired: { type: Boolean, default: false },
   paymentQrImage: { type: mongoose.Schema.Types.ObjectId, ref: 'Image' },
   gallery: [{ type: String }],

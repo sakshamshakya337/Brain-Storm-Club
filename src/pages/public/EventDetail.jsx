@@ -187,6 +187,21 @@ export default function EventDetail() {
                     <div className="font-body font-semibold text-[var(--ink)]">{event.venue}</div>
                   </div>
                 )}
+                
+                {/* Team Info */}
+                {event.allowTeamRegistration && (
+                  <div className="col-span-2 bg-[var(--paper-dim)] p-4 border border-[var(--border)]">
+                    <div className="font-mono text-[9px] font-bold tracking-[0.25em] uppercase text-[var(--circuit)] mb-3">
+                      TEAM REGISTRATION ENABLED
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <div className="font-mono text-[9px] font-bold tracking-[0.25em] uppercase text-[var(--ink-soft)] mb-1">MAX TEAM SIZE</div>
+                        <div className="font-body font-semibold text-[var(--ink)]">{event.maxTeamSize || 5} Members</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* CTA */}

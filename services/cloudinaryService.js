@@ -69,6 +69,8 @@ const getTransformationForVariant = (variant) => {
   switch (variant) {
     case 'member_card':
       return { width: 800, crop: 'limit', quality: 'auto', fetch_format: 'auto' };
+    case 'member_compact_card':
+      return { width: 800, height: 800, crop: 'fill', gravity: 'faces', quality: 'auto', fetch_format: 'auto' };
     case 'event_card':
       return { width: 800, crop: 'limit', quality: 'auto', fetch_format: 'auto' };
     case 'event_detail':
@@ -79,6 +81,10 @@ const getTransformationForVariant = (variant) => {
       return { width: 1000, crop: 'limit', quality: 'auto', fetch_format: 'auto' };
     case 'public':
       return { quality: 'auto', fetch_format: 'auto' };
+    case 'admin_preview':
+      return { width: 400, crop: 'limit', quality: 'auto', fetch_format: 'auto' };
+    case 'original':
+      return { quality: 'auto', fetch_format: 'auto' }; // No strict resize, just optimize format
     default:
       return null;
   }

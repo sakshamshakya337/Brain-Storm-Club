@@ -34,6 +34,7 @@ export default function AdminEvents() {
     registrationOpen: true,
     allowIndividualRegistration: true,
     allowTeamRegistration: false,
+    maxTeamSize: 5,
     paymentRequired: false,
     paymentQrImage: null
   };
@@ -91,6 +92,7 @@ export default function AdminEvents() {
       registrationOpen: event.registrationOpen ?? true,
       allowIndividualRegistration: event.allowIndividualRegistration ?? true,
       allowTeamRegistration: event.allowTeamRegistration ?? false,
+      maxTeamSize: event.maxTeamSize || 5,
       paymentRequired: event.paymentRequired ?? false,
       paymentQrImage: event.paymentQrImage || null
     });
@@ -673,6 +675,24 @@ export default function AdminEvents() {
                         />
                         <span className="text-sm text-[var(--ink-soft)]">Allow Team Registration</span>
                       </label>
+
+                      {formData.allowTeamRegistration && (
+                        <div className="pl-6 space-y-4 pt-2">
+                          <div>
+                            <label className="block font-mono text-[10px] font-bold tracking-[0.25em] uppercase text-[var(--ink)] mb-2">Maximum Team Size</label>
+                            <select
+                              value={formData.maxTeamSize}
+                              onChange={(e) => setFormData({...formData, maxTeamSize: parseInt(e.target.value) || 5})}
+                              className="w-full px-4 py-3 bg-[var(--paper-dim)] border border-[var(--border)] text-[var(--ink)] rounded-none focus:outline-none focus:border-[var(--circuit)] font-mono text-xs transition-colors appearance-none cursor-pointer"
+                            >
+                              {[2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
+                                <option key={num} value={num}>{num} Members</option>
+                              ))}
+                            </select>
+                            <p className="text-[10px] text-[var(--ink-soft)] mt-1">Total people including the leader (min 2, max 10).</p>
+                          </div>
+                        </div>
+                      )}
                       
                       <div className="pt-2">
                         <label className="flex items-center gap-2 cursor-pointer select-none">

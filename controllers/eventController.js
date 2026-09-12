@@ -1,4 +1,5 @@
 import Event from '../models/Event.js';
+import Team from '../models/Team.js';
 export const isValidImageUrl = (url) => {
   if (!url || typeof url !== 'string') return false;
   const trimmed = url.trim();
@@ -135,10 +136,22 @@ export const getAllEventsAdmin = async (req, res) => {
 export const createEvent = async (req, res) => {
   try {
     const payload = await processEventPayload(req.body);
+    
+    // Validate team configuration
+    if (payload.allowTeamRegistration) {
+      if (payload.maxTeamSize < 2 || payload.maxTeamSize > 10) {
+        return res.status(400).json({ message: 'Maximum team size must be between 2 and 10' });
+      }
+    }
+
     const event = await Event.create(payload);
     res.status(201).json({ status: 'success', data: { event } });
   } catch (error) {
     if (error.code === 11000) {
+      // If it's a Team unique constraint error from a race condition
+      if (error.keyPattern && error.keyPattern.normalizedTeamName) {
+        return res.status(409).json({ message: 'Team name already exists. Please choose a different name.' });
+      }
       return res.status(400).json({ message: 'Event with this slug already exists' });
     }
     res.status(400).json({ message: error.message || 'Error creating event' });
@@ -149,15 +162,30 @@ export const updateEvent = async (req, res) => {
   try {
     const { id } = req.params;
     const payload = await processEventPayload(req.body);
+
+    const oldEvent = await Event.findById(id);
+    if (!oldEvent) return res.status(404).json({ message: 'Event not found' });
+
+    // Validate team configuration
+    if (payload.allowTeamRegistration) {
+      if (payload.maxTeamSize < 2 || payload.maxTeamSize > 10) {
+        return res.status(400).json({ message: 'Maximum team size must be between 2 and 10' });
+      }
+    }
+
     const event = await Event.findByIdAndUpdate(id, payload, { new: true, runValidators: true })
       .populate('posterId')
       .populate('coverImage.imageId')
       .populate('images.imageId');
     
-    if (!event) return res.status(404).json({ message: 'Event not found' });
-    
     res.status(200).json({ status: 'success', data: { event } });
   } catch (error) {
+    if (error.code === 11000) {
+      if (error.keyPattern && error.keyPattern.normalizedTeamName) {
+        return res.status(409).json({ message: 'Team name already exists. Please choose a different name.' });
+      }
+      return res.status(400).json({ message: 'Event with this slug already exists' });
+    }
     res.status(400).json({ message: error.message || 'Error updating event' });
   }
 };
@@ -491,6 +519,8 @@ export const updateEventEntryStatusAdmin = async (req, res) => {
     const update = {};
     if (status) update.status = status;
     if (paymentStatus) update.paymentStatus = paymentStatus;
+    if (req.body.teamName !== undefined) update.teamName = req.body.teamName;
+    if (req.body.registrationType) update.registrationType = req.body.registrationType;
     
     const entry = await EventRegistration.findOneAndUpdate(
       { _id: registrationId, eventId },

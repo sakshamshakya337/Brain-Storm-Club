@@ -15,7 +15,9 @@ import {
   getIdeaPdf,
   updateIdeaStatus,
   deleteIdea,
-  getSecurityLogs
+  getSecurityLogs,
+  getTeams,
+  createTeam
 } from '../controllers/adminController.js';
 import { 
   getAllMembersAdmin, 
@@ -68,6 +70,11 @@ router.route('/join-us/:id')
   .patch(updateJoinRequestStatus)
   .put(updateJoinRequest)
   .delete(deleteJoinRequest);
+
+// Teams
+router.route('/teams')
+  .get(getTeams)
+  .post(createTeam);
 
 // Contact Queries
 router.route('/contact')

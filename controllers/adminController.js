@@ -5,6 +5,7 @@ import JoinUs from '../models/JoinUs.js';
 import Contact from '../models/Contact.js';
 import AdminActivity from '../models/AdminActivity.js';
 import Image from '../models/Image.js';
+import Team from '../models/Team.js';
 
 export const getDashboardStats = async (req, res) => {
   try {
@@ -609,3 +610,51 @@ export const getSecurityLogs = async (req, res) => {
   }
 };
 
+// ... (previous functions)
+
+export const getTeams = async (req, res) => {
+  try {
+    const teams = await Team.find().sort({ name: 1 });
+    res.status(200).json({ status: 'success', data: { teams } });
+  } catch (error) {
+    console.error('Error fetching teams:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to fetch teams' });
+  }
+};
+
+export const createTeam = async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name || name.trim() === '') {
+      return res.status(400).json({ status: 'error', message: 'Team name is required' });
+    }
+
+    const trimmedName = name.trim();
+    // Normalize: lowercase and replace multiple spaces with single space
+    const normalizedTeamName = trimmedName.toLowerCase().replace(/\s+/g, ' ');
+
+    const existingTeam = await Team.findOne({ normalizedTeamName });
+    if (existingTeam) {
+      return res.status(409).json({ 
+        status: 'error', 
+        message: 'Team name already exists. Please choose a different name.' 
+      });
+    }
+
+    const team = await Team.create({
+      name: trimmedName,
+      normalizedTeamName
+    });
+
+    res.status(201).json({ status: 'success', data: { team } });
+  } catch (error) {
+    console.error('Error creating team:', error);
+    if (error.code === 11000) {
+      return res.status(409).json({ 
+        status: 'error', 
+        message: 'Team name already exists. Please choose a different name.' 
+      });
+    }
+    res.status(500).json({ status: 'error', message: 'Failed to create team' });
+  }
+};

@@ -13,6 +13,11 @@ const eventRegistrationSchema = new mongoose.Schema({
     required: true,
     default: 'individual'
   },
+  teamName: {
+    type: String,
+    trim: true,
+    maxlength: 100
+  },
   leader: {
     registrationNumber: { type: String, required: true, trim: true, uppercase: true, match: [REGISTRATION_NUMBER_REGEX, 'Invalid registration number'] },
     fullName: { type: String, required: true, trim: true, match: [NAME_REGEX, 'Invalid name format'], minlength: 2, maxlength: 100 },

@@ -1,8 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Loader2, Search, Filter, Calendar, MapPin, Clock, Download, ArrowLeft, XCircle, FileText, CheckCircle, Users, Trash2, ExternalLink, ChevronDown, ChevronUp, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Search, Filter, Calendar, MapPin, Clock, Download, ArrowLeft, XCircle, FileText, CheckCircle, Users, Trash2, ExternalLink, ChevronDown, ChevronRight, Image as ImageIcon } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import ProtectedImage from '../../components/common/ProtectedImage';
+import DataGrid, { SelectColumn as DefaultSelectColumn } from 'react-data-grid';
+import 'react-data-grid/lib/styles.css';
+
+const SelectColumn = {
+  ...DefaultSelectColumn,
+  renderCell(props) {
+    if (props.row.type === 'member') return null;
+    if (DefaultSelectColumn.renderCell) {
+      return DefaultSelectColumn.renderCell(props);
+    }
+    return null;
+  }
+};
 
 export default function EventEntries() {
   const { id } = useParams();
@@ -21,6 +34,9 @@ export default function EventEntries() {
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [expandedRows, setExpandedRows] = useState(new Set());
+  
+  const [sortColumns, setSortColumns] = useState([]);
+  const [selectedRows, setSelectedRows] = useState(new Set());
 
   useEffect(() => {
     fetchEntries();
@@ -159,6 +175,274 @@ export default function EventEntries() {
   const getCourse = (entry) => entry.leader?.course || entry.course || '-';
   const getSection = (entry) => entry.leader?.section || entry.section || '-';
   const isTeam = (entry) => entry.registrationType === 'team';
+
+  // --- GRID LOGIC ---
+  const sortedEntries = useMemo(() => {
+    if (sortColumns.length === 0) return entries;
+    const { columnKey, direction } = sortColumns[0];
+    
+    let sorted = [...entries];
+    sorted.sort((a, b) => {
+      let valA, valB;
+      switch(columnKey) {
+        case 'participant':
+          valA = getName(a).toLowerCase();
+          valB = getName(b).toLowerCase();
+          break;
+        case 'type':
+          valA = isTeam(a) ? 'team' : 'individual';
+          valB = isTeam(b) ? 'team' : 'individual';
+          break;
+        case 'paymentStatus':
+          valA = a.paymentStatus || 'pending';
+          valB = b.paymentStatus || 'pending';
+          break;
+        case 'status':
+          valA = a.status;
+          valB = b.status;
+          break;
+        case 'teamName':
+          valA = (a.teamName || '').toLowerCase();
+          valB = (b.teamName || '').toLowerCase();
+          break;
+        default:
+          return 0;
+      }
+      if (valA < valB) return direction === 'ASC' ? -1 : 1;
+      if (valA > valB) return direction === 'ASC' ? 1 : -1;
+      return 0;
+    });
+    return sorted;
+  }, [entries, sortColumns]);
+
+  const gridRows = useMemo(() => {
+    const rows = [];
+    sortedEntries.forEach(entry => {
+      rows.push({ ...entry, type: 'main' });
+      if (expandedRows.has(entry._id) && isTeam(entry) && entry.members) {
+        entry.members.forEach((m, idx) => {
+          rows.push({
+            ...m,
+            _id: `${entry._id}-member-${idx}`,
+            parentId: entry._id,
+            type: 'member',
+            isLast: idx === entry.members.length - 1
+          });
+        });
+      }
+    });
+    return rows;
+  }, [sortedEntries, expandedRows]);
+
+  const columns = useMemo(() => {
+    const cols = [
+      SelectColumn,
+      {
+        key: 'participant',
+        name: 'Participant',
+        frozen: true,
+        width: 300,
+        sortable: true,
+        renderCell({ row }) {
+          if (row.type === 'member') {
+            return (
+              <div className="flex flex-col justify-center h-full py-1.5 pl-6 border-l-2 border-indigo-200 ml-6 relative">
+                <div className="absolute top-1/2 -left-2 w-2 border-t-2 border-indigo-200"></div>
+                <div className="font-medium text-slate-700 leading-tight whitespace-nowrap overflow-hidden text-ellipsis">
+                  {row.fullName}
+                </div>
+                <div className="font-mono text-[10px] text-slate-500 leading-tight mt-0.5">
+                  {row.registrationNumber}
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <div className="flex items-center h-full py-2">
+              {isTeam(row) && row.members?.length > 0 ? (
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleRowExpand(row._id);
+                  }} 
+                  className="mr-2 shrink-0 w-6 h-6 flex items-center justify-center rounded hover:bg-slate-200 text-slate-500 hover:text-brand-primary focus:outline-none transition-colors"
+                >
+                  {expandedRows.has(row._id) ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                </button>
+              ) : (
+                <div className="mr-2 shrink-0 w-6 h-6"></div>
+              )}
+              <div className="flex flex-col justify-center h-full overflow-hidden">
+                <div className="font-bold text-slate-900 leading-tight whitespace-nowrap overflow-hidden text-ellipsis">
+                  {getName(row)}
+                </div>
+                <div className="font-mono text-[10px] font-bold tracking-wider text-slate-500 leading-tight mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis">
+                  {getRegNo(row)}
+                </div>
+              </div>
+            </div>
+          );
+        }
+      },
+      {
+        key: 'teamName',
+        name: 'Team Name',
+        width: 160,
+        sortable: true,
+        renderCell({ row }) {
+          if (row.type === 'member') return null;
+          if (!isTeam(row)) {
+             return <div className="text-slate-300 italic text-xs h-full flex items-center px-2">N/A</div>;
+          }
+          return (
+            <div className="h-full w-full px-2 py-1.5 flex items-center">
+              <span className="text-[12px] font-medium text-slate-700 truncate">
+                {row.teamName || <span className="text-slate-400 italic">Not provided</span>}
+              </span>
+            </div>
+          );
+        }
+      },
+      {
+        key: 'contact',
+        name: 'Contact',
+        width: 200,
+        renderCell({ row }) {
+          if (row.type === 'member') {
+            return (
+              <div className="flex flex-col justify-center h-full py-1.5">
+                <div className="text-[11px] text-slate-500 font-mono leading-tight">
+                  {row.phone}
+                </div>
+              </div>
+            );
+          }
+          return (
+            <div className="flex flex-col justify-center h-full py-2 overflow-hidden">
+              <div className="text-sm text-slate-900 leading-tight whitespace-nowrap overflow-hidden text-ellipsis">
+                {getEmail(row)}
+              </div>
+              <div className="text-xs text-slate-500 font-mono leading-tight mt-0.5">
+                {getPhone(row)}
+              </div>
+            </div>
+          );
+        }
+      },
+      {
+        key: 'type',
+        name: 'Type',
+        width: 120,
+        sortable: true,
+        renderCell({ row }) {
+          if (row.type === 'member') return null;
+          return (
+            <div className="flex items-center h-full">
+              <span className={cn("px-2.5 py-1 text-xs font-medium rounded-md border", isTeam(row) ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-slate-100 text-slate-700 border-slate-200")}>
+                {isTeam(row) ? 'Team' : 'Individual'}
+              </span>
+            </div>
+          );
+        }
+      }
+    ];
+
+    if (event?.paymentRequired) {
+      cols.push({
+        key: 'paymentStatus',
+        name: 'Payment',
+        width: 140,
+        sortable: true,
+        renderCell({ row }) {
+          if (row.type === 'member') return null;
+          return (
+            <div className="h-full w-full p-1 flex items-center justify-center">
+              <select 
+                value={row.paymentStatus || 'pending'}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  // Immediately send update to backend
+                  handleUpdateStatus(row._id, 'paymentStatus', val);
+                  // Update local state is handled implicitly by gridRows recalculation?
+                  // Wait, actually, react-data-grid doesn't provide onRowChange in renderCell in a way that automatically commits if we don't return it.
+                  // But wait, our entries are loaded from state. handleUpdateStatus will update the backend, and then re-fetch or we should update local state!
+                  // Let's check handleUpdateStatus to see if it updates local state. 
+                  // If we don't have onRowChange, we can just rely on handleUpdateStatus updating local state!
+                }}
+                className={cn("w-full h-full px-2 py-1 text-xs font-medium rounded-md border outline-none cursor-pointer", getStatusColor(row.paymentStatus || 'pending'))}
+              >
+                <option value="pending">Pending</option>
+                <option value="verified">Verified</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </div>
+          );
+        }
+      });
+    }
+
+    cols.push(
+      {
+        key: 'status',
+        name: 'Status',
+        width: 140,
+        sortable: true,
+        renderCell({ row }) {
+          if (row.type === 'member') return null;
+          return (
+            <div className="h-full w-full p-1 flex items-center justify-center">
+              <select 
+                value={row.status}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  handleUpdateStatus(row._id, 'status', val);
+                }}
+                className={cn("w-full h-full px-2 py-1 text-xs font-medium rounded-md border outline-none cursor-pointer", getStatusColor(row.status))}
+              >
+                <option value="Registered">Registered</option>
+                <option value="Participated">Participated</option>
+                <option value="No-show">No-show</option>
+              </select>
+            </div>
+          );
+        }
+      },
+      {
+        key: 'actions',
+        name: 'Actions',
+        width: 110,
+        renderCell({ row }) {
+          if (row.type === 'member') return null;
+          return (
+            <div className="flex items-center justify-end h-full">
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedEntry(row);
+                  setDetailsModalOpen(true);
+                }}
+                className="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-md text-xs font-medium hover:bg-slate-50 transition-colors whitespace-nowrap"
+              >
+                View Details
+              </button>
+            </div>
+          );
+        }
+      }
+    );
+    return cols;
+  }, [event, expandedRows]);
+
+  const handleBulkPayment = (val) => {
+    selectedRows.forEach(id => handleUpdateStatus(id, 'paymentStatus', val));
+    setSelectedRows(new Set());
+  };
+
+  const handleBulkStatus = (val) => {
+    selectedRows.forEach(id => handleUpdateStatus(id, 'status', val));
+    setSelectedRows(new Set());
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -305,100 +589,69 @@ export default function EventEntries() {
               <p className="text-sm mt-1">There are no entries matching your current filters.</p>
             </div>
           ) : (
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-xs font-mono font-bold tracking-widest uppercase text-slate-500">
-                  <th className="p-4 w-10"></th>
-                  <th className="p-4 whitespace-nowrap">Participant</th>
-                  <th className="p-4">Contact</th>
-                  <th className="p-4">Type</th>
-                  {event?.paymentRequired && <th className="p-4">Payment</th>}
-                  <th className="p-4">Status</th>
-                  <th className="p-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {entries.map((entry) => (
-                  <React.Fragment key={entry._id}>
-                    <tr className="hover:bg-slate-50/80 transition-colors group">
-                      <td className="p-4">
-                        {isTeam(entry) && entry.members?.length > 0 && (
-                          <button onClick={() => toggleRowExpand(entry._id)} className="text-slate-400 hover:text-brand-primary">
-                            {expandedRows.has(entry._id) ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                          </button>
-                        )}
-                      </td>
-                      <td className="p-4">
-                        <div className="font-bold text-slate-900 whitespace-nowrap">{getName(entry)}</div>
-                        <div className="font-mono text-xs font-bold text-slate-500 whitespace-nowrap">{getRegNo(entry)}</div>
-                      </td>
-                      <td className="p-4">
-                        <div className="text-sm text-slate-900">{getEmail(entry)}</div>
-                        <div className="text-xs text-slate-500 font-mono">{getPhone(entry)}</div>
-                      </td>
-                      <td className="p-4">
-                        <span className={cn("px-2.5 py-1 text-xs font-medium rounded-md border", isTeam(entry) ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-slate-100 text-slate-700 border-slate-200")}>
-                          {isTeam(entry) ? 'Team' : 'Individual'}
-                        </span>
-                      </td>
-                      {event?.paymentRequired && (
-                        <td className="p-4">
-                          <select 
-                            value={entry.paymentStatus || 'pending'}
-                            onChange={(e) => handleUpdateStatus(entry._id, 'paymentStatus', e.target.value)}
-                            className={cn("px-2 py-1.5 text-xs font-medium rounded-md border outline-none cursor-pointer", getStatusColor(entry.paymentStatus || 'pending'))}
-                          >
-                            <option value="pending">Pending</option>
-                            <option value="verified">Verified</option>
-                            <option value="rejected">Rejected</option>
-                          </select>
-                        </td>
-                      )}
-                      <td className="p-4 whitespace-nowrap">
-                        <select 
-                          value={entry.status}
-                          onChange={(e) => handleUpdateStatus(entry._id, 'status', e.target.value)}
-                          className={cn("px-2 py-1.5 text-xs font-medium rounded-md border outline-none cursor-pointer", getStatusColor(entry.status))}
-                        >
-                          <option value="Registered">Registered</option>
-                          <option value="Participated">Participated</option>
-                          <option value="No-show">No-show</option>
-                        </select>
-                      </td>
-                      <td className="p-4 text-right whitespace-nowrap">
-                        <button 
-                          onClick={() => { setSelectedEntry(entry); setDetailsModalOpen(true); }}
-                          className="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-md text-xs font-medium hover:bg-slate-50 transition-colors"
-                        >
-                          View Details
-                        </button>
-                      </td>
-                    </tr>
-                    {expandedRows.has(entry._id) && isTeam(entry) && entry.members && (
-                      <tr className="bg-slate-50/50">
-                        <td></td>
-                        <td colSpan={event?.paymentRequired ? 6 : 5} className="p-4 pt-0">
-                          <div className="pl-4 border-l-2 border-indigo-200 space-y-2 mt-2">
-                            <div className="text-xs font-mono font-bold text-slate-400 tracking-widest uppercase mb-2">Team Members</div>
-                            {entry.members.map((m, idx) => (
-                              <div key={idx} className="flex items-center gap-6 text-sm">
-                                <div className="w-1/3">
-                                  <div className="font-medium text-slate-700">{m.fullName}</div>
-                                  <div className="font-mono text-xs text-slate-500">{m.registrationNumber}</div>
-                                </div>
-                                <div>
-                                  <div className="text-slate-600 font-mono text-xs">{m.phone}</div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </td>
-                      </tr>
+            <div className="flex flex-col h-full bg-white relative">
+              {selectedRows.size > 0 && (
+                <div className="absolute top-0 left-0 right-0 z-20 bg-indigo-50 border-b border-indigo-100 p-3 flex items-center justify-between animate-in slide-in-from-top-2">
+                  <div className="text-sm font-medium text-indigo-800">
+                    {selectedRows.size} row{selectedRows.size > 1 ? 's' : ''} selected
+                  </div>
+                  <div className="flex gap-2">
+                    {event?.paymentRequired && (
+                      <select 
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val) handleBulkPayment(val);
+                          e.target.value = '';
+                        }}
+                        className="text-xs border border-indigo-200 rounded px-2 py-1.5 text-indigo-700 bg-white cursor-pointer outline-none hover:bg-indigo-100/50 transition-colors"
+                      >
+                        <option value="">Bulk Set Payment...</option>
+                        <option value="pending">Pending</option>
+                        <option value="verified">Verified</option>
+                        <option value="rejected">Rejected</option>
+                      </select>
                     )}
-                  </React.Fragment>
-                ))}
-              </tbody>
-            </table>
+                    
+                    <select 
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val) handleBulkStatus(val);
+                        e.target.value = '';
+                      }}
+                      className="text-xs border border-indigo-200 rounded px-2 py-1.5 text-indigo-700 bg-white cursor-pointer outline-none hover:bg-indigo-100/50 transition-colors"
+                    >
+                      <option value="">Bulk Set Status...</option>
+                      <option value="Registered">Registered</option>
+                      <option value="Participated">Participated</option>
+                      <option value="No-show">No-show</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+              
+              <DataGrid
+                columns={columns}
+                rows={gridRows}
+                rowKeyGetter={(row) => row._id}
+                onRowsChange={(newRows) => {}}
+                sortColumns={sortColumns}
+                onSortColumnsChange={setSortColumns}
+                selectedRows={selectedRows}
+                onSelectedRowsChange={setSelectedRows}
+                rowHeight={48}
+                className="rdg-light h-[500px] border-none [&_.rdg-header-row]:bg-slate-50 [&_.rdg-header-row]:border-b [&_.rdg-header-row]:border-slate-200 [&_.rdg-cell]:border-b [&_.rdg-cell]:border-slate-100 [&_.rdg-cell]:flex [&_.rdg-cell]:items-center [&_.rdg-row]:hover:bg-slate-50/80 [&_.rdg-row-selected]:bg-indigo-50/50 [&_.rdg-cell[aria-selected='true']]:outline-indigo-500 [&_.rdg-cell[aria-selected='true']]:outline-2 [&_.rdg-cell[aria-selected='true']]:outline [&_.rdg-cell[aria-selected='true']]:-outline-offset-2"
+                style={{
+                  '--rdg-color-scheme': 'light',
+                  '--rdg-background-color': 'var(--paper, #ffffff)',
+                  '--rdg-header-background-color': 'var(--paper-dim, #f8fafc)',
+                  '--rdg-color': 'var(--ink, #0f172a)',
+                  '--rdg-border-color': 'var(--border, #e2e8f0)',
+                  '--rdg-selection-color': 'var(--circuit, #6366f1)',
+                  '--rdg-row-hover-background-color': 'var(--paper-dim, #f8fafc)',
+                  '--rdg-row-selected-background-color': 'var(--paper-dim, #f8fafc)',
+                }}
+              />
+            </div>
           )}
         </div>
 
@@ -438,6 +691,11 @@ export default function EventEntries() {
               <div className="flex items-start justify-between">
                 <div>
                   <h4 className="text-2xl font-bold text-slate-900 mb-1">{getName(selectedEntry)}</h4>
+                  {isTeam(selectedEntry) && (
+                    <div className="text-md font-bold text-indigo-600 mb-2 uppercase tracking-wide">
+                      Team: {selectedEntry.teamName || 'Unnamed'}
+                    </div>
+                  )}
                   <div className="flex items-center gap-3">
                     <div className="font-mono text-sm tracking-widest text-brand-primary">{getRegNo(selectedEntry)}</div>
                     <span className={cn("px-2 py-0.5 text-[10px] font-bold rounded-sm border uppercase", isTeam(selectedEntry) ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-slate-100 text-slate-700 border-slate-200")}>
@@ -475,7 +733,9 @@ export default function EventEntries() {
               {/* Team Members */}
               {isTeam(selectedEntry) && selectedEntry.members?.length > 0 && (
                 <div>
-                  <div className="text-[10px] font-bold font-mono text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-100 pb-2">Team Members</div>
+                  <div className="text-[10px] font-bold font-mono text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-100 pb-2">
+                    Team Members {selectedEntry.teamName && <span className="text-indigo-500 normal-case tracking-normal ml-2 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">{selectedEntry.teamName}</span>}
+                  </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {selectedEntry.members.map((m, idx) => (
                       <div key={idx} className="p-3 border border-slate-200 rounded-lg">
@@ -509,12 +769,12 @@ export default function EventEntries() {
                       {selectedEntry.paymentScreenshot ? (
                         <div className="relative border border-slate-200 rounded-lg overflow-hidden bg-slate-50 group h-32 w-32 flex items-center justify-center">
                           <ProtectedImage 
-                            imageId={selectedEntry.paymentScreenshot._id || selectedEntry.paymentScreenshot} 
+                            imageId={selectedEntry.paymentScreenshot.imageId || selectedEntry.paymentScreenshot} 
                             variant="admin_preview" 
                             alt="Payment Proof" 
                             className="w-full h-full object-cover"
                           />
-                          <a href={`/api/admin/images/${selectedEntry.paymentScreenshot._id || selectedEntry.paymentScreenshot}/view`} target="_blank" rel="noreferrer" className="absolute inset-0 bg-slate-900/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <a href={`/api/images/admin/${selectedEntry.paymentScreenshot.imageId || selectedEntry.paymentScreenshot}?variant=original`} target="_blank" rel="noreferrer" className="absolute inset-0 bg-slate-900/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                             <ExternalLink size={24} className="text-white" />
                           </a>
                         </div>

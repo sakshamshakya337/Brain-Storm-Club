@@ -32,7 +32,7 @@ function SectionHeader({ label }) {
 }
 
 // ─── Add Member Modal ─────────────────────────────────────────────────────────
-function AddMemberModal({ onClose, onCreated }) {
+function AddMemberModal({ onClose, onCreated, dynamicTeams = [] }) {
   const [memberType, setMemberType]       = useState('student');
   const [step, setStep]                   = useState(1);
   const [saving, setSaving]               = useState(false);
@@ -545,6 +545,13 @@ export default function AdminMembers() {
   const [roleFilter, setRoleFilter]     = useState('All');
   const [typeFilter, setTypeFilter]     = useState('All'); // 'All' | 'student' | 'faculty'
 
+  // Dynamic Teams state
+  const [dynamicTeams, setDynamicTeams] = useState([]);
+  const [teamModalOpen, setTeamModalOpen] = useState(false);
+  const [newTeamName, setNewTeamName] = useState('New Team');
+  const [creatingTeam, setCreatingTeam] = useState(false);
+  const [teamError, setTeamError] = useState('');
+
   // Edit modal
   const [editModalOpen, setEditModalOpen]   = useState(false);
   const [editingMember, setEditingMember]   = useState(null);
@@ -576,7 +583,10 @@ export default function AdminMembers() {
     };
   }, []);
 
-  useEffect(() => { fetchMembers(); }, []);
+  useEffect(() => { 
+    fetchMembers(); 
+    fetchTeams();
+  }, []);
 
   // Fetch member registration gate status
   useEffect(() => {
@@ -608,6 +618,45 @@ export default function AdminMembers() {
       alert(err.message);
     } finally {
       setRegSaving(false);
+    }
+  };
+
+  const fetchTeams = async () => {
+    try {
+      const res = await fetch('/api/admin/teams', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch teams');
+      const json = await res.json();
+      if (json.status === 'success') {
+        setDynamicTeams(json.data.teams.map(t => t.name));
+      }
+    } catch (err) {
+      console.error('Error fetching teams:', err);
+    }
+  };
+
+  const handleCreateTeam = async (e) => {
+    e.preventDefault();
+    setCreatingTeam(true);
+    setTeamError('');
+    try {
+      const res = await fetch('/api/admin/teams', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newTeamName })
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setTeamError(json.message || 'Failed to create team');
+        return;
+      }
+      setDynamicTeams(prev => [...prev, json.data.team.name]);
+      setTeamModalOpen(false);
+      setNewTeamName('New Team');
+    } catch (err) {
+      setTeamError(err.message || 'Failed to create team');
+    } finally {
+      setCreatingTeam(false);
     }
   };
 
@@ -808,6 +857,13 @@ export default function AdminMembers() {
           <p className="text-sm font-mono text-slate-500">Manage all approved club members.</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setTeamModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-brand-primary text-brand-primary rounded-md text-sm font-semibold hover:bg-brand-primary/10 transition-colors shadow-sm"
+          >
+            <Users size={16} />
+            Manage Teams
+          </button>
           <button
             onClick={() => setAddModalOpen(true)}
             className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-ink rounded-md text-sm font-semibold hover:bg-brand-primary/90 transition-colors shadow-sm"
@@ -1611,7 +1667,68 @@ export default function AdminMembers() {
         <AddMemberModal
           onClose={() => setAddModalOpen(false)}
           onCreated={handleMemberCreated}
+          dynamicTeams={dynamicTeams}
         />
+      )}
+
+      {/* ── Manage Teams Modal ────────────────────────────────────────────── */}
+      {teamModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm"
+          onClick={() => setTeamModalOpen(false)}
+        >
+          <div
+            className="w-full max-w-md bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b border-slate-100">
+              <h3 className="font-heading font-bold text-lg text-slate-900">Manage Teams</h3>
+              <button onClick={() => setTeamModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              {teamError && (
+                <div className="p-3 bg-red-50 text-red-600 text-xs rounded-lg border border-red-100 flex items-start gap-2">
+                  <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                  <p>{teamError}</p>
+                </div>
+              )}
+              
+              <div>
+                <label className="block text-xs font-bold font-mono tracking-widest uppercase text-slate-500 mb-2">Existing Teams</label>
+                <div className="flex flex-wrap gap-2">
+                  {[...new Set([...TEAM_ROLES, ...dynamicTeams])].map((t, idx) => (
+                    <span key={idx} className="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-full text-xs font-medium">
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <form onSubmit={handleCreateTeam} className="pt-4 border-t border-slate-100">
+                <label className="block text-xs font-bold font-mono tracking-widest uppercase text-slate-500 mb-2">Create New Team</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    required
+                    value={newTeamName}
+                    onChange={(e) => setNewTeamName(e.target.value)}
+                    placeholder="e.g. Content Team"
+                    className="flex-1 p-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none"
+                  />
+                  <button
+                    type="submit"
+                    disabled={creatingTeam}
+                    className="px-4 py-2 bg-brand-primary text-ink rounded-lg text-sm font-semibold hover:bg-brand-primary/90 transition-colors shadow-sm disabled:opacity-50"
+                  >
+                    {creatingTeam ? <Loader2 size={16} className="animate-spin" /> : 'Create'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>
