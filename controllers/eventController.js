@@ -1,7 +1,4 @@
 import Event from '../models/Event.js';
-import sanitizeHtml from 'sanitize-html';
-import { decode } from 'html-entities';
-
 export const isValidImageUrl = (url) => {
   if (!url || typeof url !== 'string') return false;
   const trimmed = url.trim();
@@ -21,7 +18,7 @@ export const isValidImageUrl = (url) => {
   }
 };
 
-const processEventPayload = (body) => {
+const processEventPayload = async (body) => {
   const payload = { ...body };
   
   if (Array.isArray(payload.images)) {
@@ -89,23 +86,33 @@ const processEventPayload = (body) => {
 
   // Handle Event Story sanitization (bypassing global xss-clean escaping)
   if (payload.eventStory) {
-    const decodedHTML = decode(payload.eventStory);
-    payload.eventStory = sanitizeHtml(decodedHTML, {
-      allowedTags: [
-        'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'p', 'a', 'ul', 'ol',
-        'nl', 'li', 'b', 'i', 'strong', 'em', 'strike', 'code', 'hr', 'br', 'div',
-        'table', 'thead', 'caption', 'tbody', 'tr', 'th', 'td', 'pre', 'span'
-      ],
-      allowedAttributes: {
-        a: ['href', 'name', 'target', 'rel'],
-        '*': ['class', 'style']
-      },
-      allowedStyles: {
-        '*': {
-          'text-align': [/^left$/, /^right$/, /^center$/, /^justify$/]
+    try {
+      const { decode } = await import('html-entities');
+      const sanitizeHtmlModule = await import('sanitize-html');
+      const sanitizeHtml = sanitizeHtmlModule.default || sanitizeHtmlModule;
+      
+      const decodedHTML = decode(payload.eventStory);
+      payload.eventStory = sanitizeHtml(decodedHTML, {
+        allowedTags: [
+          'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'p', 'a', 'ul', 'ol',
+          'nl', 'li', 'b', 'i', 'strong', 'em', 'strike', 'code', 'hr', 'br', 'div',
+          'table', 'thead', 'caption', 'tbody', 'tr', 'th', 'td', 'pre', 'span'
+        ],
+        allowedAttributes: {
+          a: ['href', 'name', 'target', 'rel'],
+          '*': ['class', 'style']
+        },
+        allowedStyles: {
+          '*': {
+            'text-align': [/^left$/, /^right$/, /^center$/, /^justify$/]
+          }
         }
-      }
-    });
+      });
+    } catch (err) {
+      console.error('[Event Controller] Failed to dynamically load sanitization modules:', err);
+      // Fallback: strip tags entirely if module fails to load on Vercel
+      payload.eventStory = payload.eventStory.replace(/<[^>]*>?/gm, '');
+    }
   }
 
   return payload;
@@ -127,7 +134,7 @@ export const getAllEventsAdmin = async (req, res) => {
 
 export const createEvent = async (req, res) => {
   try {
-    const payload = processEventPayload(req.body);
+    const payload = await processEventPayload(req.body);
     const event = await Event.create(payload);
     res.status(201).json({ status: 'success', data: { event } });
   } catch (error) {
@@ -141,7 +148,7 @@ export const createEvent = async (req, res) => {
 export const updateEvent = async (req, res) => {
   try {
     const { id } = req.params;
-    const payload = processEventPayload(req.body);
+    const payload = await processEventPayload(req.body);
     const event = await Event.findByIdAndUpdate(id, payload, { new: true, runValidators: true })
       .populate('posterId')
       .populate('coverImage.imageId')
