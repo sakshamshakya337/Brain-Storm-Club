@@ -8,6 +8,15 @@ import Notification from '../models/Notification.js';
 import SystemSettings from '../models/SystemSettings.js';
 import { getMaintenanceState } from '../middleware/maintenance.js';
 import { sendIdeaConfirmationEmail } from '../utils/email.js';
+import { 
+  validateRegistrationNumber, 
+  validatePhone, 
+  validateEmail, 
+  validateName, 
+  validateRequiredText, 
+  validateTransactionId,
+  PHONE_REGEX
+} from '../utils/validation.js';
 
 const getSystemSettings = async () => {
   try {
@@ -20,10 +29,10 @@ const getSystemSettings = async () => {
 
 export const submitMemberRegistration = async (req, res) => {
   try {
-    const { registrationNumber } = req.body;
+    const { registrationNumber, fullName, course, section, email, phone, whatsapp, role } = req.body;
 
     const PUBLIC_ROLES = ['Technical Team', 'Media Team', 'Anchor', 'Coordinator'];
-    if (!PUBLIC_ROLES.includes(req.body.role)) {
+    if (!PUBLIC_ROLES.includes(role)) {
       return res.status(403).json({
         message: 'Invalid role selection. Leadership roles are assigned by administrators only.'
       });
@@ -31,6 +40,20 @@ export const submitMemberRegistration = async (req, res) => {
 
     if (!req.body.protectedImageId) {
       return res.status(400).json({ message: 'Profile image is required' });
+    }
+
+    const errors = [
+      validateRegistrationNumber(registrationNumber),
+      validateName(fullName, 'Full name'),
+      validateRequiredText(course, 'Course', 2, 100),
+      validateRequiredText(section, 'Section', 2, 50),
+      validateEmail(email),
+      validatePhone(phone, 'Phone number'),
+      whatsapp ? validatePhone(whatsapp, 'WhatsApp number') : null
+    ].filter(Boolean);
+
+    if (errors.length > 0) {
+      return res.status(400).json({ message: errors[0], errors });
     }
 
     const normalizedRegNo = registrationNumber.trim().toUpperCase();
@@ -42,6 +65,12 @@ export const submitMemberRegistration = async (req, res) => {
 
     const memberData = {
       ...req.body,
+      fullName: fullName.trim(),
+      course: course.trim(),
+      section: section.trim(),
+      email: email.trim().toLowerCase(),
+      phone: phone.trim(),
+      whatsapp: whatsapp ? whatsapp.trim() : '',
       registrationNumber: normalizedRegNo,
       photoId: req.body.protectedImageId,
       status: 'Pending'
@@ -67,20 +96,34 @@ export const submitMemberRegistration = async (req, res) => {
 
 export const submitJoinUs = async (req, res) => {
   try {
-    const { registrationNumber } = req.body;
+    const { registrationNumber, fullName, course, section, email, phone, whatsapp, whyJoin } = req.body;
 
     // ── Server-side rules acknowledgement gate ─────────────────────────────
-    // The frontend must have sent rulesAccepted=true. This protects against
-    // direct API calls that bypass the checkbox in the UI.
     if (req.body.rulesAccepted !== 'true' && req.body.rulesAccepted !== true) {
       return res.status(422).json({
         message: 'You must read and accept the Club Rules & Guidelines before submitting your application.'
       });
     }
 
-    if (!registrationNumber || !registrationNumber.trim()) {
-      return res.status(400).json({ message: 'Registration number is required' });
+    if (!req.body.protectedImageId) {
+      return res.status(400).json({ message: 'Profile image is required' });
     }
+
+    const errors = [
+      validateRegistrationNumber(registrationNumber),
+      validateName(fullName, 'Full name'),
+      validateRequiredText(course, 'Course', 2, 100),
+      validateRequiredText(section, 'Section', 2, 50),
+      validateEmail(email),
+      validatePhone(phone, 'Phone number'),
+      whatsapp ? validatePhone(whatsapp, 'WhatsApp number') : null,
+      validateRequiredText(whyJoin, 'Why join', 10, 1000)
+    ].filter(Boolean);
+
+    if (errors.length > 0) {
+      return res.status(400).json({ message: errors[0], errors });
+    }
+
     const normalizedRegNo = registrationNumber.trim().toUpperCase();
 
     // Check if student is already a registered member
@@ -89,24 +132,20 @@ export const submitJoinUs = async (req, res) => {
       return res.status(409).json({ message: 'You are already an active member of Brainstorm Club.' });
     }
 
-    if (!req.body.protectedImageId) {
-      return res.status(400).json({ message: 'Profile image is required' });
-    }
-
     // Controlled domain validation (enforce allowed enum; default to Technical)
     const ALLOWED_DOMAINS = ['Technical', 'Anchor', 'Media', 'Coordinator'];
     const domainCandidate = req.body.domain ? req.body.domain.trim() : '';
     const validDomain = ALLOWED_DOMAINS.includes(domainCandidate) ? domainCandidate : 'Technical';
 
     const joinUsData = { 
-      fullName: (req.body.fullName || '').trim(),
+      fullName: fullName.trim(),
       registrationNumber: normalizedRegNo,
-      course: (req.body.course || '').trim(),
-      section: (req.body.section || '').trim(),
-      email: (req.body.email || '').trim().toLowerCase(),
-      phone: (req.body.phone || '').trim(),
-      whatsapp: (req.body.whatsapp || req.body.phone || '').trim(),
-      whyJoin: (req.body.whyJoin || '').trim(),
+      course: course.trim(),
+      section: section.trim(),
+      email: email.trim().toLowerCase(),
+      phone: phone.trim(),
+      whatsapp: whatsapp ? whatsapp.trim() : phone.trim(),
+      whyJoin: whyJoin.trim(),
       domain: validDomain,
       interests: req.body['interests[]'] || req.body.interests || [],
       photoId: req.body.protectedImageId,
@@ -133,7 +172,25 @@ export const submitJoinUs = async (req, res) => {
 
 export const submitContact = async (req, res) => {
   try {
-    const contact = await Contact.create(req.body);
+    const { name, email, subject, message } = req.body;
+
+    const errors = [
+      validateName(name, 'Name'),
+      validateEmail(email),
+      validateRequiredText(subject, 'Subject', 2, 150),
+      validateRequiredText(message, 'Message', 10, 2000)
+    ].filter(Boolean);
+
+    if (errors.length > 0) {
+      return res.status(400).json({ message: errors[0], errors });
+    }
+
+    const contact = await Contact.create({
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      subject: subject.trim(),
+      message: message.trim()
+    });
 
     await Notification.create({
       type: 'CONTACT_QUERY',
@@ -153,16 +210,31 @@ export const submitIdea = async (req, res) => {
   try {
     const { name, course, section, contact, title, description, outcome, category } = req.body;
 
-    // Required field validation
-    if (!name || !course || !section || !contact || !title || !description || !outcome) {
-      return res.status(400).json({ message: 'All required fields must be filled in.' });
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const isContactEmail = emailRegex.test((contact || '').trim());
+    const isContactPhone = PHONE_REGEX.test((contact || '').trim());
+
+    const errors = [
+      validateName(name, 'Name'),
+      validateRequiredText(course, 'Course', 2, 100),
+      validateRequiredText(section, 'Section', 2, 50),
+      (!isContactEmail && !isContactPhone) ? 'Contact must be a valid email or 10-digit phone number.' : null,
+      validateRequiredText(title, 'Idea Title', 5, 200),
+      validateRequiredText(description, 'Description', 10, 5000),
+      validateRequiredText(outcome, 'Outcome', 10, 2000)
+    ].filter(Boolean);
+
+    if (errors.length > 0) {
+      return res.status(400).json({ message: errors[0], errors });
     }
 
-    // Extract submitter email from req.body.email or contact if it matches email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     let submitterEmail = (req.body.email || '').trim().toLowerCase();
-    if (!submitterEmail && emailRegex.test(contact.trim())) {
+    if (!submitterEmail && isContactEmail) {
       submitterEmail = contact.trim().toLowerCase();
+    }
+
+    if (submitterEmail && !emailRegex.test(submitterEmail)) {
+      return res.status(400).json({ message: 'Invalid email address provided.' });
     }
 
     const ideaData = {
@@ -246,6 +318,12 @@ export const submitEventRegistration = async (req, res) => {
     if (event.paymentRequired && (!transactionId || !paymentScreenshot)) {
       return res.status(400).json({ success: false, message: 'Payment screenshot and transaction ID are required for this event.' });
     }
+    
+    if (event.paymentRequired && transactionId) {
+      const tErr = validateTransactionId(transactionId);
+      if (tErr) return res.status(400).json({ success: false, message: tErr });
+    }
+
     if (registrationType === 'individual' && !event.allowIndividualRegistration) {
       return res.status(400).json({ success: false, message: 'Individual registration is not allowed for this event.' });
     }
@@ -253,17 +331,53 @@ export const submitEventRegistration = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Team registration is not allowed for this event.' });
     }
 
+    const rawLeader = dataPayload.leader || {};
+    const leaderErrors = [
+      validateName(rawLeader.fullName, 'Leader name'),
+      validateRegistrationNumber(rawLeader.registrationNumber),
+      validateRequiredText(rawLeader.course, 'Leader course', 2, 100),
+      validateRequiredText(rawLeader.section, 'Leader section', 2, 50),
+      validateEmail(rawLeader.email),
+      validatePhone(rawLeader.phone, 'Leader phone'),
+      rawLeader.whatsapp ? validatePhone(rawLeader.whatsapp, 'Leader WhatsApp') : null
+    ].filter(Boolean);
+
+    if (leaderErrors.length > 0) {
+      return res.status(400).json({ success: false, message: leaderErrors[0], errors: leaderErrors });
+    }
+
     const leader = {
-      ...dataPayload.leader,
-      registrationNumber: dataPayload.leader.registrationNumber.trim().toUpperCase()
+      ...rawLeader,
+      fullName: rawLeader.fullName.trim(),
+      course: rawLeader.course.trim(),
+      section: rawLeader.section.trim(),
+      email: rawLeader.email.trim().toLowerCase(),
+      phone: rawLeader.phone.trim(),
+      whatsapp: rawLeader.whatsapp ? rawLeader.whatsapp.trim() : '',
+      registrationNumber: rawLeader.registrationNumber.trim().toUpperCase()
     };
     
     let members = [];
     if (registrationType === 'team' && dataPayload.members) {
-      members = dataPayload.members.map(m => ({
-        ...m,
-        registrationNumber: m.registrationNumber.trim().toUpperCase()
-      }));
+      for (let i = 0; i < dataPayload.members.length; i++) {
+        const m = dataPayload.members[i];
+        const mErrors = [
+          validateName(m.fullName, `Member ${i+1} name`),
+          validateRegistrationNumber(m.registrationNumber),
+          validatePhone(m.phone, `Member ${i+1} phone`)
+        ].filter(Boolean);
+
+        if (mErrors.length > 0) {
+          return res.status(400).json({ success: false, message: mErrors[0], errors: mErrors });
+        }
+        
+        members.push({
+          ...m,
+          fullName: m.fullName.trim(),
+          phone: m.phone.trim(),
+          registrationNumber: m.registrationNumber.trim().toUpperCase()
+        });
+      }
     }
 
     // Application level deduplication

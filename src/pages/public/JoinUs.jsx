@@ -6,10 +6,10 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
 import Footer from '../../components/layout/Footer';
 import MemberPhotoEditor from '../../components/common/MemberPhotoEditor';
+import imageCompression from 'browser-image-compression';
+import { validateRegistrationNumber, validatePhone, validateEmail, validateName, validateRequiredText } from '../../utils/validation';
 import { usePageReveal } from '../../hooks/usePageReveal';
 import { useScrollReveal } from '../../hooks/useScrollReveal';
-
-import imageCompression from 'browser-image-compression';
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
@@ -200,20 +200,31 @@ export default function JoinUs() {
     e.preventDefault();
     setErrorMessage('');
 
-    if (!formData.course) {
-      setErrorMessage('Please select your course.');
+    const errors = [
+      validateName(formData.fullName, 'Full name'),
+      validateRegistrationNumber(formData.regNo),
+      validateRequiredText(formData.course, 'Course', 2, 100),
+      validateRequiredText(formData.section, 'Section', 2, 50),
+      validateEmail(formData.email),
+      validatePhone(formData.phone, 'Phone number'),
+      formData.whatsapp && !sameAsPhone ? validatePhone(formData.whatsapp, 'WhatsApp number') : null,
+      validateRequiredText(formData.whyJoin, 'Why join', 10, 1000)
+    ].filter(Boolean);
+
+    if (errors.length > 0) {
+      setErrorMessage(errors[0]);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
+
     if (formData.interests.length === 0) {
       setErrorMessage('Please select at least one technical interest.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
     if (!formData.profileImage) {
       setErrorMessage('Please upload a profile image (under 5MB).');
-      return;
-    }
-    if (formData.whyJoin.length < 20) {
-      setErrorMessage('Please provide a more detailed reason for joining (min 20 chars).');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
@@ -346,7 +357,7 @@ export default function JoinUs() {
                     <div className="flex flex-col gap-2">
                       <label className="font-mono text-[10px] font-bold tracking-widest uppercase text-ink-soft">FULL NAME *</label>
                       <input 
-                        type="text" name="name" required placeholder="Enter your full name"
+                        type="text" name="name" required maxLength={100} placeholder="Enter your full name"
                         value={formData.name} onChange={handleInputChange}
                         className="w-full bg-paper-dim border border-border px-5 py-4 font-body text-ink placeholder-ink-soft focus:outline-none focus:border-circuit transition-colors rounded-sm shadow-sys"
                       />
@@ -354,9 +365,9 @@ export default function JoinUs() {
                     <div className="flex flex-col gap-2">
                       <label className="font-mono text-[10px] font-bold tracking-widest uppercase text-ink-soft">REGISTRATION NUMBER *</label>
                       <input 
-                        type="text" name="regNo" required placeholder="Enter your registration number"
+                        type="text" inputMode="numeric" pattern="\d*" maxLength={8} name="regNo" required placeholder="Enter your registration number"
                         value={formData.regNo} onChange={handleInputChange}
-                        className="w-full bg-paper-dim border border-border px-5 py-4 font-body text-ink placeholder-ink-soft focus:outline-none focus:border-circuit transition-colors rounded-sm shadow-sys"
+                        className="w-full bg-paper-dim border border-border px-5 py-4 font-body text-ink placeholder-ink-soft focus:outline-none focus:border-circuit transition-colors rounded-sm shadow-sys uppercase"
                       />
                     </div>
                   </div>
@@ -380,9 +391,9 @@ export default function JoinUs() {
                     <div className="flex flex-col gap-2">
                       <label className="font-mono text-[10px] font-bold tracking-widest uppercase text-ink-soft">SECTION *</label>
                       <input 
-                        type="text" name="section" required placeholder="Enter your section"
+                        type="text" name="section" required maxLength={50} placeholder="Enter your section"
                         value={formData.section} onChange={handleInputChange}
-                        className="w-full bg-paper-dim border border-border px-5 py-4 font-body text-ink placeholder-ink-soft focus:outline-none focus:border-circuit transition-colors rounded-sm shadow-sys"
+                        className="w-full bg-paper-dim border border-border px-5 py-4 font-body text-ink placeholder-ink-soft focus:outline-none focus:border-circuit transition-colors rounded-sm shadow-sys uppercase"
                       />
                     </div>
                   </div>
@@ -401,7 +412,7 @@ export default function JoinUs() {
                     <div className="flex flex-col gap-2">
                       <label className="font-mono text-[10px] font-bold tracking-widest uppercase text-ink-soft">PHONE NUMBER *</label>
                       <input 
-                        type="tel" name="phone" required placeholder="Enter your phone number"
+                        type="tel" inputMode="numeric" pattern="\d*" maxLength={10} name="phone" required placeholder="Enter your phone number"
                         value={formData.phone} onChange={handleInputChange}
                         className="w-full bg-paper-dim border border-border px-5 py-4 font-body text-ink placeholder-ink-soft focus:outline-none focus:border-circuit transition-colors rounded-sm shadow-sys"
                       />
@@ -423,7 +434,7 @@ export default function JoinUs() {
                         </label>
                       </div>
                       <input 
-                        type="tel" name="whatsapp" required placeholder="Enter your WhatsApp number"
+                        type="tel" inputMode="numeric" pattern="\d*" maxLength={10} name="whatsapp" required placeholder="Enter your WhatsApp number"
                         value={formData.whatsapp} 
                         onChange={handleInputChange}
                         readOnly={sameAsPhone}

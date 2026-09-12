@@ -8,6 +8,7 @@ import { PDFDocument } from 'pdf-lib';
 import Footer from '../../components/layout/Footer';
 import { usePageReveal } from '../../hooks/usePageReveal';
 import { useScrollReveal } from '../../hooks/useScrollReveal';
+import { validatePhone, validateName, validateRequiredText } from '../../utils/validation';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const MAX_PDF_BYTES = 2 * 1024 * 1024; // 2 MB
@@ -131,24 +132,44 @@ export default function Ideas() {
     e.preventDefault();
     setErrorMessage('');
 
-    // Basic validation
-    const required = ['name', 'course', 'section', 'contact', 'title', 'description', 'outcome'];
-    for (const key of required) {
-      if (!formData[key]?.trim()) {
-        setErrorMessage(`Please fill in the "${key}" field.`);
-        return;
+    const errors = [
+      validateName(formData.name, 'Full name'),
+      validateRequiredText(formData.course, 'Course', 2, 100),
+      validateRequiredText(formData.section, 'Section', 2, 50),
+      validateRequiredText(formData.title, 'Project title', 2, 150),
+      validateRequiredText(formData.description, 'Description', 30, 2000),
+      validateRequiredText(formData.outcome, 'Expected outcome', 20, 1000)
+    ].filter(Boolean);
+
+    // custom contact check since it can be email or phone
+    if (!formData.contact.trim()) {
+      errors.push('Please provide your contact information (Email or Phone).');
+    } else {
+      const isEmail = formData.contact.includes('@');
+      if (isEmail) {
+        const eErr = validateEmail(formData.contact);
+        if (eErr) errors.push(eErr);
+      } else {
+        const pErr = validatePhone(formData.contact, 'Contact number');
+        if (pErr) errors.push(pErr);
       }
     }
-    if (formData.description.trim().length < 30) {
-      setErrorMessage('Description must be at least 30 characters.');
+
+    if (errors.length > 0) {
+      setErrorMessage(errors[0]);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
-    if (formData.outcome.trim().length < 20) {
-      setErrorMessage('Expected outcome must be at least 20 characters.');
+
+    if (!formData.category) {
+      setErrorMessage('Please select a category.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
+
     if (pdf && pdf.status !== 'READY') {
       setErrorMessage('Please wait for the PDF to finish processing.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
@@ -398,8 +419,8 @@ export default function Ideas() {
                       </legend>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <FormField label="Full Name *" name="name" placeholder="Enter your full name" value={formData.name} onChange={handleInput} />
-                        <FormField label="Contact (Email or Phone) *" name="contact" placeholder="email@lpu.in or phone" value={formData.contact} onChange={handleInput} />
+                        <FormField label="Full Name *" name="name" maxLength={100} placeholder="Enter your full name" value={formData.name} onChange={handleInput} />
+                        <FormField label="Contact (Email or Phone) *" name="contact" maxLength={150} placeholder="email@lpu.in or phone" value={formData.contact} onChange={handleInput} />
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -415,7 +436,7 @@ export default function Ideas() {
                             ))}
                           </select>
                         </div>
-                        <FormField label="Section *" name="section" placeholder="e.g. K23MW" value={formData.section} onChange={handleInput} />
+                        <FormField label="Section *" name="section" maxLength={50} placeholder="e.g. K23MW" value={formData.section} onChange={handleInput} className="uppercase" />
                       </div>
                     </fieldset>
 
@@ -426,7 +447,7 @@ export default function Ideas() {
                       </legend>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <FormField label="Idea Title *" name="title" placeholder="Give your idea a name" value={formData.title} onChange={handleInput} className="md:col-span-1" />
+                        <FormField label="Idea Title *" name="title" maxLength={150} placeholder="Give your idea a name" value={formData.title} onChange={handleInput} className="md:col-span-1" />
                         <div className="flex flex-col gap-2">
                           <label className={labelCls}>CATEGORY</label>
                           <select name="category" value={formData.category} onChange={handleInput} className={selectCls}>
@@ -441,14 +462,14 @@ export default function Ideas() {
                           DESCRIPTION * <span className="text-slate-400 normal-case font-normal tracking-normal">(min 30 chars)</span>
                         </label>
                         <textarea
-                          name="description" required minLength={30}
+                          name="description" required minLength={30} maxLength={2000}
                           placeholder="Describe your idea — what problem does it solve, how does it work?"
                           value={formData.description} onChange={handleInput}
                           rows={5}
                           className={`${inputCls} resize-y min-h-[120px]`}
                         />
                         <span className={`self-end font-mono text-[9px] ${formData.description.length < 30 ? 'text-red-400' : 'text-[var(--ink-soft)]'}`}>
-                          {formData.description.length} / 30 min
+                          {formData.description.length} / 2000
                         </span>
                       </div>
 
@@ -457,14 +478,14 @@ export default function Ideas() {
                           EXPECTED OUTCOME * <span className="text-slate-400 normal-case font-normal tracking-normal">(min 20 chars)</span>
                         </label>
                         <textarea
-                          name="outcome" required minLength={20}
+                          name="outcome" required minLength={20} maxLength={1000}
                           placeholder="What impact or result do you expect if this idea is implemented?"
                           value={formData.outcome} onChange={handleInput}
                           rows={3}
                           className={`${inputCls} resize-y min-h-[80px]`}
                         />
                         <span className={`self-end font-mono text-[9px] ${formData.outcome.length < 20 ? 'text-red-400' : 'text-[var(--ink-soft)]'}`}>
-                          {formData.outcome.length} / 20 min
+                          {formData.outcome.length} / 1000
                         </span>
                       </div>
                     </fieldset>
@@ -556,14 +577,16 @@ const selectCls =
   inputCls + ' appearance-none cursor-pointer';
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
-function FormField({ label, name, placeholder, value, onChange, type = 'text' }) {
+function FormField({ label, name, placeholder, value, onChange, type = 'text', maxLength, ...props }) {
   return (
     <div className="flex flex-col gap-2">
       <label htmlFor={name} className={labelCls}>{label}</label>
       <input
         id={name} name={name} type={type} required
         placeholder={placeholder} value={value} onChange={onChange}
+        maxLength={maxLength}
         className={inputCls}
+        {...props}
       />
     </div>
   );

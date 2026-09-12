@@ -4,6 +4,7 @@ import { ArrowRight, ArrowLeft, CheckCircle2, AlertCircle, Calendar, MapPin, Clo
 import Footer from '../../components/layout/Footer';
 import EventStatus from '../../components/events/EventStatus';
 import ProtectedImage from '../../components/common/ProtectedImage';
+import { validateRegistrationNumber, validatePhone, validateEmail, validateName, validateTransactionId } from '../../utils/validation';
 
 const FIELD_CLASS = "w-full bg-[var(--paper-dim)] border border-[var(--border)] px-4 py-3 font-body text-sm text-[var(--ink)] placeholder-[var(--ink-soft)] focus:outline-none focus:border-[var(--circuit)] transition-colors";
 const LABEL_CLASS = "block font-mono text-[10px] font-bold tracking-[0.25em] uppercase text-[var(--ink)] mb-2";
@@ -102,18 +103,38 @@ export default function EventRegistration() {
     e.preventDefault();
     if (!event) return;
     
-    // Basic validation
-    const lReq = ['fullName','registrationNumber','course','section','email','phone'];
-    if (lReq.some(k => !formData.leader[k])) {
-      setErrorMessage('Please fill all required leader fields.');
-      setFormState('ERROR'); return;
+    // Explicit Client-Side Validation
+    const l = formData.leader;
+    const leaderErrors = [
+      validateName(l.fullName, 'Leader name'),
+      validateRegistrationNumber(l.registrationNumber),
+      !l.course.trim() ? 'Leader course is required.' : null,
+      !l.section.trim() ? 'Leader section is required.' : null,
+      validateEmail(l.email),
+      validatePhone(l.phone, 'Leader phone number'),
+      l.whatsapp && !sameAsPhone ? validatePhone(l.whatsapp, 'Leader WhatsApp number') : null
+    ].filter(Boolean);
+
+    if (leaderErrors.length > 0) {
+      setErrorMessage(leaderErrors[0]);
+      setFormState('ERROR');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
     }
     
     if (registrationType === 'team') {
-      for (let m of formData.members) {
-        if (!m.fullName || !m.registrationNumber || !m.phone) {
-          setErrorMessage('Please fill all required team member fields.');
-          setFormState('ERROR'); return;
+      for (let i = 0; i < formData.members.length; i++) {
+        const m = formData.members[i];
+        const mErrors = [
+          validateName(m.fullName, `Team Member ${i+1} name`),
+          validateRegistrationNumber(m.registrationNumber),
+          validatePhone(m.phone, `Team Member ${i+1} phone number`)
+        ].filter(Boolean);
+        if (mErrors.length > 0) {
+          setErrorMessage(mErrors[0]);
+          setFormState('ERROR');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
         }
       }
     }
@@ -121,7 +142,16 @@ export default function EventRegistration() {
     if (event.paymentRequired) {
       if (!formData.transactionId || !formData.paymentScreenshot) {
         setErrorMessage('Payment screenshot and Transaction ID are required.');
-        setFormState('ERROR'); return;
+        setFormState('ERROR');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+      const tErr = validateTransactionId(formData.transactionId);
+      if (tErr) {
+        setErrorMessage(tErr);
+        setFormState('ERROR');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
       }
     }
 
@@ -315,19 +345,19 @@ export default function EventRegistration() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <div className="md:col-span-2">
                           <label className={LABEL_CLASS}>Full Name <span className="text-[var(--spark)]">*</span></label>
-                          <input type="text" name="fullName" required value={formData.leader.fullName} onChange={handleLeaderChange} className={FIELD_CLASS} />
+                          <input type="text" name="fullName" required maxLength={100} value={formData.leader.fullName} onChange={handleLeaderChange} className={FIELD_CLASS} />
                         </div>
                         <div>
                           <label className={LABEL_CLASS}>Registration No. <span className="text-[var(--spark)]">*</span></label>
-                          <input type="text" name="registrationNumber" required value={formData.leader.registrationNumber} onChange={handleLeaderChange} className={`${FIELD_CLASS} uppercase`} />
+                          <input type="text" inputMode="numeric" pattern="\d*" maxLength={8} name="registrationNumber" required value={formData.leader.registrationNumber} onChange={handleLeaderChange} className={`${FIELD_CLASS} uppercase`} />
                         </div>
                         <div>
                           <label className={LABEL_CLASS}>Course <span className="text-[var(--spark)]">*</span></label>
-                          <input type="text" name="course" required value={formData.leader.course} onChange={handleLeaderChange} className={FIELD_CLASS} />
+                          <input type="text" name="course" required maxLength={100} value={formData.leader.course} onChange={handleLeaderChange} className={FIELD_CLASS} />
                         </div>
                         <div>
                           <label className={LABEL_CLASS}>Section <span className="text-[var(--spark)]">*</span></label>
-                          <input type="text" name="section" required value={formData.leader.section} onChange={handleLeaderChange} className={`${FIELD_CLASS} uppercase`} />
+                          <input type="text" name="section" required maxLength={50} value={formData.leader.section} onChange={handleLeaderChange} className={`${FIELD_CLASS} uppercase`} />
                         </div>
                         <div className="md:col-span-2">
                           <label className={LABEL_CLASS}>Email Address <span className="text-[var(--spark)]">*</span></label>
@@ -335,7 +365,7 @@ export default function EventRegistration() {
                         </div>
                         <div>
                           <label className={LABEL_CLASS}>Phone Number <span className="text-[var(--spark)]">*</span></label>
-                          <input type="tel" name="phone" required value={formData.leader.phone} onChange={handleLeaderChange} className={FIELD_CLASS} />
+                          <input type="tel" inputMode="numeric" pattern="\d*" maxLength={10} name="phone" required value={formData.leader.phone} onChange={handleLeaderChange} className={FIELD_CLASS} />
                         </div>
                         <div>
                           <div className="flex items-center justify-between mb-2">
@@ -345,7 +375,7 @@ export default function EventRegistration() {
                               Same as phone
                             </label>
                           </div>
-                          <input type="tel" name="whatsapp" value={formData.leader.whatsapp} onChange={handleLeaderChange} disabled={sameAsPhone} className={`${FIELD_CLASS} ${sameAsPhone ? 'opacity-50 cursor-not-allowed' : ''}`} />
+                          <input type="tel" inputMode="numeric" pattern="\d*" maxLength={10} name="whatsapp" value={formData.leader.whatsapp} onChange={handleLeaderChange} disabled={sameAsPhone} className={`${FIELD_CLASS} ${sameAsPhone ? 'opacity-50 cursor-not-allowed' : ''}`} />
                         </div>
                       </div>
                     </div>
@@ -365,15 +395,15 @@ export default function EventRegistration() {
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                                 <div className="md:col-span-2">
                                   <label className={LABEL_CLASS}>Full Name <span className="text-[var(--spark)]">*</span></label>
-                                  <input type="text" name="fullName" required value={member.fullName} onChange={(e) => handleMemberChange(index, e)} className={FIELD_CLASS} />
+                                  <input type="text" name="fullName" required maxLength={100} value={member.fullName} onChange={(e) => handleMemberChange(index, e)} className={FIELD_CLASS} />
                                 </div>
                                 <div>
                                   <label className={LABEL_CLASS}>Registration No. <span className="text-[var(--spark)]">*</span></label>
-                                  <input type="text" name="registrationNumber" required value={member.registrationNumber} onChange={(e) => handleMemberChange(index, e)} className={`${FIELD_CLASS} uppercase`} />
+                                  <input type="text" inputMode="numeric" pattern="\d*" maxLength={8} name="registrationNumber" required value={member.registrationNumber} onChange={(e) => handleMemberChange(index, e)} className={`${FIELD_CLASS} uppercase`} />
                                 </div>
                                 <div>
                                   <label className={LABEL_CLASS}>Phone <span className="text-[var(--spark)]">*</span></label>
-                                  <input type="tel" name="phone" required value={member.phone} onChange={(e) => handleMemberChange(index, e)} className={FIELD_CLASS} />
+                                  <input type="tel" inputMode="numeric" pattern="\d*" maxLength={10} name="phone" required value={member.phone} onChange={(e) => handleMemberChange(index, e)} className={FIELD_CLASS} />
                                 </div>
                               </div>
                               {formData.members.length > 1 && (
@@ -417,7 +447,7 @@ export default function EventRegistration() {
                           <div className="flex flex-col gap-6">
                             <div>
                               <label className={LABEL_CLASS}>Transaction / Reference ID <span className="text-[var(--spark)]">*</span></label>
-                              <input type="text" name="transactionId" required value={formData.transactionId} onChange={(e) => setFormData(p => ({...p, transactionId: e.target.value}))} className={FIELD_CLASS} placeholder="e.g. UPI Ref / UTR Number" />
+                              <input type="text" name="transactionId" required maxLength={30} value={formData.transactionId} onChange={(e) => setFormData(p => ({...p, transactionId: e.target.value.replace(/[^A-Za-z0-9]/g, '')}))} className={FIELD_CLASS} placeholder="e.g. UPI Ref / UTR Number" />
                             </div>
                             <div>
                               <label className={LABEL_CLASS}>Payment Screenshot <span className="text-[var(--spark)]">*</span></label>

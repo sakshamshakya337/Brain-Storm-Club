@@ -7,6 +7,7 @@ import { useGSAP } from '@gsap/react';
 import Footer from '../../components/layout/Footer';
 import { usePageReveal } from '../../hooks/usePageReveal';
 import { useScrollReveal } from '../../hooks/useScrollReveal';
+import { validateEmail, validateName, validateRequiredText } from '../../utils/validation';
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
@@ -62,8 +63,22 @@ export default function Contact() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setFormState('SENDING');
     setErrorMessage('');
+
+    const errors = [
+      validateName(formData.name, 'Name'),
+      validateEmail(formData.email),
+      validateRequiredText(formData.subject, 'Subject', 2, 150),
+      validateRequiredText(formData.message, 'Message', 10, 2000)
+    ].filter(Boolean);
+
+    if (errors.length > 0) {
+      setErrorMessage(errors[0]);
+      setFormState('ERROR');
+      return;
+    }
+
+    setFormState('SENDING');
     
     try {
       const res = await fetch('/api/public/contact', {
@@ -325,6 +340,7 @@ export default function Contact() {
                         type="text" 
                         id="name" 
                         required
+                        maxLength={100}
                         value={formData.name}
                         onChange={handleInputChange}
                         placeholder="John Doe"
@@ -351,6 +367,7 @@ export default function Contact() {
                       type="text" 
                       id="subject" 
                       required
+                      maxLength={150}
                       value={formData.subject}
                       onChange={handleInputChange}
                       placeholder="What is this regarding?"
@@ -363,6 +380,7 @@ export default function Contact() {
                     <textarea 
                       id="message" 
                       required
+                      maxLength={2000}
                       value={formData.message}
                       onChange={handleInputChange}
                       placeholder="Your message..."

@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { REGISTRATION_NUMBER_REGEX, PHONE_REGEX, EMAIL_REGEX, NAME_REGEX, TRANSACTION_ID_REGEX } from '../utils/validation.js';
 
 const eventRegistrationSchema = new mongoose.Schema({
   eventId: { 
@@ -13,20 +14,20 @@ const eventRegistrationSchema = new mongoose.Schema({
     default: 'individual'
   },
   leader: {
-    registrationNumber: { type: String, required: true, trim: true, uppercase: true },
-    fullName: { type: String, required: true },
-    course: { type: String }, // Optional for backward compatibility, required logically via UI if needed
-    section: { type: String, required: true },
-    email: { type: String, required: true, lowercase: true },
-    phone: { type: String, required: true },
-    whatsapp: { type: String },
+    registrationNumber: { type: String, required: true, trim: true, uppercase: true, match: [REGISTRATION_NUMBER_REGEX, 'Invalid registration number'] },
+    fullName: { type: String, required: true, trim: true, match: [NAME_REGEX, 'Invalid name format'], minlength: 2, maxlength: 100 },
+    course: { type: String, trim: true, maxlength: 100 }, 
+    section: { type: String, required: true, trim: true, maxlength: 50 },
+    email: { type: String, required: true, lowercase: true, trim: true, match: [EMAIL_REGEX, 'Invalid email address'] },
+    phone: { type: String, required: true, trim: true, match: [PHONE_REGEX, 'Invalid phone number'] },
+    whatsapp: { type: String, trim: true, match: [PHONE_REGEX, 'Invalid WhatsApp number'] },
   },
   members: [{
-    registrationNumber: { type: String, required: true, trim: true, uppercase: true },
-    fullName: { type: String, required: true },
-    phone: { type: String, required: true },
+    registrationNumber: { type: String, required: true, trim: true, uppercase: true, match: [REGISTRATION_NUMBER_REGEX, 'Invalid registration number'] },
+    fullName: { type: String, required: true, trim: true, match: [NAME_REGEX, 'Invalid name format'], minlength: 2, maxlength: 100 },
+    phone: { type: String, required: true, trim: true, match: [PHONE_REGEX, 'Invalid phone number'] },
   }],
-  transactionId: { type: String },
+  transactionId: { type: String, trim: true, match: [TRANSACTION_ID_REGEX, 'Invalid transaction ID'] },
   paymentScreenshot: { type: mongoose.Schema.Types.ObjectId, ref: 'Image' },
   paymentStatus: {
     type: String,
