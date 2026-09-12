@@ -4,6 +4,7 @@ const eventSchema = new mongoose.Schema({
   title: { type: String, required: true },
   slug: { type: String, required: true, unique: true },
   description: { type: String, required: true },
+  eventStory: { type: String, default: '' },
   date: { type: Date, required: true },
   venue: { type: String, required: true },
   category: { type: String, required: true }, // e.g. Hackathon, Workshop
@@ -33,6 +34,10 @@ const eventSchema = new mongoose.Schema({
     default: 'Upcoming'
   },
   registrationOpen: { type: Boolean, default: true },
+  allowIndividualRegistration: { type: Boolean, default: true },
+  allowTeamRegistration: { type: Boolean, default: false },
+  paymentRequired: { type: Boolean, default: false },
+  paymentQrImage: { type: mongoose.Schema.Types.ObjectId, ref: 'Image' },
   gallery: [{ type: String }],
   schedule: [{
     time: String,

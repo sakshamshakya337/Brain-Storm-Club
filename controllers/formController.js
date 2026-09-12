@@ -219,7 +219,8 @@ export const submitIdea = async (req, res) => {
 
 export const submitEventRegistration = async (req, res) => {
   try {
-    const { eventId, registrationNumber } = req.body;
+    const { eventId, registrationType, transactionId, paymentScreenshot } = req.body;
+    let dataPayload = req.body.data ? JSON.parse(req.body.data) : req.body;
     
     const settings = await getSystemSettings();
 
@@ -242,22 +243,71 @@ export const submitEventRegistration = async (req, res) => {
     if (!event.registrationOpen) {
       return res.status(409).json({ success: false, message: 'Registration is currently closed for this event.' });
     }
+    if (event.paymentRequired && (!transactionId || !paymentScreenshot)) {
+      return res.status(400).json({ success: false, message: 'Payment screenshot and transaction ID are required for this event.' });
+    }
+    if (registrationType === 'individual' && !event.allowIndividualRegistration) {
+      return res.status(400).json({ success: false, message: 'Individual registration is not allowed for this event.' });
+    }
+    if (registrationType === 'team' && !event.allowTeamRegistration) {
+      return res.status(400).json({ success: false, message: 'Team registration is not allowed for this event.' });
+    }
 
-    const normalizedRegNo = registrationNumber.trim().toUpperCase();
-    const regData = { ...req.body, registrationNumber: normalizedRegNo };
+    const leader = {
+      ...dataPayload.leader,
+      registrationNumber: dataPayload.leader.registrationNumber.trim().toUpperCase()
+    };
+    
+    let members = [];
+    if (registrationType === 'team' && dataPayload.members) {
+      members = dataPayload.members.map(m => ({
+        ...m,
+        registrationNumber: m.registrationNumber.trim().toUpperCase()
+      }));
+    }
+
+    // Application level deduplication
+    const allRegNumbers = [leader.registrationNumber, ...members.map(m => m.registrationNumber)];
+    const uniqueRegNumbers = new Set(allRegNumbers);
+    if (uniqueRegNumbers.size !== allRegNumbers.length) {
+      return res.status(400).json({ message: 'Duplicate registration numbers found within the team.' });
+    }
+    
+    const existingReg = await EventRegistration.findOne({
+      eventId,
+      $or: [
+        { 'leader.registrationNumber': { $in: allRegNumbers } },
+        { 'members.registrationNumber': { $in: allRegNumbers } }
+      ]
+    });
+    
+    if (existingReg) {
+      return res.status(409).json({ message: 'One or more members are already registered for this event.' });
+    }
+
+    const regData = {
+      eventId,
+      registrationType: registrationType || 'individual',
+      leader,
+      members,
+      transactionId,
+      paymentScreenshot,
+      paymentStatus: event.paymentRequired ? 'pending' : 'verified'
+    };
 
     const registration = await EventRegistration.create(regData);
 
     await Notification.create({
       type: 'EVENT_REGISTRATION',
       title: 'New Event Registration',
-      message: `A student registered for the event: ${event.title}.`,
+      message: `${registrationType === 'team' ? 'A team' : 'A student'} registered for the event: ${event.title}.`,
       entityType: 'EventRegistration',
       entityId: registration._id
     }).catch(err => console.error('Failed to create notification', err));
 
     res.status(201).json({ status: 'success', message: 'Successfully registered for event.' });
   } catch (error) {
+    console.error('[submitEventRegistration error]', error);
     if (error.code === 11000) return res.status(409).json({ message: 'You are already registered for this event.' });
     res.status(500).json({ message: 'Error registering for event' });
   }

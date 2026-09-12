@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Loader2, Search, Filter, Plus, Calendar, Clock, MapPin, MoreVertical, 
   Edit, Trash2, Users, Image as ImageIcon, Upload, ChevronUp, ChevronDown, 
@@ -7,6 +7,8 @@ import {
 import { cn } from '../../lib/utils';
 import { Link } from 'react-router-dom';
 import ProtectedImage from '../../components/common/ProtectedImage';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 export default function AdminEvents() {
   const [events, setEvents] = useState([]);
@@ -24,11 +26,16 @@ export default function AdminEvents() {
     title: '',
     slug: '',
     description: '',
+    eventStory: '',
     date: '',
     venue: '',
     category: 'Other',
     status: 'Upcoming',
-    registrationOpen: true
+    registrationOpen: true,
+    allowIndividualRegistration: true,
+    allowTeamRegistration: false,
+    paymentRequired: false,
+    paymentQrImage: null
   };
   const [formData, setFormData] = useState(initialFormData);
   
@@ -37,6 +44,9 @@ export default function AdminEvents() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [externalUrlInput, setExternalUrlInput] = useState('');
   const [urlError, setUrlError] = useState('');
+
+  // Payment QR Upload State
+  const [uploadingQr, setUploadingQr] = useState(false);
 
   useEffect(() => {
     fetchEvents();
@@ -73,11 +83,16 @@ export default function AdminEvents() {
       title: event.title,
       slug: event.slug,
       description: event.description || '',
+      eventStory: event.eventStory || '',
       date: event.date ? new Date(event.date).toISOString().slice(0, 16) : '',
       venue: event.venue,
       category: event.category || 'Other',
       status: event.status,
-      registrationOpen: event.registrationOpen
+      registrationOpen: event.registrationOpen ?? true,
+      allowIndividualRegistration: event.allowIndividualRegistration ?? true,
+      allowTeamRegistration: event.allowTeamRegistration ?? false,
+      paymentRequired: event.paymentRequired ?? false,
+      paymentQrImage: event.paymentQrImage || null
     });
 
     // Populate imagesList
@@ -222,8 +237,39 @@ export default function AdminEvents() {
     });
   };
 
+  const handleUploadQr = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingQr(true);
+      const fd = new FormData();
+      fd.append('image', file);
+
+      const res = await fetch('/api/admin/events/upload-image', {
+        method: 'POST',
+        body: fd
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Image upload failed');
+
+      setFormData({ ...formData, paymentQrImage: { _id: data.data._id, imageId: data.data.imageId } });
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setUploadingQr(false);
+      e.target.value = '';
+    }
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
+
+    if (formData.registrationOpen && !formData.allowIndividualRegistration && !formData.allowTeamRegistration) {
+      return alert('If registration is open, you must allow at least one registration mode (Individual or Team).');
+    }
+
     try {
       setSaving(true);
       
@@ -306,7 +352,7 @@ export default function AdminEvents() {
       case 'Upcoming': return 'bg-blue-100 text-blue-700 border-blue-200';
       case 'Ongoing': return 'bg-amber-100 text-amber-700 border-amber-200';
       case 'Completed': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-      default: return 'bg-slate-100 text-slate-700 border-slate-200';
+      default: return 'bg-[var(--paper-dim)] text-[var(--ink-soft)] border-[var(--border)]';
     }
   };
 
@@ -314,34 +360,34 @@ export default function AdminEvents() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-heading font-bold text-slate-900">Events Management</h2>
-          <p className="text-sm font-mono text-slate-500">Create and manage club events and activities.</p>
+          <h2 className="text-2xl font-heading font-bold text-[var(--ink)]">Events Management</h2>
+          <p className="text-sm font-mono text-[var(--ink-soft)]">Create and manage club events and activities.</p>
         </div>
-        <button onClick={openCreateModal} className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-ink rounded-md text-sm font-medium hover:bg-brand-secondary transition-colors shadow-sm">
+        <button onClick={openCreateModal} className="flex items-center gap-2 px-4 py-2 bg-[var(--spark)] text-ink rounded-none text-sm font-medium hover:bg-[var(--spark-soft)] transition-colors shadow-none">
           <Plus size={16} />
           Create Event
         </button>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+      <div className="bg-[var(--paper)] border border-[var(--border)] overflow-hidden shadow-none flex flex-col">
         {/* Toolbar */}
-        <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row gap-4 justify-between items-center">
+        <div className="p-4 border-b border-[var(--border)] bg-[var(--paper-dim)] flex flex-col sm:flex-row gap-4 justify-between items-center">
           <div className="relative w-full sm:max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-soft)]" size={18} />
             <input 
               type="text" 
               placeholder="Search event title..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all"
+              className="w-full pl-10 pr-4 py-2 border border-[var(--border)] rounded-none text-sm focus:outline-none focus:ring-2 focus:ring-[var(--circuit)]/20 focus:border-[var(--circuit)] transition-all"
             />
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto">
-            <Filter size={16} className="text-slate-400" />
+            <Filter size={16} className="text-[var(--ink-soft)]" />
             <select 
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full sm:w-auto pl-3 pr-8 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all appearance-none bg-white"
+              className="w-full sm:w-auto pl-3 pr-8 py-2 border border-[var(--border)] rounded-none text-sm focus:outline-none focus:ring-2 focus:ring-[var(--circuit)]/20 transition-all appearance-none bg-[var(--paper)]"
             >
               <option value="All">All Statuses</option>
               <option value="Upcoming">Upcoming</option>
@@ -355,23 +401,23 @@ export default function AdminEvents() {
         <div className="divide-y divide-slate-100">
           {loading ? (
             <div className="p-12 text-center">
-              <Loader2 className="animate-spin mx-auto text-slate-400 mb-2" size={24} />
-              <p className="text-slate-500">Loading events...</p>
+              <Loader2 className="animate-spin mx-auto text-[var(--ink-soft)] mb-2" size={24} />
+              <p className="text-[var(--ink-soft)]">Loading events...</p>
             </div>
           ) : error ? (
             <div className="p-12 text-center text-red-500">
               Error: {error}
             </div>
           ) : filteredEvents.length === 0 ? (
-            <div className="p-12 text-center text-slate-500">
+            <div className="p-12 text-center text-[var(--ink-soft)]">
               No events found matching your filters.
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6 bg-slate-50/50">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6 bg-[var(--paper-dim)]">
               {filteredEvents.map((event) => (
-                <div key={event._id} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col group hover:shadow-md transition-shadow">
+                <div key={event._id} className="bg-[var(--paper)] border border-[var(--border)] overflow-hidden shadow-none flex flex-col group hover:shadow-none transition-shadow">
                   {/* Event Poster Header */}
-                  <div className="h-36 bg-slate-100 relative border-b border-slate-200">
+                  <div className="h-36 bg-[var(--paper-dim)] relative border-b border-[var(--border)]">
                     {(() => {
                       const cover = event.coverImage || (event.images && event.images.find(i => i.isCover)) || (event.images && event.images[0]);
                       const imgId = cover?.imageId?.imageId || cover?.imageId || event.posterId?.imageId || (typeof event.posterId === 'string' ? event.posterId : null);
@@ -389,12 +435,12 @@ export default function AdminEvents() {
                               className="absolute inset-0 w-full h-full object-cover"
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-slate-400">
+                            <div className="w-full h-full flex items-center justify-center text-[var(--ink-soft)]">
                               <Calendar size={32} />
                             </div>
                           )}
                           {count > 1 && (
-                            <span className="absolute bottom-2 left-2 z-10 bg-slate-900/80 text-white font-mono text-[9px] font-bold px-1.5 py-0.5 rounded border border-white/10 backdrop-blur-sm flex items-center gap-1 shadow-sm">
+                            <span className="absolute bottom-2 left-2 z-10 bg-[var(--ink)]/80 text-[var(--paper)] font-mono text-[9px] font-bold px-1.5 py-0.5 rounded-none border border-white/10 backdrop-blur-sm flex items-center gap-1 shadow-none">
                               <ImageIcon size={10} /> {count} images
                             </span>
                           )}
@@ -402,51 +448,51 @@ export default function AdminEvents() {
                       );
                     })()}
                     <div className="absolute top-3 right-3 flex gap-2">
-                      <span className={cn("px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase shadow-sm border", getStatusColor(event.status))}>
+                      <span className={cn("px-2.5 py-1 rounded-none-full text-[10px] font-bold tracking-wider uppercase shadow-none border", getStatusColor(event.status))}>
                         {event.status}
                       </span>
                     </div>
                   </div>
                   
                   <div className="p-5 flex-1">
-                    <h3 className="font-bold text-slate-900 truncate mb-1" title={event.title}>{event.title}</h3>
-                    <div className="text-xs text-brand-primary font-mono mb-3">{event.category}</div>
+                    <h3 className="font-bold text-[var(--ink)] truncate mb-1" title={event.title}>{event.title}</h3>
+                    <div className="text-xs text-[var(--circuit)] font-mono mb-3">{event.category}</div>
                     
-                    <div className="space-y-2 text-xs text-slate-600">
+                    <div className="space-y-2 text-xs text-[var(--ink-soft)]">
                       <div className="flex items-center gap-2">
-                        <Clock size={14} className="text-slate-400" />
+                        <Clock size={14} className="text-[var(--ink-soft)]" />
                         <span>{new Date(event.date).toLocaleDateString()} at {new Date(event.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <MapPin size={14} className="text-slate-400" />
+                        <MapPin size={14} className="text-[var(--ink-soft)]" />
                         <span className="truncate">{event.venue}</span>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs">
+                  <div className="px-5 py-3 bg-[var(--paper-dim)] border-t border-[var(--border)] flex items-center justify-between text-xs">
                     <button 
                       onClick={() => handleToggleRegistration(event)}
                       className={cn(
-                        "flex items-center gap-1.5 font-medium px-2 py-1 rounded-md transition-colors border shadow-sm",
+                        "flex items-center gap-1.5 font-medium px-2 py-1 rounded-none transition-colors border shadow-none",
                         event.registrationOpen 
                           ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100" 
-                          : "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200"
+                          : "bg-[var(--paper-dim)] text-[var(--ink-soft)] border-[var(--border)] hover:bg-[var(--paper-dim)]"
                       )}
                       title={event.registrationOpen ? "Click to close registration" : "Click to open registration"}
                     >
-                      <div className={cn("w-2 h-2 rounded-full", event.registrationOpen ? "bg-emerald-500" : "bg-slate-400")}></div>
+                      <div className={cn("w-2 h-2 rounded-none-full", event.registrationOpen ? "bg-emerald-500" : "bg-slate-400")}></div>
                       {event.registrationOpen ? 'Reg Open' : 'Reg Closed'}
                     </button>
                     
                     <div className="flex gap-2">
-                      <Link to={`/control/events/${event._id}/entries`} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors" title="View Registrations">
+                      <Link to={`/control/events/${event._id}/entries`} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-none transition-colors" title="View Registrations">
                         <Users size={16} />
                       </Link>
-                      <button onClick={() => openEditModal(event)} className="p-1.5 text-slate-600 hover:bg-slate-200 rounded-md transition-colors" title="Edit Event">
+                      <button onClick={() => openEditModal(event)} className="p-1.5 text-[var(--ink-soft)] hover:bg-[var(--paper-dim)] rounded-none transition-colors" title="Edit Event">
                         <Edit size={16} />
                       </button>
-                      <button onClick={() => handleDelete(event._id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors" title="Delete Event">
+                      <button onClick={() => handleDelete(event._id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-none transition-colors" title="Delete Event">
                         <Trash2 size={16} />
                       </button>
                     </div>
@@ -460,11 +506,11 @@ export default function AdminEvents() {
 
       {/* Create / Edit Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="text-lg font-bold text-slate-900">{isEditing ? 'Edit Event' : 'Create New Event'}</h3>
-              <button onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--ink)]/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[var(--paper)] rounded-none shadow-none w-full max-w-3xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
+            <div className="p-6 border-b border-[var(--border)] flex justify-between items-center bg-[var(--paper)]">
+              <h3 className="font-heading text-xl font-bold uppercase tracking-wide text-[var(--ink)]">{isEditing ? 'Edit Event' : 'Create New Event'}</h3>
+              <button onClick={() => setModalOpen(false)} className="text-[var(--ink-soft)] hover:text-[var(--ink-soft)]">
                 <span className="sr-only">Close</span>
                 &times;
               </button>
@@ -474,7 +520,7 @@ export default function AdminEvents() {
               <div className="p-6 space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold font-mono tracking-widest uppercase text-slate-500 mb-1">Event Title</label>
+                    <label className="block font-mono text-[10px] font-bold tracking-[0.25em] uppercase text-[var(--ink)] mb-2">Event Title</label>
                     <input 
                       type="text" 
                       value={formData.title}
@@ -484,51 +530,51 @@ export default function AdminEvents() {
                         setFormData({...formData, title: e.target.value, slug});
                       }}
                       required
-                      className="w-full p-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none"
+                      className="w-full px-4 py-3 border border-[var(--border)] rounded-none text-sm focus:outline-none focus:border-[var(--circuit)] focus:ring-1 focus:ring-[var(--circuit)] transition-colors"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold font-mono tracking-widest uppercase text-slate-500 mb-1">URL Slug</label>
+                    <label className="block font-mono text-[10px] font-bold tracking-[0.25em] uppercase text-[var(--ink)] mb-2">URL Slug</label>
                     <input 
                       type="text" 
                       value={formData.slug}
                       onChange={(e) => setFormData({...formData, slug: e.target.value})}
                       required
-                      className="w-full p-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none bg-slate-50"
+                      className="w-full px-4 py-3 border border-[var(--border)] rounded-none text-sm focus:outline-none focus:border-[var(--circuit)] focus:ring-1 focus:ring-[var(--circuit)] transition-colors bg-[var(--paper-dim)]"
                     />
                   </div>
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold font-mono tracking-widest uppercase text-slate-500 mb-1">Date & Time</label>
+                    <label className="block font-mono text-[10px] font-bold tracking-[0.25em] uppercase text-[var(--ink)] mb-2">Date & Time</label>
                     <input 
                       type="datetime-local" 
                       value={formData.date}
                       onChange={(e) => setFormData({...formData, date: e.target.value})}
                       required
-                      className="w-full p-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none"
+                      className="w-full px-4 py-3 border border-[var(--border)] rounded-none text-sm focus:outline-none focus:border-[var(--circuit)] focus:ring-1 focus:ring-[var(--circuit)] transition-colors"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold font-mono tracking-widest uppercase text-slate-500 mb-1">Venue</label>
+                    <label className="block font-mono text-[10px] font-bold tracking-[0.25em] uppercase text-[var(--ink)] mb-2">Venue</label>
                     <input 
                       type="text" 
                       value={formData.venue}
                       onChange={(e) => setFormData({...formData, venue: e.target.value})}
                       required
-                      className="w-full p-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none"
+                      className="w-full px-4 py-3 border border-[var(--border)] rounded-none text-sm focus:outline-none focus:border-[var(--circuit)] focus:ring-1 focus:ring-[var(--circuit)] transition-colors"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold font-mono tracking-widest uppercase text-slate-500 mb-1">Category</label>
+                    <label className="block font-mono text-[10px] font-bold tracking-[0.25em] uppercase text-[var(--ink)] mb-2">Category</label>
                     <select 
                       value={formData.category}
                       onChange={(e) => setFormData({...formData, category: e.target.value})}
-                      className="w-full p-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none bg-white"
+                      className="w-full px-4 py-3 border border-[var(--border)] rounded-none text-sm focus:outline-none focus:border-[var(--circuit)] focus:ring-1 focus:ring-[var(--circuit)] transition-colors bg-[var(--paper)]"
                     >
                       <option value="Hackathon">Hackathon</option>
                       <option value="Workshop">Workshop</option>
@@ -539,11 +585,11 @@ export default function AdminEvents() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold font-mono tracking-widest uppercase text-slate-500 mb-1">Status</label>
+                    <label className="block font-mono text-[10px] font-bold tracking-[0.25em] uppercase text-[var(--ink)] mb-2">Status</label>
                     <select 
                       value={formData.status}
                       onChange={(e) => setFormData({...formData, status: e.target.value})}
-                      className="w-full p-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none bg-white"
+                      className="w-full px-4 py-3 border border-[var(--border)] rounded-none text-sm focus:outline-none focus:border-[var(--circuit)] focus:ring-1 focus:ring-[var(--circuit)] transition-colors bg-[var(--paper)]"
                     >
                       <option value="Upcoming">Upcoming</option>
                       <option value="Ongoing">Ongoing</option>
@@ -553,50 +599,148 @@ export default function AdminEvents() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold font-mono tracking-widest uppercase text-slate-500 mb-1">Description</label>
+                  <label className="block font-mono text-[10px] font-bold tracking-[0.25em] uppercase text-[var(--ink)] mb-2">Short Description</label>
                   <textarea 
                     value={formData.description}
                     onChange={(e) => setFormData({...formData, description: e.target.value})}
                     rows={4}
-                    className="w-full p-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none resize-y"
+                    className="w-full px-4 py-3 border border-[var(--border)] rounded-none text-sm focus:outline-none focus:border-[var(--circuit)] focus:ring-1 focus:ring-[var(--circuit)] transition-colors resize-y bg-[var(--paper)]"
                   ></textarea>
                 </div>
 
+                {/* Event Story Editor */}
+                <div className="pt-2 border-t border-[var(--border)] mt-4">
+                  <label className="block font-mono text-[10px] font-bold tracking-[0.25em] uppercase text-[var(--ink)] mb-1">Event Story / About This Event</label>
+                  <p className="text-[11px] text-[var(--ink-soft)] mb-3">Write detailed information about this event that users can read on the event details page.</p>
+                  
+                  <div className="bg-[var(--paper)] border border-[var(--border)] [&_.ql-toolbar]:border-none [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-[var(--border)] [&_.ql-container]:border-none [&_.ql-editor]:min-h-[250px] [&_.ql-editor]:text-[var(--ink)] [&_.ql-editor]:font-body [&_.ql-editor]:text-sm">
+                    <ReactQuill 
+                      theme="snow" 
+                      value={formData.eventStory} 
+                      onChange={(content) => setFormData({...formData, eventStory: content})}
+                      modules={{
+                        toolbar: [
+                          [{ 'header': [2, 3, false] }],
+                          ['bold', 'italic', 'underline', 'strike', 'blockquote'],
+                          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                          ['link', 'clean']
+                        ]
+                      }}
+                      formats={[
+                        'header',
+                        'bold', 'italic', 'underline', 'strike', 'blockquote',
+                        'list', 'bullet',
+                        'link'
+                      ]}
+                    />
+                  </div>
+                  <div className="flex justify-end mt-1">
+                    <span className={`text-[10px] font-mono tracking-wider ${formData.eventStory?.replace(/<[^>]*>?/gm, '').length > 10000 ? 'text-red-500 font-bold' : 'text-[var(--ink-soft)]'}`}>
+                      {formData.eventStory?.replace(/<[^>]*>?/gm, '').length || 0} / 10,000 characters
+                    </span>
+                  </div>
+                </div>
+
                 {/* Registration Open Toggle */}
-                <div className="pt-1">
-                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                <div className="pt-2 border-t border-[var(--border)] mt-4">
+                  <label className="flex items-center gap-2 cursor-pointer select-none mb-3">
                     <input 
                       type="checkbox"
                       checked={formData.registrationOpen}
                       onChange={(e) => setFormData({...formData, registrationOpen: e.target.checked})}
-                      className="w-4 h-4 text-brand-primary rounded border-slate-300 focus:ring-brand-primary"
+                      className="w-4 h-4 text-[var(--circuit)] rounded-none border-[var(--border)] focus:ring-[var(--circuit)]"
                     />
-                    <span className="text-sm font-medium text-slate-700">Registrations Open (Allow public users to register)</span>
+                    <span className="text-sm font-bold text-[var(--ink)]">Registrations Open (Allow public users to register)</span>
                   </label>
+
+                  {formData.registrationOpen && (
+                    <div className="pl-6 space-y-3">
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input 
+                          type="checkbox"
+                          checked={formData.allowIndividualRegistration}
+                          onChange={(e) => setFormData({...formData, allowIndividualRegistration: e.target.checked})}
+                          className="w-4 h-4 text-[var(--circuit)] rounded-none border-[var(--border)] focus:ring-[var(--circuit)]"
+                        />
+                        <span className="text-sm text-[var(--ink-soft)]">Allow Individual Registration</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input 
+                          type="checkbox"
+                          checked={formData.allowTeamRegistration}
+                          onChange={(e) => setFormData({...formData, allowTeamRegistration: e.target.checked})}
+                          className="w-4 h-4 text-[var(--circuit)] rounded-none border-[var(--border)] focus:ring-[var(--circuit)]"
+                        />
+                        <span className="text-sm text-[var(--ink-soft)]">Allow Team Registration</span>
+                      </label>
+                      
+                      <div className="pt-2">
+                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                          <input 
+                            type="checkbox"
+                            checked={formData.paymentRequired}
+                            onChange={(e) => setFormData({...formData, paymentRequired: e.target.checked})}
+                            className="w-4 h-4 text-[var(--circuit)] rounded-none border-[var(--border)] focus:ring-[var(--circuit)]"
+                          />
+                          <span className="text-sm font-bold text-[var(--ink)]">Payment Required for this event</span>
+                        </label>
+                        
+                        {formData.paymentRequired && (
+                          <div className="mt-3 bg-[var(--paper-dim)] border border-[var(--border)] rounded-none p-4">
+                            <label className="block font-mono text-[10px] font-bold tracking-[0.25em] uppercase text-[var(--ink)] mb-2 mb-2">Payment QR Code</label>
+                            
+                            {formData.paymentQrImage ? (
+                              <div className="flex items-center gap-4">
+                                <div className="w-16 h-16 rounded-none border border-[var(--border)] overflow-hidden relative bg-[var(--paper)]">
+                                  <ProtectedImage imageId={formData.paymentQrImage?.imageId || formData.paymentQrImage} variant="public" alt="QR" className="w-full h-full object-cover" />
+                                </div>
+                                <div className="flex gap-2">
+                                  <label className="text-xs font-medium bg-[var(--paper)] border border-[var(--border)] px-3 py-1.5 rounded-none cursor-pointer hover:bg-[var(--paper-dim)] transition-colors shadow-none">
+                                    {uploadingQr ? <Loader2 size={14} className="animate-spin inline mr-1" /> : <Upload size={14} className="inline mr-1" />}
+                                    Replace
+                                    <input type="file" accept="image/*" onChange={handleUploadQr} className="hidden" disabled={uploadingQr} />
+                                  </label>
+                                  <button type="button" onClick={() => setFormData({...formData, paymentQrImage: null})} className="text-xs font-medium text-red-600 bg-red-50 px-3 py-1.5 rounded-none border border-red-100 hover:bg-red-100 transition-colors">
+                                    Remove
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <label className="inline-flex items-center gap-2 text-xs font-medium bg-[var(--paper)] border border-[var(--border)] px-3 py-2 rounded-none cursor-pointer hover:bg-[var(--paper-dim)] transition-colors shadow-none">
+                                {uploadingQr ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                                {uploadingQr ? 'Uploading...' : 'Upload QR Image'}
+                                <input type="file" accept="image/*" onChange={handleUploadQr} className="hidden" disabled={uploadingQr} />
+                              </label>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Event Media Gallery Manager */}
-                <div className="space-y-3 pt-3 border-t border-slate-200">
+                <div className="space-y-3 pt-3 border-t border-[var(--border)]">
                   <div className="flex items-center justify-between">
                     <div>
-                      <label className="block text-xs font-bold font-mono tracking-widest uppercase text-slate-700">Event Media Gallery</label>
-                      <p className="text-[11px] text-slate-500">Upload images or paste secure HTTPS image links (ImgBB, Cloudinary, Unsplash, etc.). Mark any photo as cover.</p>
+                      <label className="block font-mono text-[10px] font-bold tracking-[0.25em] uppercase text-[var(--ink)] mb-2">Event Media Gallery</label>
+                      <p className="text-[11px] text-[var(--ink-soft)]">Upload images or paste secure HTTPS image links (ImgBB, Cloudinary, Unsplash, etc.). Mark any photo as cover.</p>
                     </div>
-                    <span className="font-mono text-xs text-slate-600 bg-slate-100 px-2 py-0.5 rounded font-medium border border-slate-200">
+                    <span className="font-mono text-xs text-[var(--ink-soft)] bg-[var(--paper-dim)] px-2 py-0.5 rounded-none font-medium border border-[var(--border)]">
                       {imagesList.length} {imagesList.length === 1 ? 'image' : 'images'}
                     </span>
                   </div>
 
                   {/* Add Image Controls: File upload + External URL input */}
-                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 bg-slate-50 p-3.5 rounded-lg border border-slate-200">
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 bg-[var(--paper-dim)] p-3.5 rounded-none border border-[var(--border)]">
                     {/* File Upload Button */}
                     <div className="sm:col-span-5">
-                      <label className="block text-[10px] font-bold font-mono uppercase text-slate-500 mb-1">Upload Local Image</label>
+                      <label className="block text-[10px] font-bold font-mono uppercase text-[var(--ink-soft)] mb-1">Upload Local Image</label>
                       <label className={cn(
-                        "flex items-center justify-center gap-2 px-3 py-2 bg-white border border-slate-300 rounded-md text-xs font-medium text-slate-700 hover:bg-slate-100 cursor-pointer transition-colors shadow-sm",
+                        "flex items-center justify-center gap-2 px-3 py-2 bg-[var(--paper)] border border-[var(--border)] rounded-none text-xs font-medium text-[var(--ink-soft)] hover:bg-[var(--paper-dim)] cursor-pointer transition-colors shadow-none",
                         uploadingImage && "opacity-60 pointer-events-none"
                       )}>
-                        {uploadingImage ? <Loader2 className="animate-spin text-brand-primary" size={14} /> : <Upload size={14} className="text-slate-500" />}
+                        {uploadingImage ? <Loader2 className="animate-spin text-[var(--circuit)]" size={14} /> : <Upload size={14} className="text-[var(--ink-soft)]" />}
                         <span>{uploadingImage ? 'Uploading & Processing...' : 'Select image file'}</span>
                         <input 
                           type="file" 
@@ -610,7 +754,7 @@ export default function AdminEvents() {
 
                     {/* External URL Input */}
                     <div className="sm:col-span-7">
-                      <label className="block text-[10px] font-bold font-mono uppercase text-slate-500 mb-1">Add Image via HTTPS URL</label>
+                      <label className="block text-[10px] font-bold font-mono uppercase text-[var(--ink-soft)] mb-1">Add Image via HTTPS URL</label>
                       <div className="flex gap-2">
                         <input 
                           type="url" 
@@ -618,12 +762,12 @@ export default function AdminEvents() {
                           value={externalUrlInput}
                           onChange={(e) => { setExternalUrlInput(e.target.value); setUrlError(''); }}
                           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddExternalUrl(); } }}
-                          className="flex-1 px-3 py-1.5 border border-slate-300 rounded-md text-xs focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none bg-white"
+                          className="flex-1 px-3 py-1.5 border border-[var(--border)] rounded-none text-xs focus:ring-2 focus:ring-[var(--circuit)]/20 focus:border-[var(--circuit)] outline-none bg-[var(--paper)]"
                         />
                         <button
                           type="button"
                           onClick={handleAddExternalUrl}
-                          className="px-3 py-1.5 bg-slate-800 text-white rounded-md text-xs font-medium hover:bg-slate-700 transition-colors shadow-sm shrink-0"
+                          className="px-3 py-1.5 bg-[var(--ink)] text-[var(--paper)] rounded-none text-xs font-medium hover:bg-slate-700 transition-colors shadow-none shrink-0"
                         >
                           Add URL
                         </button>
@@ -634,7 +778,7 @@ export default function AdminEvents() {
 
                   {/* Images List Cards */}
                   {imagesList.length === 0 ? (
-                    <div className="border border-dashed border-slate-200 rounded-lg p-5 text-center text-slate-400 bg-white">
+                    <div className="border border-dashed border-[var(--border)] rounded-none p-5 text-center text-[var(--ink-soft)] bg-[var(--paper)]">
                       <ImageIcon size={26} className="mx-auto mb-1 opacity-40" />
                       <p className="text-xs">No media added yet. Upload an image file or add an external URL above.</p>
                     </div>
@@ -644,12 +788,12 @@ export default function AdminEvents() {
                         <div 
                           key={idx} 
                           className={cn(
-                            "flex items-center gap-3 p-2.5 rounded-lg border transition-all bg-white",
-                            img.isCover ? "border-brand-primary ring-1 ring-brand-primary/20 bg-brand-primary/[0.02]" : "border-slate-200 hover:border-slate-300"
+                            "flex items-center gap-3 p-2.5 rounded-none border transition-all bg-[var(--paper)]",
+                            img.isCover ? "border-[var(--circuit)] ring-1 ring-[var(--circuit)]/20 bg-[var(--circuit)]/5" : "border-[var(--border)] hover:border-[var(--border)]"
                           )}
                         >
                           {/* Thumbnail preview */}
-                          <div className="w-14 h-12 rounded overflow-hidden bg-slate-900 flex-shrink-0 relative border border-slate-200 flex items-center justify-center">
+                          <div className="w-14 h-12 rounded-none overflow-hidden bg-[var(--ink)] flex-shrink-0 relative border border-[var(--border)] flex items-center justify-center">
                             <ProtectedImage 
                               imageId={img.imageId?.imageId || img.imageId} 
                               src={img.source === 'external' ? img.url : null} 
@@ -662,16 +806,16 @@ export default function AdminEvents() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <span className={cn(
-                                "px-1.5 py-0.5 rounded text-[9px] font-mono font-bold tracking-wider uppercase",
-                                img.isCover ? "bg-brand-primary text-ink shadow-xs" : "bg-slate-100 text-slate-600"
+                                "px-1.5 py-0.5 rounded-none text-[9px] font-mono font-bold tracking-wider uppercase",
+                                img.isCover ? "bg-[var(--spark)] text-ink shadow-xs" : "bg-[var(--paper-dim)] text-[var(--ink-soft)]"
                               )}>
                                 {img.isCover ? "COVER" : `PHOTO #${idx + 1}`}
                               </span>
-                              <span className="text-[10px] font-mono text-slate-400">
+                              <span className="text-[10px] font-mono text-[var(--ink-soft)]">
                                 {img.source === 'external' ? 'External URL' : 'Cloudinary Upload'}
                               </span>
                             </div>
-                            <p className="text-xs text-slate-600 truncate mt-0.5" title={img.url || img.publicId || (typeof img.imageId === 'string' ? img.imageId : img.imageId?.imageId)}>
+                            <p className="text-xs text-[var(--ink-soft)] truncate mt-0.5" title={img.url || img.publicId || (typeof img.imageId === 'string' ? img.imageId : img.imageId?.imageId)}>
                               {img.source === 'external' ? img.url : (img.publicId || 'Secure storage')}
                             </p>
                           </div>
@@ -682,7 +826,7 @@ export default function AdminEvents() {
                               <button
                                 type="button"
                                 onClick={() => handleSetCover(idx)}
-                                className="px-2 py-1 text-[10px] font-medium text-slate-600 hover:text-brand-primary hover:bg-slate-100 rounded transition-colors"
+                                className="px-2 py-1 text-[10px] font-medium text-[var(--ink-soft)] hover:text-[var(--circuit)] hover:bg-[var(--paper-dim)] rounded-none transition-colors"
                                 title="Set as event cover poster"
                               >
                                 Set Cover
@@ -692,7 +836,7 @@ export default function AdminEvents() {
                               type="button"
                               disabled={idx === 0}
                               onClick={() => handleMoveImage(idx, -1)}
-                              className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded disabled:opacity-30 disabled:hover:bg-transparent"
+                              className="p-1 text-[var(--ink-soft)] hover:text-[var(--ink-soft)] hover:bg-[var(--paper-dim)] rounded-none disabled:opacity-30 disabled:hover:bg-transparent"
                               title="Move Up"
                             >
                               <ChevronUp size={14} />
@@ -701,7 +845,7 @@ export default function AdminEvents() {
                               type="button"
                               disabled={idx === imagesList.length - 1}
                               onClick={() => handleMoveImage(idx, 1)}
-                              className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded disabled:opacity-30 disabled:hover:bg-transparent"
+                              className="p-1 text-[var(--ink-soft)] hover:text-[var(--ink-soft)] hover:bg-[var(--paper-dim)] rounded-none disabled:opacity-30 disabled:hover:bg-transparent"
                               title="Move Down"
                             >
                               <ChevronDown size={14} />
@@ -709,7 +853,7 @@ export default function AdminEvents() {
                             <button
                               type="button"
                               onClick={() => handleRemoveImage(idx)}
-                              className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                              className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-none transition-colors"
                               title="Remove image"
                             >
                               <Trash2 size={14} />
@@ -722,18 +866,18 @@ export default function AdminEvents() {
                 </div>
               </div>
 
-              <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 sticky bottom-0">
+              <div className="p-4 bg-[var(--paper-dim)] border-t border-[var(--border)] flex justify-end gap-3 sticky bottom-0">
                 <button 
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-100 transition-colors"
+                  className="px-4 py-2 bg-[var(--paper)] border border-[var(--border)] text-[var(--ink-soft)] rounded-none text-sm font-medium hover:bg-[var(--paper-dim)] transition-colors"
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit"
                   disabled={saving}
-                  className="px-4 py-2 bg-brand-primary text-ink rounded-lg text-sm font-medium hover:bg-brand-secondary transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50"
+                  className="px-4 py-2 bg-[var(--spark)] text-ink rounded-none text-sm font-medium hover:bg-[var(--spark-soft)] transition-colors shadow-none flex items-center gap-2 disabled:opacity-50"
                 >
                   {saving && <Loader2 className="animate-spin" size={16} />}
                   {isEditing ? 'Save Changes' : 'Create Event'}
@@ -746,3 +890,6 @@ export default function AdminEvents() {
     </div>
   );
 }
+
+
+

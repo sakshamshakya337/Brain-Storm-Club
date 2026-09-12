@@ -1,6 +1,6 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
-import { uploadImage, processAndProtectImage, uploadPdf, processPdfUpload } from '../middleware/upload.js';
+import { uploadImage, processAndProtectImage, uploadPdf, processPdfUpload, processPaymentScreenshot } from '../middleware/upload.js';
 import { getPublicEvents, getPublicEventDetails, getPublicMembers } from '../controllers/publicController.js';
 import { 
   submitMemberRegistration, 
@@ -49,7 +49,13 @@ router.post(
 );
 router.post('/contact', formSubmissionLimiter, submitContact);
 router.post('/ideas', fileUploadLimiter, uploadPdf.single('pdf'), processPdfUpload, submitIdea);
-router.post('/events/register', formSubmissionLimiter, submitEventRegistration);
+router.post(
+  '/events/register', 
+  fileUploadLimiter, 
+  uploadImage.single('paymentScreenshot'), 
+  processPaymentScreenshot, 
+  submitEventRegistration
+);
 
 // Member Registration requires file upload (Protected visibility by default)
 router.post(

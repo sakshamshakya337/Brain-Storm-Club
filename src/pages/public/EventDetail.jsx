@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Calendar, MapPin, Clo
 import EventStatus from '../../components/events/EventStatus';
 import ProtectedImage from '../../components/common/ProtectedImage';
 import Footer from '../../components/layout/Footer';
+import DOMPurify from 'dompurify';
 
 function formatEventDate(dateVal) {
   if (!dateVal) return '';
@@ -303,6 +304,37 @@ export default function EventDetail() {
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── ABOUT THIS EVENT (STORY) ── */}
+      {event?.eventStory && event.eventStory.trim() !== '' && (
+        <section className="border-b border-[var(--border)] bg-[var(--paper)] py-20">
+          <div className="container mx-auto px-6 lg:px-12 max-w-[1440px]">
+            <div className="grid grid-cols-1 lg:grid-cols-[160px_1fr] gap-12">
+              <div className="font-mono text-[9px] font-bold tracking-[0.3em] uppercase text-[var(--ink-soft)] pt-1 flex items-start gap-3">
+                <span className="w-6 h-px bg-[var(--circuit)] mt-[0.4em] flex-shrink-0" />
+                ABOUT THIS EVENT
+              </div>
+              <div className="max-w-[850px]">
+                <div 
+                  className="max-w-none 
+                    [&_h1]:font-heading [&_h1]:font-bold [&_h1]:uppercase [&_h1]:tracking-tight [&_h1]:text-[var(--ink)] [&_h1]:text-3xl [&_h1]:mt-12 [&_h1]:mb-6
+                    [&_h2]:font-heading [&_h2]:font-bold [&_h2]:uppercase [&_h2]:tracking-tight [&_h2]:text-[var(--ink)] [&_h2]:text-2xl [&_h2]:mt-10 [&_h2]:mb-5
+                    [&_h3]:font-heading [&_h3]:font-bold [&_h3]:uppercase [&_h3]:tracking-tight [&_h3]:text-[var(--ink)] [&_h3]:text-xl [&_h3]:mt-8 [&_h3]:mb-4
+                    [&_p]:font-body [&_p]:text-[var(--ink-soft)] [&_p]:leading-relaxed [&_p]:mb-6
+                    [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-6 [&_ul]:font-body [&_ul]:text-[var(--ink-soft)]
+                    [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-6 [&_ol]:font-body [&_ol]:text-[var(--ink-soft)]
+                    [&_li]:mb-2 [&_li_p]:mb-2
+                    [&_a]:text-[var(--circuit)] [&_a]:underline [&_a]:underline-offset-2 hover:[&_a]:text-[var(--ink)]
+                    [&_blockquote]:border-l-4 [&_blockquote]:border-[var(--circuit)] [&_blockquote]:pl-6 [&_blockquote]:italic [&_blockquote]:text-[var(--ink-soft)] [&_blockquote]:my-6
+                    [&_strong]:font-bold [&_strong]:text-[var(--ink)]
+                    [&_img]:max-w-full [&_img]:h-auto [&_img]:border [&_img]:border-[var(--border)] [&_img]:my-6"
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(event.eventStory) }}
+                />
               </div>
             </div>
           </div>

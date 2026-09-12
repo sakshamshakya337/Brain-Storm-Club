@@ -1,6 +1,7 @@
 import multer from 'multer';
 import sharp from 'sharp';
 import crypto from 'crypto';
+import heicDecode from 'heic-decode';
 import Image from '../models/Image.js';
 import { uploadImageToCloudinary, uploadPdfToCloudinary } from '../services/cloudinaryService.js';
 
@@ -114,6 +115,99 @@ export const processAndProtectImage = (visibility = 'protected') => async (req, 
     sendError(500, 'Unexpected error processing image. Please try again.', error);
   }
 };
+
+// ─── Payment Screenshot Middleware ─────────────────────────────────────────────
+
+export const processPaymentScreenshot = async (req, res, next) => {
+  if (!req.file) return next();
+
+  let responded = false;
+  const sendError = (status, message) => {
+    if (responded) return;
+    responded = true;
+    res.status(status).json({ message });
+  };
+
+  try {
+    let buffer = req.file.buffer;
+
+    // 1. Validate magic bytes to ensure it's an image (JPG, PNG, HEIC)
+    const header = buffer.toString('hex', 0, 12).toLowerCase();
+    const isJpeg = header.startsWith('ffd8ff');
+    const isPng = header.startsWith('89504e47');
+    const isHeic = buffer.toString('utf8', 4, 12).includes('ftypmif1') || 
+                   buffer.toString('utf8', 4, 12).includes('ftypheic') ||
+                   buffer.toString('utf8', 4, 12).includes('ftypheix');
+
+    if (!isJpeg && !isPng && !isHeic) {
+      return sendError(400, 'Invalid file content. Uploaded file is not a valid JPG, PNG, or HEIC image.');
+    }
+
+    // 2. Decode HEIC to raw pixel data if needed
+    if (isHeic) {
+      try {
+        const { data, width, height } = await heicDecode({ buffer });
+        buffer = await sharp(data, {
+          raw: { width, height, channels: 4 }
+        }).jpeg().toBuffer();
+      } catch (err) {
+        return sendError(500, 'Failed to process HEIC image.');
+      }
+    }
+
+    // 3. Compress to JPEG (max 1200x1200, quality 80)
+    let processedBuffer;
+    try {
+      processedBuffer = await sharp(buffer)
+        .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 80 })
+        .toBuffer();
+    } catch (err) {
+      return sendError(500, 'Image processing failed.');
+    }
+
+    // 4. Enforce 2MB limit (it should almost always be < 2MB after resizing to 1200x1200)
+    if (processedBuffer.length > 2097152) {
+      return sendError(400, 'Image size exceeds 2MB limit after compression. Please upload a smaller image.');
+    }
+
+    // 5. Upload to Cloudinary
+    let cloudinaryResult;
+    try {
+      cloudinaryResult = await uploadImageToCloudinary(processedBuffer, 'brainstorm/events/payments');
+    } catch (err) {
+      return sendError(502, 'Image upload failed. Please try again.');
+    }
+
+    // 6. Save image record to DB
+    const imageId = crypto.randomUUID();
+    const imageDoc = await Image.create({
+      originalFilename: req.file.originalname,
+      imageId,
+      publicId: cloudinaryResult.public_id,
+      assetId: cloudinaryResult.asset_id,
+      format: cloudinaryResult.format,
+      width: cloudinaryResult.width,
+      height: cloudinaryResult.height,
+      bytes: cloudinaryResult.bytes,
+      mimeType: 'image/jpeg',
+      size: processedBuffer.length,
+      visibility: 'protected',
+      deliveryType: 'authenticated',
+      resourceType: 'image',
+      status: 'pending',
+      ownerType: 'event',
+      uploadedByOld: req.admin ? req.admin._id : null
+    });
+
+    req.body.paymentScreenshot = imageDoc._id;
+    next();
+
+  } catch (error) {
+    sendError(500, 'Unexpected error processing payment screenshot.');
+  }
+};
+
 
 // ─── PDF Upload Middleware ────────────────────────────────────────────────────
 

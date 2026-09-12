@@ -77,6 +77,8 @@ const getTransformationForVariant = (variant) => {
       return { width: 500, height: 350, crop: 'fill', quality: 'auto', fetch_format: 'auto' };
     case 'about_section':
       return { width: 1000, crop: 'limit', quality: 'auto', fetch_format: 'auto' };
+    case 'public':
+      return { quality: 'auto', fetch_format: 'auto' };
     default:
       return null;
   }

@@ -103,6 +103,8 @@ export const exportData = async (req, res) => {
         }
 
         columns = [
+          { header: 'Type', key: 'type', width: 12 },
+          { header: 'Role', key: 'role', width: 12 },
           { header: 'Reg Number', key: 'registrationNumber', width: 15 },
           { header: 'Full Name', key: 'fullName', width: 25 },
           { header: 'Course', key: 'course', width: 15 },
@@ -110,21 +112,65 @@ export const exportData = async (req, res) => {
           { header: 'Email', key: 'email', width: 25 },
           { header: 'Phone', key: 'phone', width: 15 },
           { header: 'WhatsApp', key: 'whatsapp', width: 15 },
-          { header: 'Status', key: 'status', width: 15 },
+          { header: 'Reg Status', key: 'status', width: 15 },
+          { header: 'Payment Status', key: 'paymentStatus', width: 15 },
           { header: 'Date', key: 'date', width: 20 },
         ];
         
-        data = registrations.map(r => ({
-          registrationNumber: r.registrationNumber,
-          fullName: r.fullName,
-          course: r.course,
-          section: r.section,
-          email: r.email,
-          phone: r.phone,
-          whatsapp: r.whatsapp || (r.hasWhatsapp ? r.phone : ''),
-          status: r.status,
-          date: new Date(r.createdAt).toLocaleDateString()
-        }));
+        data = [];
+        for (const r of registrations) {
+          if (r.registrationType === 'team' || r.leader?.fullName) {
+             data.push({
+                type: r.registrationType === 'team' ? 'Team' : 'Individual',
+                role: r.registrationType === 'team' ? 'Leader' : 'Participant',
+                registrationNumber: r.leader?.registrationNumber || r.registrationNumber || '-',
+                fullName: r.leader?.fullName || r.fullName || '-',
+                course: r.leader?.course || r.course || '-',
+                section: r.leader?.section || r.section || '-',
+                email: r.leader?.email || r.email || '-',
+                phone: r.leader?.phone || r.phone || '-',
+                whatsapp: r.leader?.whatsapp || r.whatsapp || (r.hasWhatsapp ? (r.leader?.phone || r.phone) : '-'),
+                status: r.status,
+                paymentStatus: r.paymentStatus || 'N/A',
+                date: new Date(r.createdAt).toLocaleDateString()
+             });
+
+             if (r.members && r.members.length > 0) {
+                for (const m of r.members) {
+                   data.push({
+                      type: 'Team',
+                      role: 'Member',
+                      registrationNumber: m.registrationNumber,
+                      fullName: m.fullName,
+                      course: '-',
+                      section: '-',
+                      email: '-',
+                      phone: m.phone,
+                      whatsapp: '-',
+                      status: r.status,
+                      paymentStatus: r.paymentStatus || 'N/A',
+                      date: new Date(r.createdAt).toLocaleDateString()
+                   });
+                }
+             }
+          } else {
+            // Legacy individual format
+            data.push({
+               type: 'Individual',
+               role: 'Participant',
+               registrationNumber: r.registrationNumber || '-',
+               fullName: r.fullName || '-',
+               course: r.course || '-',
+               section: r.section || '-',
+               email: r.email || '-',
+               phone: r.phone || '-',
+               whatsapp: r.whatsapp || (r.hasWhatsapp ? r.phone : '-'),
+               status: r.status,
+               paymentStatus: r.paymentStatus || 'N/A',
+               date: new Date(r.createdAt).toLocaleDateString()
+            });
+          }
+        }
         break;
 
       default:

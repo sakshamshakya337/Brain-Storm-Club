@@ -1,4 +1,6 @@
 import Event from '../models/Event.js';
+import sanitizeHtml from 'sanitize-html';
+import { decode } from 'html-entities';
 
 export const isValidImageUrl = (url) => {
   if (!url || typeof url !== 'string') return false;
@@ -75,10 +77,35 @@ const processEventPayload = (body) => {
     payload.posterId = payload.posterId._id;
   }
 
+  if (payload.paymentQrImage?._id) {
+    payload.paymentQrImage = payload.paymentQrImage._id;
+  }
+
   if (payload.coverImage && payload.coverImage.source === 'external' && payload.coverImage.url) {
     if (!isValidImageUrl(payload.coverImage.url)) {
       throw new Error(`Invalid cover image URL: "${payload.coverImage.url}"`);
     }
+  }
+
+  // Handle Event Story sanitization (bypassing global xss-clean escaping)
+  if (payload.eventStory) {
+    const decodedHTML = decode(payload.eventStory);
+    payload.eventStory = sanitizeHtml(decodedHTML, {
+      allowedTags: [
+        'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'p', 'a', 'ul', 'ol',
+        'nl', 'li', 'b', 'i', 'strong', 'em', 'strike', 'code', 'hr', 'br', 'div',
+        'table', 'thead', 'caption', 'tbody', 'tr', 'th', 'td', 'pre', 'span'
+      ],
+      allowedAttributes: {
+        a: ['href', 'name', 'target', 'rel'],
+        '*': ['class', 'style']
+      },
+      allowedStyles: {
+        '*': {
+          'text-align': [/^left$/, /^right$/, /^center$/, /^justify$/]
+        }
+      }
+    });
   }
 
   return payload;
@@ -88,6 +115,7 @@ export const getAllEventsAdmin = async (req, res) => {
   try {
     const events = await Event.find()
       .populate('posterId')
+      .populate('paymentQrImage', 'imageId')
       .populate('coverImage.imageId')
       .populate('images.imageId')
       .sort({ date: -1 });
@@ -381,10 +409,13 @@ export const getEventEntriesAdmin = async (req, res) => {
     
     if (search) {
       query.$or = [
-        { fullName: { $regex: search, $options: 'i' } },
+        { 'leader.fullName': { $regex: search, $options: 'i' } },
+        { 'leader.email': { $regex: search, $options: 'i' } },
+        { 'leader.registrationNumber': { $regex: search, $options: 'i' } },
+        { 'leader.phone': { $regex: search, $options: 'i' } },
+        { fullName: { $regex: search, $options: 'i' } }, // Legacy fallback
         { email: { $regex: search, $options: 'i' } },
-        { registrationNumber: { $regex: search, $options: 'i' } },
-        { phone: { $regex: search, $options: 'i' } }
+        { registrationNumber: { $regex: search, $options: 'i' } }
       ];
     }
 
@@ -394,17 +425,18 @@ export const getEventEntriesAdmin = async (req, res) => {
     
     const total = await EventRegistration.countDocuments(query);
     const entries = await EventRegistration.find(query)
+      .populate('paymentScreenshot')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
 
     // Stats
     const statsQuery = { eventId };
-    const allEntries = await EventRegistration.find(statsQuery).select('status');
+    const allEntries = await EventRegistration.find(statsQuery).select('status paymentStatus');
     const stats = {
       total: allEntries.length,
       confirmed: allEntries.filter(e => e.status === 'Registered' || e.status === 'Participated' || e.status === 'Completed').length,
-      pending: 0, // No pending in enum by default, just keeping stat structure
+      pending: allEntries.filter(e => e.paymentStatus === 'pending').length,
       cancelled: allEntries.filter(e => e.status === 'No-show').length
     };
 
@@ -445,15 +477,19 @@ export const deleteEventEntryAdmin = async (req, res) => {
 export const updateEventEntryStatusAdmin = async (req, res) => {
   try {
     const { id: eventId, registrationId } = req.params;
-    const { status } = req.body;
+    const { status, paymentStatus } = req.body;
     
     const EventRegistration = (await import('../models/EventRegistration.js')).default;
     
+    const update = {};
+    if (status) update.status = status;
+    if (paymentStatus) update.paymentStatus = paymentStatus;
+    
     const entry = await EventRegistration.findOneAndUpdate(
       { _id: registrationId, eventId },
-      { status },
+      update,
       { new: true, runValidators: true }
-    );
+    ).populate('paymentScreenshot');
     
     if (!entry) return res.status(404).json({ message: 'Registration not found' });
     
