@@ -418,7 +418,8 @@ export const submitEventRegistration = async (req, res) => {
       eventId,
       $or: [
         { 'leader.registrationNumber': { $in: allRegNumbers } },
-        { 'members.registrationNumber': { $in: allRegNumbers } }
+        { 'members.registrationNumber': { $in: allRegNumbers } },
+        { registrationNumber: { $in: allRegNumbers } }
       ]
     });
     
@@ -434,7 +435,14 @@ export const submitEventRegistration = async (req, res) => {
       members,
       transactionId,
       paymentScreenshot,
-      paymentStatus: event.paymentRequired ? 'pending' : 'verified'
+      paymentStatus: event.paymentRequired ? 'pending' : 'verified',
+      // Map leader to legacy root fields to satisfy old MongoDB unique indexes
+      registrationNumber: leader.registrationNumber,
+      fullName: leader.fullName,
+      email: leader.email,
+      phone: leader.phone,
+      course: leader.course,
+      section: leader.section
     };
 
     const registration = await EventRegistration.create(regData);
