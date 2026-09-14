@@ -15,6 +15,13 @@ function formatEventDate(dateVal) {
   } catch { return dateVal; }
 }
 
+function decodeHtmlEntities(html) {
+  if (!html) return '';
+  const txt = document.createElement("textarea");
+  txt.innerHTML = html;
+  return txt.value;
+}
+
 export default function EventDetail() {
   const containerRef = useRef(null);
   const { slug } = useParams();
@@ -348,7 +355,7 @@ export default function EventDetail() {
                     [&_blockquote]:border-l-4 [&_blockquote]:border-[var(--circuit)] [&_blockquote]:pl-6 [&_blockquote]:italic [&_blockquote]:text-[var(--ink-soft)] [&_blockquote]:my-6
                     [&_strong]:font-bold [&_strong]:text-[var(--ink)]
                     [&_img]:max-w-full [&_img]:h-auto [&_img]:border [&_img]:border-[var(--border)] [&_img]:my-6"
-                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(event.eventStory) }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(decodeHtmlEntities(event.eventStory)) }}
                 />
               </div>
             </div>

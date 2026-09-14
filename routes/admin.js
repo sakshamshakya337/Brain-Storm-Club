@@ -38,7 +38,8 @@ import {
   toggleEventRegistration,
   getEventEntriesAdmin,
   deleteEventEntryAdmin,
-  updateEventEntryStatusAdmin
+  updateEventEntryStatusAdmin,
+  scanEventQR
 } from '../controllers/eventController.js';
 import { exportData } from '../controllers/exportController.js';
 import {
@@ -127,6 +128,8 @@ router.route('/events/:id/entries')
 router.route('/events/:id/entries/:registrationId')
   .patch(updateEventEntryStatusAdmin)
   .delete(deleteEventEntryAdmin);
+
+router.post('/events/:id/scan', scanEventQR);
 
 router.post(
   '/events/:id/poster', 

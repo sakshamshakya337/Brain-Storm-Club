@@ -30,6 +30,7 @@ import AdminLogin from './pages/admin/AdminLogin';
 import Dashboard from './pages/admin/Dashboard';
 import AdminEvents from './pages/admin/AdminEvents';
 import EventEntries from './pages/admin/EventEntries';
+import EventScanner from './pages/admin/EventScanner';
 import AdminMembers from './pages/admin/AdminMembers';
 import PendingMembers from './pages/admin/PendingMembers';
 import AdminJoinUs from './pages/admin/AdminJoinUs';
@@ -162,6 +163,7 @@ function AppContent() {
               <Route path="/control/dashboard" element={<Dashboard />} />
               <Route path="/control/events" element={<AdminEvents />} />
               <Route path="/control/events/:id/entries" element={<EventEntries />} />
+              <Route path="/control/events/:id/scanner" element={<EventScanner />} />
               <Route path="/control/members" element={<AdminMembers />} />
               <Route path="/control/members/pending" element={<PendingMembers />} />
               <Route path="/control/join-us" element={<AdminJoinUs />} />

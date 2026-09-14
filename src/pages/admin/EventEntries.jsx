@@ -292,13 +292,13 @@ export default function EventEntries() {
         sortable: true,
         renderCell({ row }) {
           if (row.type === 'member') return null;
-          if (!isTeam(row)) {
+          if (!row.teamName) {
              return <div className="text-slate-300 italic text-xs h-full flex items-center px-2">N/A</div>;
           }
           return (
             <div className="h-full w-full px-2 py-1.5 flex items-center">
               <span className="text-[12px] font-medium text-slate-700 truncate">
-                {row.teamName || <span className="text-slate-400 italic">Not provided</span>}
+                {row.teamName}
               </span>
             </div>
           );
@@ -493,14 +493,19 @@ export default function EventEntries() {
           )}
         </div>
         <div className="z-10 w-full md:w-auto flex flex-col items-start md:items-end gap-3 mt-4 md:mt-0">
-          <button onClick={() => fetchEntries()} className="text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors border border-slate-200 px-3 py-1 rounded-md hover:bg-slate-50">
+          <button onClick={() => fetchEntries()} className="text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors border border-slate-200 px-3 py-1 rounded-md hover:bg-slate-50 mb-1">
             Refresh Data
           </button>
-          {event && (
-            <Link to={`/events/${event.slug}`} target="_blank" className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-md text-sm font-medium hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm">
-              View Public Event <ExternalLink size={14} />
+          <div className="flex items-center gap-2">
+            <Link to={`/control/events/${id}/scanner`} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-bold tracking-wide hover:bg-indigo-700 transition-all shadow-sm uppercase font-mono">
+              Scan QR
             </Link>
-          )}
+            {event && (
+              <Link to={`/events/${event.slug}`} target="_blank" className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-md text-sm font-medium hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm">
+                View Public Event <ExternalLink size={14} />
+              </Link>
+            )}
+          </div>
         </div>
       </div>
 
@@ -691,9 +696,12 @@ export default function EventEntries() {
               <div className="flex items-start justify-between">
                 <div>
                   <h4 className="text-2xl font-bold text-slate-900 mb-1">{getName(selectedEntry)}</h4>
-                  {isTeam(selectedEntry) && (
-                    <div className="text-md font-bold text-indigo-600 mb-2 uppercase tracking-wide">
-                      Team: {selectedEntry.teamName || 'Unnamed'}
+                  {selectedEntry.teamName && (
+                    <div className="text-sm font-medium text-slate-500 mb-4">
+                      Team: <span className="text-slate-700">{selectedEntry.teamName}</span>
+                      <span className="ml-2 text-xs text-slate-400">
+                        (Size: {selectedEntry.registrationType === 'individual' ? 1 : (1 + (selectedEntry.members?.length || 0))})
+                      </span>
                     </div>
                   )}
                   <div className="flex items-center gap-3">

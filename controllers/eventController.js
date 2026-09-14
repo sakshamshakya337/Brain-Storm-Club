@@ -535,3 +535,69 @@ export const updateEventEntryStatusAdmin = async (req, res) => {
     res.status(500).json({ message: 'Error updating registration' });
   }
 };
+
+export const scanEventQR = async (req, res) => {
+  try {
+    const { id: eventId } = req.params;
+    const { qrToken } = req.body;
+
+    if (!qrToken || typeof qrToken !== 'string') {
+      return res.status(400).json({ message: 'Invalid or unrecognized event QR code.' });
+    }
+
+    const EventRegistration = (await import('../models/EventRegistration.js')).default;
+    const registration = await EventRegistration.findOne({ qrToken });
+
+    if (!registration) {
+      return res.status(404).json({ message: 'Invalid or unrecognized event QR code.' });
+    }
+
+    if (registration.eventId.toString() !== eventId) {
+      return res.status(409).json({ message: 'This QR code belongs to another event.' });
+    }
+
+    const teamSize = registration.registrationType === 'individual' 
+      ? 1 
+      : (1 + (registration.members ? registration.members.length : 0));
+
+    if (registration.status === 'Participated') {
+      return res.status(200).json({
+        success: true,
+        alreadyParticipated: true,
+        status: 'participated',
+        participant: {
+          name: registration.leader?.fullName || registration.fullName,
+          registrationNumber: registration.leader?.registrationNumber || registration.registrationNumber,
+          teamName: registration.teamName,
+          teamSize,
+          participatedAt: registration.participatedAt
+        }
+      });
+    }
+
+    registration.status = 'Participated';
+    registration.participatedAt = new Date();
+    if (req.user && req.user._id) {
+      registration.participatedBy = req.user._id;
+    }
+    
+    await registration.save();
+
+    res.status(200).json({
+      success: true,
+      alreadyParticipated: false,
+      status: 'participated',
+      participant: {
+        name: registration.leader?.fullName || registration.fullName,
+        registrationNumber: registration.leader?.registrationNumber || registration.registrationNumber,
+        teamName: registration.teamName,
+        teamSize,
+        participatedAt: registration.participatedAt
+      }
+    });
+
+  } catch (error) {
+    console.error('[scanEventQR error]', error);
+    res.status(500).json({ message: 'Error scanning QR code' });
+  }
+};

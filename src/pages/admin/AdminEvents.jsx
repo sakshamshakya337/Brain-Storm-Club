@@ -10,6 +10,13 @@ import ProtectedImage from '../../components/common/ProtectedImage';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 
+function decodeHtmlEntities(html) {
+  if (!html) return '';
+  const txt = document.createElement("textarea");
+  txt.innerHTML = html;
+  return txt.value;
+}
+
 export default function AdminEvents() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -84,7 +91,7 @@ export default function AdminEvents() {
       title: event.title,
       slug: event.slug,
       description: event.description || '',
-      eventStory: event.eventStory || '',
+      eventStory: decodeHtmlEntities(event.eventStory || ''),
       date: event.date ? new Date(event.date).toISOString().slice(0, 16) : '',
       venue: event.venue,
       category: event.category || 'Other',

@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import Member from '../models/Member.js';
 import JoinUs from '../models/JoinUs.js';
 import Contact from '../models/Contact.js';
@@ -360,12 +361,11 @@ export const submitEventRegistration = async (req, res) => {
     
     let members = [];
     let trimmedTeamName = '';
-    if (registrationType === 'team') {
-      const maxTeamSize = event.maxTeamSize || 5;
-      const totalMembers = 1 + (dataPayload.members ? dataPayload.members.length : 0);
-      
+    
+    // Check team name if event allows teams (applies to both Individual and Team mode)
+    if (event.allowTeamRegistration) {
       if (!dataPayload.teamName || dataPayload.teamName.trim() === '') {
-        return res.status(400).json({ success: false, message: 'Team name is required for team registrations.' });
+        return res.status(400).json({ success: false, message: 'Team name is required for this event.' });
       }
       
       trimmedTeamName = dataPayload.teamName.trim();
@@ -376,6 +376,11 @@ export const submitEventRegistration = async (req, res) => {
       if (existingTeam) {
         return res.status(409).json({ success: false, message: 'Team name already exists. Please choose a different name.' });
       }
+    }
+
+    if (registrationType === 'team') {
+      const maxTeamSize = event.maxTeamSize || 5;
+      const totalMembers = 1 + (dataPayload.members ? dataPayload.members.length : 0);
       
       if (totalMembers < 2) {
         return res.status(400).json({ success: false, message: 'A team must have at least 2 members.' });
@@ -427,15 +432,18 @@ export const submitEventRegistration = async (req, res) => {
       return res.status(409).json({ message: 'One or more members are already registered for this event.' });
     }
 
+    const qrToken = `BSC-EVT-2026-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+
     const regData = {
       eventId,
       registrationType: registrationType || 'individual',
-      teamName: registrationType === 'team' ? trimmedTeamName : undefined,
+      teamName: event.allowTeamRegistration ? trimmedTeamName : undefined,
       leader,
       members,
       transactionId,
       paymentScreenshot,
       paymentStatus: event.paymentRequired ? 'pending' : 'verified',
+      qrToken,
       // Map leader to legacy root fields to satisfy old MongoDB unique indexes
       registrationNumber: leader.registrationNumber,
       fullName: leader.fullName,
@@ -447,8 +455,8 @@ export const submitEventRegistration = async (req, res) => {
 
     const registration = await EventRegistration.create(regData);
 
-    // Create the team globally if it's a team registration
-    if (registrationType === 'team' && trimmedTeamName) {
+    // Create the team globally if team registration is allowed
+    if (event.allowTeamRegistration && trimmedTeamName) {
       const normalizedTeamName = trimmedTeamName.toLowerCase().replace(/\s+/g, ' ');
       // Handle potential race conditions gracefully
       await Team.updateOne(
@@ -466,7 +474,7 @@ export const submitEventRegistration = async (req, res) => {
       entityId: registration._id
     }).catch(err => console.error('Failed to create notification', err));
 
-    res.status(201).json({ status: 'success', message: 'Successfully registered for event.' });
+    res.status(201).json({ status: 'success', message: 'Successfully registered for event.', data: { registration } });
   } catch (error) {
     console.error('[submitEventRegistration error]', error);
     if (error.code === 11000) return res.status(409).json({ message: 'You are already registered for this event.' });

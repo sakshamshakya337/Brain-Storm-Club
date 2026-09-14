@@ -5,6 +5,7 @@ import Footer from '../../components/layout/Footer';
 import EventStatus from '../../components/events/EventStatus';
 import ProtectedImage from '../../components/common/ProtectedImage';
 import { validateRegistrationNumber, validatePhone, validateEmail, validateName, validateTransactionId } from '../../utils/validation';
+import { generateEventPass } from '../../utils/pdfGenerator';
 
 const FIELD_CLASS = "w-full bg-[var(--paper-dim)] border border-[var(--border)] px-4 py-3 font-body text-sm text-[var(--ink)] placeholder-[var(--ink-soft)] focus:outline-none focus:border-[var(--circuit)] transition-colors";
 const LABEL_CLASS = "block font-mono text-[10px] font-bold tracking-[0.25em] uppercase text-[var(--ink)] mb-2";
@@ -17,6 +18,8 @@ export default function EventRegistration() {
   
   const [formState, setFormState] = useState('DEFAULT'); // DEFAULT, SENDING, SUCCESS, ERROR
   const [errorMessage, setErrorMessage] = useState('');
+  const [confirmedRegistration, setConfirmedRegistration] = useState(null);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   
   const [registrationType, setRegistrationType] = useState('individual'); // 'individual' or 'team'
   const [sameAsPhone, setSameAsPhone] = useState(false);
@@ -123,6 +126,15 @@ export default function EventRegistration() {
       return;
     }
     
+    if (event.allowTeamRegistration) {
+      if (!formData.teamName || !formData.teamName.trim()) {
+        setErrorMessage('Team name is required.');
+        setFormState('ERROR');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+    }
+
     if (registrationType === 'team') {
       for (let i = 0; i < formData.members.length; i++) {
         const m = formData.members[i];
@@ -166,9 +178,11 @@ export default function EventRegistration() {
       const payloadData = {
         leader: { ...formData.leader, whatsapp: formData.leader.whatsapp || formData.leader.phone, hasWhatsapp: true }
       };
+      if (event.allowTeamRegistration) {
+        payloadData.teamName = formData.teamName;
+      }
       if (registrationType === 'team') {
         payloadData.members = formData.members;
-        payloadData.teamName = formData.teamName;
       }
       fd.append('data', JSON.stringify(payloadData));
 
@@ -184,6 +198,7 @@ export default function EventRegistration() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Registration failed.');
       
+      setConfirmedRegistration(data.data.registration);
       setFormState('SUCCESS');
       setFormData({
         leader: { ...emptyLeader },
@@ -198,6 +213,30 @@ export default function EventRegistration() {
       setErrorMessage(err.message || 'A network error occurred. Please try again.');
       setFormState('ERROR');
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    } finally {
+      setFormState(prev => prev === 'SENDING' ? 'DEFAULT' : prev);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!confirmedRegistration) return;
+    setIsGeneratingPdf(true);
+    try {
+      const pdfBytes = await generateEventPass(confirmedRegistration, event.title);
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Brainstorm_Club_${event.title.replace(/\s+/g, '_')}_${confirmedRegistration.qrToken}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to generate PDF pass', error);
+      alert('Failed to generate your PDF pass. Please try again.');
+    } finally {
+      setIsGeneratingPdf(false);
     }
   };
 
@@ -289,14 +328,26 @@ export default function EventRegistration() {
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-12 max-w-5xl">
               <div>
                 {formState === 'SUCCESS' && (
-                  <div className="border border-[var(--circuit)]/40 bg-[var(--paper-dim)] p-8 mb-10 flex items-start gap-4">
-                    <CheckCircle2 size={22} className="text-[var(--circuit)] mt-0.5 flex-shrink-0" />
+                  <div className="border border-[var(--circuit)]/40 bg-[var(--paper-dim)] p-8 mb-10 flex flex-col items-center text-center gap-4">
+                    <CheckCircle2 size={48} className="text-[var(--circuit)] flex-shrink-0 mb-2" />
                     <div>
-                      <h3 className="font-heading font-bold text-xl uppercase tracking-tight text-[var(--ink)] mb-2">Registration Successful!</h3>
-                      <p className="font-body text-[var(--ink-soft)] mb-5">Your spot is confirmed. We will reach you on your registered email/phone.</p>
-                      <div className="flex flex-wrap gap-3">
-                        <Link to={`/events/${event.slug}`} className="font-mono text-[10px] font-bold tracking-widest uppercase border border-[var(--border)] px-4 py-2 text-[var(--ink)] hover:border-[var(--circuit)] transition-colors">Back to Event</Link>
-                        <button onClick={() => setFormState('DEFAULT')} className="font-mono text-[10px] font-bold tracking-widest uppercase text-[var(--circuit)] hover:underline">Register Another Person</button>
+                      <h3 className="font-heading font-bold text-2xl uppercase tracking-tight text-[var(--ink)] mb-2">Registration Confirmed!</h3>
+                      <p className="font-body text-[var(--ink-soft)] mb-6">Your spot is confirmed. Your official event registration pass is ready.</p>
+                      
+                      <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
+                        <button 
+                          onClick={handleDownloadPdf}
+                          disabled={isGeneratingPdf}
+                          className="w-full sm:w-auto font-mono text-xs font-bold tracking-widest uppercase bg-[var(--circuit)] text-[var(--paper)] px-8 py-4 hover:bg-[var(--ink)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        >
+                          {isGeneratingPdf ? 'Generating...' : 'Download Pass (PDF)'}
+                        </button>
+                      </div>
+
+                      <div className="flex flex-wrap items-center justify-center gap-4 pt-6 border-t border-[var(--border)]">
+                        <Link to={`/events/${event.slug}`} className="font-mono text-[10px] font-bold tracking-widest uppercase text-[var(--ink-soft)] hover:text-[var(--ink)] transition-colors">Back to Event</Link>
+                        <span className="text-[var(--border)]">|</span>
+                        <button onClick={() => { setFormState('DEFAULT'); setConfirmedRegistration(null); }} className="font-mono text-[10px] font-bold tracking-widest uppercase text-[var(--ink-soft)] hover:text-[var(--ink)] transition-colors">Register Another Person</button>
                       </div>
                     </div>
                   </div>
@@ -336,8 +387,8 @@ export default function EventRegistration() {
                       </div>
                     )}
 
-                    {/* Team Details (if team) */}
-                    {registrationType === 'team' && (
+                    {/* Team Details (if allowTeamRegistration is true) */}
+                    {event.allowTeamRegistration && (
                       <div className="mb-10">
                         <div className="flex items-center gap-3 mb-6 pb-4 border-b border-[var(--border)]">
                           <span className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-[var(--circuit)]">01</span>
@@ -345,7 +396,10 @@ export default function EventRegistration() {
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="md:col-span-2">
-                            <label className={LABEL_CLASS}>Team Name <span className="text-[var(--spark)]">*</span></label>
+                            <label className={LABEL_CLASS}>
+                              Team Name <span className="text-[var(--spark)]">*</span>
+                              {registrationType === 'individual' && <span className="ml-2 font-normal text-xs normal-case text-[var(--ink-soft)]">(You're registering as a one-person team.)</span>}
+                            </label>
                             <input 
                               type="text" 
                               name="teamName" 
@@ -365,10 +419,10 @@ export default function EventRegistration() {
                     <div>
                       <div className="flex items-center gap-3 mb-6 pb-4 border-b border-[var(--border)]">
                         <span className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-[var(--circuit)]">
-                          {registrationType === 'team' ? '02' : '01'}
+                          {event.allowTeamRegistration ? '02' : '01'}
                         </span>
                         <span className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-[var(--ink-soft)]">
-                          {registrationType === 'team' ? 'Team Leader Details' : 'Student Details'}
+                          {event.allowTeamRegistration && registrationType === 'team' ? 'Team Leader Details' : 'Participant Details'}
                         </span>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -457,7 +511,7 @@ export default function EventRegistration() {
                       <div>
                         <div className="flex items-center gap-3 mb-6 pb-4 border-b border-[var(--border)]">
                           <span className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-[var(--circuit)]">
-                            {registrationType === 'team' ? '03' : '02'}
+                            {registrationType === 'team' ? '04' : (event.allowTeamRegistration ? '03' : '02')}
                           </span>
                           <span className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-[var(--ink-soft)]">Payment Details</span>
                         </div>
