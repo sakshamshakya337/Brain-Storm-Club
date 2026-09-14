@@ -1,5 +1,6 @@
 import Event from '../models/Event.js';
 import Team from '../models/Team.js';
+import Feedback from '../models/Feedback.js';
 export const isValidImageUrl = (url) => {
   if (!url || typeof url !== 'string') return false;
   const trimmed = url.trim();
@@ -518,9 +519,12 @@ export const updateEventEntryStatusAdmin = async (req, res) => {
     
     const update = {};
     if (status) update.status = status;
-    if (paymentStatus) update.paymentStatus = paymentStatus;
-    if (req.body.teamName !== undefined) update.teamName = req.body.teamName;
-    if (req.body.registrationType) update.registrationType = req.body.registrationType;
+    
+    if (req.admin.role !== 'event_admin') {
+      if (paymentStatus) update.paymentStatus = paymentStatus;
+      if (req.body.teamName !== undefined) update.teamName = req.body.teamName;
+      if (req.body.registrationType) update.registrationType = req.body.registrationType;
+    }
     
     const entry = await EventRegistration.findOneAndUpdate(
       { _id: registrationId, eventId },
@@ -599,5 +603,41 @@ export const scanEventQR = async (req, res) => {
   } catch (error) {
     console.error('[scanEventQR error]', error);
     res.status(500).json({ message: 'Error scanning QR code' });
+  }
+};
+
+export const getEventFeedback = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const feedbacks = await Feedback.find({ eventId: id }).sort({ createdAt: -1 });
+    
+    const total = feedbacks.length;
+    const averageRating = total > 0 
+      ? (feedbacks.reduce((acc, f) => acc + f.rating, 0) / total).toFixed(1) 
+      : 0;
+      
+    res.status(200).json({ 
+      status: 'success', 
+      data: { feedbacks, stats: { total, averageRating } } 
+    });
+  } catch (error) {
+    console.error('Get Feedback Error:', error);
+    res.status(500).json({ message: 'Error fetching feedback' });
+  }
+};
+
+export const deleteFeedback = async (req, res) => {
+  try {
+    const { id, feedbackId } = req.params;
+    const feedback = await Feedback.findOneAndDelete({ _id: feedbackId, eventId: id });
+    
+    if (!feedback) {
+      return res.status(404).json({ message: 'Feedback not found.' });
+    }
+    
+    res.status(200).json({ status: 'success', message: 'Feedback deleted successfully.' });
+  } catch (error) {
+    console.error('Delete Feedback Error:', error);
+    res.status(500).json({ message: 'Error deleting feedback' });
   }
 };

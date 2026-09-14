@@ -5,9 +5,10 @@ import { getPublicEvents, getPublicEventDetails, getPublicMembers } from '../con
 import { 
   submitMemberRegistration, 
   submitJoinUs, 
-  submitContact, 
+  submitContact,
   submitIdea,
-  submitEventRegistration
+  submitEventRegistration,
+  submitFeedback
 } from '../controllers/formController.js';
 
 const router = express.Router();
@@ -48,6 +49,7 @@ router.post(
   submitJoinUs
 );
 router.post('/contact', formSubmissionLimiter, submitContact);
+router.post('/feedback', formSubmissionLimiter, submitFeedback);
 router.post('/ideas', fileUploadLimiter, uploadPdf.single('pdf'), processPdfUpload, submitIdea);
 router.post(
   '/events/register', 

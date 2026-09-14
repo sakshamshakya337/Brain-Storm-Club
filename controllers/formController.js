@@ -8,6 +8,7 @@ import Event from '../models/Event.js';
 import Team from '../models/Team.js';
 import Notification from '../models/Notification.js';
 import SystemSettings from '../models/SystemSettings.js';
+import Feedback from '../models/Feedback.js';
 import { getMaintenanceState } from '../middleware/maintenance.js';
 import { sendIdeaConfirmationEmail } from '../utils/email.js';
 import { 
@@ -288,6 +289,32 @@ export const submitIdea = async (req, res) => {
   } catch (error) {
     console.error('[submitIdea error]', error);
     res.status(500).json({ message: 'Error submitting idea. Please try again.' });
+  }
+};
+
+export const submitFeedback = async (req, res) => {
+  try {
+    const { eventId, name, rating, comment } = req.body;
+    
+    if (!eventId || !rating) {
+      return res.status(400).json({ message: 'Event ID and rating are required.' });
+    }
+
+    if (rating < 1 || rating > 5) {
+      return res.status(400).json({ message: 'Rating must be between 1 and 5.' });
+    }
+    
+    await Feedback.create({
+      eventId,
+      name: name?.trim() || 'Anonymous',
+      rating: Number(rating),
+      comment: comment?.trim() || ''
+    });
+    
+    res.status(201).json({ success: true, message: 'Feedback submitted successfully.' });
+  } catch (error) {
+    console.error('Submit Feedback Error:', error);
+    res.status(500).json({ message: 'Internal server error.' });
   }
 };
 

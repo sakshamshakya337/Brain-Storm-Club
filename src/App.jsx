@@ -11,6 +11,7 @@ import Events from './pages/public/Events';
 import EventDetail from './pages/public/EventDetail';
 import EventRegistration from './pages/public/EventRegistration';
 import About from './pages/public/About';
+import Feedback from './pages/public/Feedback';
 import Members from './pages/public/Members';
 import MemberDetail from './pages/public/MemberDetail';
 import Contact from './pages/public/Contact';
@@ -31,6 +32,7 @@ import Dashboard from './pages/admin/Dashboard';
 import AdminEvents from './pages/admin/AdminEvents';
 import EventEntries from './pages/admin/EventEntries';
 import EventScanner from './pages/admin/EventScanner';
+import EventFeedback from './pages/admin/EventFeedback';
 import AdminMembers from './pages/admin/AdminMembers';
 import PendingMembers from './pages/admin/PendingMembers';
 import AdminJoinUs from './pages/admin/AdminJoinUs';
@@ -136,6 +138,7 @@ function AppContent() {
             <Route path="/events" element={<Events />} />
             <Route path="/events/:slug" element={<EventDetail />} />
             <Route path="/events/:slug/register" element={<EventRegistration />} />
+            <Route path="/feedback/:slug" element={<Feedback />} />
             <Route path="/about" element={<About />} />
             <Route path="/members" element={<Members />} />
             <Route path="/members/register" element={<MemberRegistration />} />
@@ -165,6 +168,7 @@ function AppContent() {
               <Route path="/control/events" element={<AdminEvents />} />
               <Route path="/control/events/:id/entries" element={<EventEntries />} />
               <Route path="/control/events/:id/scanner" element={<EventScanner />} />
+              <Route path="/control/events/:id/feedback" element={<EventFeedback />} />
               <Route path="/control/members" element={<AdminMembers />} />
               <Route path="/control/members/pending" element={<PendingMembers />} />
               <Route path="/control/join-us" element={<AdminJoinUs />} />

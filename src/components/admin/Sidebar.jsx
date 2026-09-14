@@ -68,6 +68,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             { name: 'Dashboard', path: '/control/dashboard', icon: LayoutDashboard },
             { name: 'Event Scanner', path: `/control/events/${admin.assignedEventId}/scanner`, icon: CalendarDays },
             { name: 'Registrations', path: `/control/events/${admin.assignedEventId}/entries`, icon: Users },
+            { name: 'Feedback', path: `/control/events/${admin.assignedEventId}/feedback`, icon: MessageSquare },
           ]
         }
       ];
@@ -90,6 +91,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                   { name: 'Dashboard', path: '/control/dashboard', icon: LayoutDashboard },
                   { name: 'Event Scanner', path: `/control/events/${adminData.assignedEventId}/scanner`, icon: CalendarDays },
                   { name: 'Registrations', path: `/control/events/${adminData.assignedEventId}/entries`, icon: Users },
+                  { name: 'Feedback', path: `/control/events/${adminData.assignedEventId}/feedback`, icon: MessageSquare },
                 ]
               }
             ]);

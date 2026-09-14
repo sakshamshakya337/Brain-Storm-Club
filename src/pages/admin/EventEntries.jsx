@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Loader2, Search, Filter, Calendar, MapPin, Clock, Download, ArrowLeft, XCircle, FileText, CheckCircle, Users, Trash2, ExternalLink, ChevronDown, ChevronRight, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Search, Filter, Calendar, MapPin, Clock, Download, ArrowLeft, XCircle, FileText, CheckCircle, Users, Trash2, ExternalLink, ChevronDown, ChevronRight, Image as ImageIcon, MessageSquare, Link as LinkIcon } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import ProtectedImage from '../../components/common/ProtectedImage';
 import DataGrid, { SelectColumn as DefaultSelectColumn } from 'react-data-grid';
@@ -435,11 +435,33 @@ export default function EventEntries() {
       {
         key: 'actions',
         name: 'Actions',
-        width: 110,
+        width: adminRole === 'event_admin' ? 200 : 110,
         renderCell({ row }) {
           if (row.type === 'member') return null;
           return (
-            <div className="flex items-center justify-end h-full">
+            <div className="flex items-center justify-end gap-2 h-full">
+              {adminRole === 'event_admin' && row.status === 'Registered' && (
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleUpdateStatus(row._id, 'status', 'Participated');
+                  }}
+                  className="px-2 py-1.5 bg-brand-primary text-white rounded-md text-[10px] font-bold uppercase tracking-wider hover:bg-brand-primary/90 transition-colors whitespace-nowrap flex items-center gap-1"
+                >
+                  <CheckCircle size={12} /> Check In
+                </button>
+              )}
+              {adminRole === 'event_admin' && row.status === 'Participated' && (
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleUpdateStatus(row._id, 'status', 'Registered');
+                  }}
+                  className="px-2 py-1.5 bg-slate-100 text-slate-600 rounded-md text-[10px] font-bold uppercase tracking-wider hover:bg-slate-200 transition-colors whitespace-nowrap flex items-center gap-1"
+                >
+                  <XCircle size={12} /> Undo
+                </button>
+              )}
               <button 
                 onClick={(e) => {
                   e.stopPropagation();
@@ -520,13 +542,32 @@ export default function EventEntries() {
           <button onClick={() => fetchEntries()} className="text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors border border-slate-200 px-3 py-1 rounded-md hover:bg-slate-50 mb-1">
             Refresh Data
           </button>
-          <div className="flex items-center gap-2">
-            <Link to={`/control/events/${id}/scanner`} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-bold tracking-wide hover:bg-indigo-700 transition-all shadow-sm uppercase font-mono">
+          <div className="flex flex-wrap items-center justify-end gap-2 w-full">
+            <Link 
+              to={`/control/events/${id}/feedback`} 
+              className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-md text-sm font-medium hover:bg-amber-100 transition-all shadow-sm"
+            >
+              <MessageSquare size={14} /> View Feedback
+            </Link>
+            {event && (
+              <button 
+                onClick={() => {
+                  const url = `${window.location.origin}/feedback/${event.slug}`;
+                  navigator.clipboard.writeText(url);
+                  alert('Feedback link copied to clipboard!');
+                }}
+                className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-md text-sm font-medium hover:bg-slate-50 transition-all shadow-sm"
+                title="Copy public feedback link"
+              >
+                <LinkIcon size={14} /> Share Link
+              </button>
+            )}
+            <Link to={`/control/events/${id}/scanner`} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-bold tracking-wide hover:bg-indigo-700 transition-all shadow-sm uppercase font-mono ml-auto md:ml-0">
               Scan QR
             </Link>
             {event && (
-              <Link to={`/events/${event.slug}`} target="_blank" className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-md text-sm font-medium hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm">
-                View Public Event <ExternalLink size={14} />
+              <Link to={`/events/${event.slug}`} target="_blank" className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-md text-sm font-medium hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm hidden lg:flex">
+                <ExternalLink size={14} /> Public
               </Link>
             )}
           </div>

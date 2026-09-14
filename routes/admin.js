@@ -39,7 +39,9 @@ import {
   getEventEntriesAdmin,
   deleteEventEntryAdmin,
   updateEventEntryStatusAdmin,
-  scanEventQR
+  scanEventQR,
+  getEventFeedback,
+  deleteFeedback
 } from '../controllers/eventController.js';
 import { exportData } from '../controllers/exportController.js';
 import {
@@ -146,10 +148,16 @@ router.route('/events/:id/entries')
   .get(requireEventAccess, getEventEntriesAdmin);
 
 router.route('/events/:id/entries/:registrationId')
-  .patch(requireGlobalAdmin, updateEventEntryStatusAdmin)
+  .patch(requireEventAccess, updateEventEntryStatusAdmin)
   .delete(requireGlobalAdmin, deleteEventEntryAdmin);
 
 router.post('/events/:id/scan', requireEventAccess, scanEventQR);
+
+router.route('/events/:id/feedback')
+  .get(requireEventAccess, getEventFeedback);
+
+router.route('/events/:id/feedback/:feedbackId')
+  .delete(requireGlobalAdmin, deleteFeedback);
 
 router.post(
   '/events/:id/poster',

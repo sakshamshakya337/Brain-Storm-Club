@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Calendar, MapPin, Clock, ArrowUpRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Calendar, MapPin, Clock, ArrowUpRight, MessageSquare } from 'lucide-react';
 import EventStatus from '../../components/events/EventStatus';
 import ProtectedImage from '../../components/common/ProtectedImage';
 import Footer from '../../components/layout/Footer';
@@ -223,8 +223,17 @@ export default function EventDetail() {
                     <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                   </Link>
                 ) : (
-                  <div className="inline-flex items-center gap-2 bg-[var(--paper)] border border-[var(--border)] text-[var(--ink-soft)] px-8 py-4 font-mono text-[10px] font-bold tracking-widest uppercase cursor-not-allowed">
-                    REGISTRATION CLOSED
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="inline-flex items-center gap-2 bg-[var(--paper)] border border-[var(--border)] text-[var(--ink-soft)] px-8 py-4 font-mono text-[10px] font-bold tracking-widest uppercase cursor-not-allowed">
+                      REGISTRATION CLOSED
+                    </div>
+                    <Link
+                      to={`/feedback/${event.slug}`}
+                      className="inline-flex items-center gap-3 bg-[var(--ink)] text-[var(--paper)] px-8 py-4 font-mono text-[10px] font-bold tracking-widest uppercase hover:bg-[var(--circuit)] transition-colors group shadow-xl"
+                    >
+                      <MessageSquare size={14} className="group-hover:-translate-y-0.5 transition-transform" />
+                      GIVE FEEDBACK
+                    </Link>
                   </div>
                 )}
               </div>
