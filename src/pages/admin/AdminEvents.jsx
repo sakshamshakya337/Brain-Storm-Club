@@ -8,6 +8,7 @@ import { cn } from '../../lib/utils';
 import { Link } from 'react-router-dom';
 import ProtectedImage from '../../components/common/ProtectedImage';
 import ReactQuill from 'react-quill';
+import imageCompression from 'browser-image-compression';
 import 'react-quill/dist/quill.snow.css';
 
 function decodeHtmlEntities(html) {
@@ -155,16 +156,34 @@ export default function AdminEvents() {
 
     try {
       setUploadingImage(true);
+      
+      let uploadFile = file;
+      if (file.type.startsWith('image/')) {
+        try {
+          // Compress the image before uploading to avoid Vercel's 4.5MB payload limit
+          const options = { maxSizeMB: 2, maxWidthOrHeight: 1200, useWebWorker: true };
+          uploadFile = await imageCompression(file, options);
+        } catch (compErr) {
+          console.warn('Image compression failed on client, proceeding with original', compErr);
+        }
+      }
+
       const fd = new FormData();
-      fd.append('image', file);
+      fd.append('image', uploadFile);
 
       const res = await fetch('/api/admin/events/upload-image', {
         method: 'POST',
         body: fd
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Image upload failed');
+      let data;
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        throw new Error('Server returned an invalid response (Payload too large or server error).');
+      }
+      
+      if (!res.ok) throw new Error(data?.message || 'Image upload failed');
 
       const newImg = {
         source: 'cloudinary',
@@ -252,16 +271,33 @@ export default function AdminEvents() {
 
     try {
       setUploadingQr(true);
+
+      let uploadFile = file;
+      if (file.type.startsWith('image/')) {
+        try {
+          const options = { maxSizeMB: 2, maxWidthOrHeight: 1200, useWebWorker: true };
+          uploadFile = await imageCompression(file, options);
+        } catch (compErr) {
+          console.warn('Image compression failed on client, proceeding with original', compErr);
+        }
+      }
+
       const fd = new FormData();
-      fd.append('image', file);
+      fd.append('image', uploadFile);
 
       const res = await fetch('/api/admin/events/upload-image', {
         method: 'POST',
         body: fd
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Image upload failed');
+      let data;
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        throw new Error('Server returned an invalid response (Payload too large or server error).');
+      }
+      
+      if (!res.ok) throw new Error(data?.message || 'Image upload failed');
 
       setFormData({ ...formData, paymentQrImage: { _id: data.data._id, imageId: data.data.imageId } });
     } catch (err) {
