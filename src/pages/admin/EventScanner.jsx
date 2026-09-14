@@ -241,17 +241,17 @@ export default function EventScanner() {
         // Ignored if unsupported
       }
     }
-    startScannerFlow();
+    startScanner();
   };
 
   const handleScanNext = () => {
     setScanResult(null);
-    startScannerFlow(selectedDeviceId);
+    startScanner(selectedDeviceId);
   };
 
   const handleCameraChange = (e) => {
     const newId = e.target.value;
-    startScannerFlow(newId);
+    startScanner(newId);
   };
 
   if (!id || id === 'undefined') {
