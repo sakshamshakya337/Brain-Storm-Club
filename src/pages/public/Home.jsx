@@ -82,43 +82,54 @@ function deriveLeadership(members) {
 export default function Home() {
   const mainRef = useRef(null), heroRef = useRef(null), backgroundRef = useRef(null), fieldRef = useRef(null), nodeRefs = useRef([]), statsRef = useRef(null), showcaseRef = useRef(null);
   const [capable, setCapable] = useState(false), [slide, setSlide] = useState(0);
+  const [initAnimations, setInitAnimations] = useState(false);
 
-  // Live events state
+  // Defer heavy animations until after first paint
+  useEffect(() => {
+    const timer = setTimeout(() => setInitAnimations(true), 150);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Live state
   const [featuredEvents, setFeaturedEvents] = useState([]);
   const [isEventsLoading, setIsEventsLoading] = useState(true);
-
-  // Live members state
   const [liveMembers, setLiveMembers] = useState([]);
   const [isMembersLoading, setIsMembersLoading] = useState(true);
 
-  // Fetch live events
+  // Parallel data fetching with abort controller
   useEffect(() => {
-    fetch('/api/public/events')
-      .then(res => res.json())
-      .then(data => {
-        if (data.status === 'success') {
-          // Show live/upcoming events first, limit to 3
-          const sorted = (data.data.events || [])
-            .filter(e => e.status !== 'Completed' && e.status !== 'COMPLETED')
-            .slice(0, 3);
-          setFeaturedEvents(sorted);
-        }
-      })
-      .catch(err => console.error('Error fetching events:', err))
-      .finally(() => setIsEventsLoading(false));
-  }, []);
+    const abortController = new AbortController();
+    const signal = abortController.signal;
 
-  // Fetch live members
-  useEffect(() => {
-    fetch('/api/public/members')
-      .then(res => res.json())
-      .then(data => {
-        if (data.status === 'success') {
-          setLiveMembers(data.data.members || data.data || []);
-        }
-      })
-      .catch(err => console.error('Error fetching members:', err))
-      .finally(() => setIsMembersLoading(false));
+    setIsEventsLoading(true);
+    setIsMembersLoading(true);
+
+    Promise.all([
+      fetch('/api/public/events', { signal }).then(res => res.json()).catch(() => ({ status: 'error' })),
+      fetch('/api/public/members', { signal }).then(res => res.json()).catch(() => ({ status: 'error' }))
+    ]).then(([eventsData, membersData]) => {
+      // Handle Events
+      if (eventsData?.status === 'success') {
+        const sorted = (eventsData.data?.events || [])
+          .filter(e => e.status !== 'Completed' && e.status !== 'COMPLETED')
+          .slice(0, 3);
+        setFeaturedEvents(sorted);
+      }
+      setIsEventsLoading(false);
+
+      // Handle Members
+      if (membersData?.status === 'success') {
+        setLiveMembers(membersData.data?.members || membersData.data || []);
+      }
+      setIsMembersLoading(false);
+    }).catch(err => {
+      if (err.name !== 'AbortError') {
+        setIsEventsLoading(false);
+        setIsMembersLoading(false);
+      }
+    });
+
+    return () => abortController.abort();
   }, []);
 
   const { president, supportingSlots } = deriveLeadership(liveMembers);
@@ -131,12 +142,12 @@ export default function Home() {
     return () => window.clearInterval(interval);
   }, []);
   useEffect(() => {
-    if (!capable) return undefined;
+    if (!capable || !initAnimations) return undefined;
     const animations = nodeRefs.current.filter(Boolean).map((node, index) => anime({ targets: node, scale: [0.75, 1.25, 0.8], opacity: [0.3, 1, 0.45], duration: 1500 + ((index * 379) % 1700), delay: (index * 173) % 900, direction: 'alternate', easing: 'easeInOutSine', loop: true }));
     const visibility = () => animations.forEach(item => document.hidden ? item.pause() : item.play());
     document.addEventListener('visibilitychange', visibility);
     return () => { document.removeEventListener('visibilitychange', visibility); animations.forEach(item => item.pause()); anime.remove(nodeRefs.current); };
-  }, [capable]);
+  }, [capable, initAnimations]);
   useGSAP(() => {
     if (!heroRef.current) return undefined;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -165,7 +176,7 @@ export default function Home() {
   return <main ref={mainRef} onClick={handleTextClick} className="homepage min-h-screen overflow-x-hidden bg-paper font-body text-ink selection:bg-spark-soft" style={{ perspective: '1200px' }}>
     <section ref={heroRef} className="relative isolate flex min-h-[min(680px,84svh)] items-center overflow-hidden px-6 pb-12 pt-20 md:px-12 lg:px-20">
       <div ref={backgroundRef} className="absolute inset-0 -z-20 overflow-hidden pointer-events-none"><img src="/circuit-horizon.png" alt="" className="h-full w-full object-cover object-bottom opacity-30" /></div><div className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,var(--paper)_15%,transparent_65%,var(--paper)_100%)] pointer-events-none" />
-      <svg className="absolute inset-0 z-10 h-full w-full pointer-events-none opacity-70" aria-hidden="true" viewBox="0 0 1440 780" preserveAspectRatio="none"><path className="electric-trace-reverse" d="M0 170 H150 L210 220 H415 L470 155 H650 L710 205 H920 L980 145 H1190 L1250 195 H1440" fill="none" stroke="var(--circuit)" strokeWidth="1.25" strokeDasharray="10 38" /><path className="electric-trace-reverse" d="M0 110 H95 L145 150 H330 L390 95 H590 L640 145 H830 L890 90 H1080 L1140 135 H1440" fill="none" stroke="var(--spark)" strokeWidth="1.15" strokeDasharray="8 48" /><path className="electric-trace" d="M0 590 H190 L240 540 H440 L490 600 H710 L760 530 H970 L1020 570 H1240 L1300 505 H1440" fill="none" stroke="var(--circuit)" strokeWidth="1.4" strokeDasharray="10 38" /><path className="electric-trace" d="M0 650 H130 L205 610 H390 L450 670 H670 L725 620 H920 L970 680 H1170 L1230 610 H1440" fill="none" stroke="var(--spark)" strokeWidth="1.3" strokeDasharray="8 48" /></svg><div className="absolute inset-0 z-0 pointer-events-none">{nodes.map(([left, top, color], index) => <span key={`${left}-${top}`} ref={el => { nodeRefs.current[index] = el; }} className={`absolute h-2 w-2 rounded-full ${color === 'blue' ? 'bg-circuit' : 'bg-spark'}`} style={{ left: `${left}%`, top: `${top}%`, boxShadow: `0 0 12px ${color === 'blue' ? 'var(--circuit)' : 'var(--spark-glow)'}` }} />)}</div><SparkMotes enabled={capable} fieldRef={fieldRef} />
+      <svg className="absolute inset-0 z-10 h-full w-full pointer-events-none opacity-70" aria-hidden="true" viewBox="0 0 1440 780" preserveAspectRatio="none"><path className="electric-trace-reverse" d="M0 170 H150 L210 220 H415 L470 155 H650 L710 205 H920 L980 145 H1190 L1250 195 H1440" fill="none" stroke="var(--circuit)" strokeWidth="1.25" strokeDasharray="10 38" /><path className="electric-trace-reverse" d="M0 110 H95 L145 150 H330 L390 95 H590 L640 145 H830 L890 90 H1080 L1140 135 H1440" fill="none" stroke="var(--spark)" strokeWidth="1.15" strokeDasharray="8 48" /><path className="electric-trace" d="M0 590 H190 L240 540 H440 L490 600 H710 L760 530 H970 L1020 570 H1240 L1300 505 H1440" fill="none" stroke="var(--circuit)" strokeWidth="1.4" strokeDasharray="10 38" /><path className="electric-trace" d="M0 650 H130 L205 610 H390 L450 670 H670 L725 620 H920 L970 680 H1170 L1230 610 H1440" fill="none" stroke="var(--spark)" strokeWidth="1.3" strokeDasharray="8 48" /></svg><div className="absolute inset-0 z-0 pointer-events-none">{nodes.map(([left, top, color], index) => <span key={`${left}-${top}`} ref={el => { nodeRefs.current[index] = el; }} className={`absolute h-2 w-2 rounded-full ${color === 'blue' ? 'bg-circuit' : 'bg-spark'}`} style={{ left: `${left}%`, top: `${top}%`, boxShadow: `0 0 12px ${color === 'blue' ? 'var(--circuit)' : 'var(--spark-glow)'}` }} />)}</div><SparkMotes enabled={capable && initAnimations} fieldRef={fieldRef} />
       <div className="relative z-20 mx-auto grid w-full max-w-7xl items-center gap-10 lg:grid-cols-[1.05fr_.95fr]"><div data-depth className="max-w-3xl" style={{ transformStyle: 'preserve-3d' }}><p data-hero-copy className="mb-5 font-mono text-sm text-circuit">LPU SCA / Brainstorm Club</p><h1 className="font-heading text-5xl font-bold leading-[.9] tracking-tight md:text-7xl"><span data-hero-line className="block">Where academia</span><span data-hero-line className="block">meets <span className="text-transparent bg-clip-text bg-gradient-to-r from-circuit to-spark">innovation.</span></span></h1><p data-hero-copy className="mt-7 max-w-xl text-lg leading-relaxed text-ink-soft md:text-xl">A student-led technology community at Lovely Professional University where students think, build, connect and turn ideas into action.</p><div data-hero-copy className="mt-9 flex flex-wrap gap-3"><Link to="/events" className="rounded-[10px] bg-spark px-7 py-3.5 font-medium text-ink transition-transform hover:-translate-y-0.5">Explore Events</Link><Link to="/join-us" className="rounded-[10px] border border-circuit bg-paper px-7 py-3.5 font-medium text-ink transition-colors hover:bg-paper-dim">Join the community</Link></div></div><div ref={showcaseRef} data-depth className="relative mx-auto hidden h-[570px] w-full max-w-xl overflow-hidden rounded-[10px] border border-border bg-paper-dim lg:block" style={{ transformStyle: 'preserve-3d' }} aria-label="Club activity showcase">{showcaseImages.map((item, index) => <img key={item.src} src={item.src} alt="Students collaborating at a Brainstorm Club event" className="absolute inset-0 h-full w-full object-cover transition-all duration-1000" style={{ opacity: slide === index ? 1 : 0, transform: slide === index ? 'scale(1)' : 'scale(1.04)' }} />)}<div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_45%,var(--ink)_100%)] opacity-70" /><div className="absolute inset-x-6 top-6 flex items-start justify-between"><span className="rounded bg-paper px-3 py-2 font-mono text-xs text-ink">{showcaseImages[slide].label}</span><div className="flex gap-1.5">{showcaseImages.map((item, index) => <span key={item.label} className={`h-0.5 w-7 ${index <= slide ? 'bg-spark' : 'bg-paper'}`} />)}</div></div><div className="absolute bottom-7 left-7"><p className="font-mono text-xs text-spark">{showcaseImages[slide].category}</p><h2 className="mt-2 font-heading text-4xl font-bold text-paper">{showcaseImages[slide].title}</h2></div></div></div>
     </section>
     <section ref={statsRef} className="border-y border-border bg-paper px-6 py-14 md:px-12 lg:px-20"><div className="mx-auto grid max-w-7xl grid-cols-2 gap-9 md:grid-cols-4">{[['42','Events'],['18','Ideas'],['6','Teams'],['120','Members','+']].map(([number,label,suffix]) => <div key={label}><div data-stat-value={number} data-suffix={suffix || ''} className="font-mono text-4xl font-semibold text-ink md:text-5xl">{number}{suffix}</div><div className="mt-2 text-sm text-ink-soft">{label}</div></div>)}</div></section>

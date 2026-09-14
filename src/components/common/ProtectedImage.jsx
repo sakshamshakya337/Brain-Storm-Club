@@ -23,6 +23,7 @@ export default function ProtectedImage({
   className = '',
   style = {},
   fallback = null,
+  priority = false, // If true, eager loads the image
 }) {
   const [status, setStatus] = useState('loading'); // 'loading' | 'loaded' | 'error'
   const [objectUrl, setObjectUrl] = useState(null);
@@ -140,6 +141,8 @@ export default function ProtectedImage({
       draggable="false"
       onContextMenu={preventInteraction}
       onDragStart={preventInteraction}
+      loading={priority ? "eager" : "lazy"}
+      decoding="async"
       className={`select-none pointer-events-none ${className}`}
       style={{ WebkitUserSelect: 'none', msUserSelect: 'none', userSelect: 'none', ...style }}
     />

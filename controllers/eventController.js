@@ -466,15 +466,15 @@ export const getEventEntriesAdmin = async (req, res) => {
       .skip(skip)
       .limit(parseInt(limit));
 
-    // Stats
-    const statsQuery = { eventId };
-    const allEntries = await EventRegistration.find(statsQuery).select('status paymentStatus');
-    const stats = {
-      total: allEntries.length,
-      confirmed: allEntries.filter(e => e.status === 'Registered' || e.status === 'Participated' || e.status === 'Completed').length,
-      pending: allEntries.filter(e => e.paymentStatus === 'pending').length,
-      cancelled: allEntries.filter(e => e.status === 'No-show').length
-    };
+    // Efficient stats calculation using countDocuments
+    const [statsTotal, confirmed, pending, cancelled] = await Promise.all([
+      EventRegistration.countDocuments({ eventId }),
+      EventRegistration.countDocuments({ eventId, status: { $in: ['Registered', 'Participated', 'Completed'] } }),
+      EventRegistration.countDocuments({ eventId, paymentStatus: 'pending' }),
+      EventRegistration.countDocuments({ eventId, status: 'No-show' })
+    ]);
+    
+    const stats = { total: statsTotal, confirmed, pending, cancelled };
 
     res.status(200).json({
       status: 'success',
