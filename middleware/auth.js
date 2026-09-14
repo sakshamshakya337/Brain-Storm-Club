@@ -29,6 +29,10 @@ export const protectAdmin = async (req, res, next) => {
       return res.status(403).json({ message: 'This admin account has been deactivated.' });
     }
 
+    if (admin.role === 'event_admin' && admin.expiresAt && new Date() > admin.expiresAt) {
+      return res.status(403).json({ message: 'This event admin account has expired. Please contact the administrator.' });
+    }
+
     // Grant access
     req.admin = admin;
     next();
@@ -66,4 +70,24 @@ export const optionalAdminAuth = async (req, res, next) => {
     // If token is invalid/expired, continue without req.admin
     next();
   }
+};
+
+export const requireGlobalAdmin = (req, res, next) => {
+  if (req.admin && req.admin.role === 'event_admin') {
+    return res.status(403).json({ message: 'You do not have permission to access this global admin resource.' });
+  }
+  next();
+};
+
+export const requireEventAccess = (req, res, next) => {
+  if (!req.admin) {
+    return res.status(401).json({ message: 'Not authorized.' });
+  }
+  if (req.admin.role === 'event_admin') {
+    const requestedEventId = req.params.id || req.body.eventId;
+    if (!requestedEventId || req.admin.assignedEventId?.toString() !== requestedEventId?.toString()) {
+      return res.status(403).json({ message: 'You do not have permission to access this event.' });
+    }
+  }
+  next();
 };

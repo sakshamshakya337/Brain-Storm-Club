@@ -29,10 +29,8 @@ export const connectDB = async () => {
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
-      maxPoolSize: 5,
-      // Setting minPoolSize to 0 allows connections to close when idle,
-      // which is critical for Vercel/Serverless so we don't exhaust the pool.
-      minPoolSize: 0,
+      maxPoolSize: 2, // Conservative limit for Serverless environments. Each function uses 1 connection concurrently, so 2 is safe and prevents the connection limit alert from triggering.
+      minPoolSize: 0, // Allows the pool to shrink to 0 when idle.
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 20000,
       connectTimeoutMS: 5000,

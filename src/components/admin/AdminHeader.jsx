@@ -1,4 +1,4 @@
-import { Menu, Bell, User, ChevronDown } from 'lucide-react';
+import { Menu, Bell, User, ChevronDown, Camera } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -42,7 +42,16 @@ export default function AdminHeader({ setIsOpen }) {
         <h1 className="text-xl font-heading font-bold text-slate-900 hidden sm:block tracking-tight">Dashboard</h1>
       </div>
       
-      <div className="flex items-center gap-4 lg:gap-6">
+      <div className="flex items-center gap-3 lg:gap-6">
+        {admin?.role === 'event_admin' && admin?.assignedEventId && (
+          <Link 
+            to={`/control/events/${admin.assignedEventId}/scanner`} 
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-md text-xs font-bold uppercase tracking-wider font-mono shadow-sm hover:bg-indigo-700 transition-colors"
+          >
+            <Camera size={14} />
+            <span className="hidden sm:inline">Scan QR</span>
+          </Link>
+        )}
         <Link to="/control/notifications" className="relative p-2 text-slate-400 hover:text-slate-600 transition-colors rounded-full hover:bg-slate-50">
           <Bell size={20} />
           {unreadCount > 0 && (

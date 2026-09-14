@@ -126,26 +126,31 @@ export default function EventScanner() {
       
       const data = await res.json();
       
-      if (res.ok) {
+      if (!res.ok) {
+        setScanResult({ type: 'error', title: 'Invalid Pass', message: data.message || 'Pass verification failed.' });
+      } else {
         if (!data.alreadyParticipated) {
           try { beepAudio.current.play(); } catch(e) {}
         }
         setScanResult(data);
-      } else {
-        setCameraState('error');
-        setErrorMsg(data.message || 'Failed to scan QR code.');
       }
     } catch (err) {
-      setCameraState('error');
-      setErrorMsg('Network error occurred while scanning.');
+      setScanResult({ type: 'error', title: 'System Error', message: err.message });
     } finally {
-      isProcessingRef.current = false;
+      setTimeout(() => { isProcessingRef.current = false; }, 2000);
     }
   };
 
-  const startScannerFlow = async (deviceIdToUse = null) => {
+  const startScanner = async (deviceIdToUse = null) => {
+    if (!id || id === 'undefined') {
+      setCameraState('error');
+      setErrorMsg('No event is assigned to this account. Cannot start scanner.');
+      return;
+    }
+
     stopCameraResources();
     setCameraState('starting');
+    setScanResult(null);
     setErrorMsg('');
     
     const stream = await acquireCameraStream(deviceIdToUse);
@@ -248,6 +253,21 @@ export default function EventScanner() {
     const newId = e.target.value;
     startScannerFlow(newId);
   };
+
+  if (!id || id === 'undefined') {
+    return (
+      <div className="min-h-screen bg-[var(--paper)] py-8 px-4 font-body">
+        <div className="flex flex-col items-center justify-center min-h-[400px] text-center max-w-md mx-auto p-6">
+          <XCircle className="w-16 h-16 text-slate-300 mb-4" />
+          <h2 className="text-xl font-heading font-bold text-slate-800 mb-2">No Event Assigned</h2>
+          <p className="text-slate-500 text-sm">Your Event Admin account is not currently assigned to a valid event. Please contact a full administrator.</p>
+          <Link to="/control/dashboard" className="mt-6 px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors">
+            Return to Dashboard
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[var(--paper)] py-8 px-4 font-body">

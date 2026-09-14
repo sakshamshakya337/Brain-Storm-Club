@@ -35,10 +35,17 @@ export default function AdminLogin() {
       }
 
       const data = await res.json();
-      
       if (!res.ok) throw new Error(data.message || 'Login failed');
       
-      setStep(2);
+      if (data.skipOTP) {
+        localStorage.setItem('admin_auth', 'true');
+        if (data.data && data.data.admin) {
+          localStorage.setItem('admin_data', JSON.stringify(data.data.admin));
+        }
+        navigate('/control/dashboard');
+      } else {
+        setStep(2);
+      }
     } catch (err) {
       setError(err.message);
     } finally {

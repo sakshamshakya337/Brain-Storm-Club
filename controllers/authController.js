@@ -23,6 +23,23 @@ const logSecurityEvent = async (req, emailAttempted, adminId, action, descriptio
   }
 };
 
+export const getMe = async (req, res) => {
+  if (!req.admin) return res.status(401).json({ message: 'Not authenticated' });
+  res.status(200).json({
+    success: true,
+    data: {
+      admin: {
+        id: req.admin._id,
+        email: req.admin.email,
+        role: req.admin.role,
+        assignedEventId: req.admin.assignedEventId,
+        expiresAt: req.admin.expiresAt,
+        name: req.admin.name
+      }
+    }
+  });
+};
+
 export const requestOTP = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -47,21 +64,54 @@ export const requestOTP = async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // 2. Generate secure 6 digit OTP
+    // 2. Skip OTP for event_admin
+    if (admin.role === 'event_admin') {
+      await logSecurityEvent(req, email, admin._id, 'LOGIN_SUCCESS', 'Successfully logged in (Event Admin)', 'SUCCESS');
+
+      const token = jwt.sign(
+        { id: admin._id, role: admin.role },
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.JWT_EXPIRES_IN || '1d' }
+      );
+
+      const cookieOptions = {
+        expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'Strict'
+      };
+
+      res.cookie('jwt', token, cookieOptions);
+
+      return res.status(200).json({
+        success: true,
+        skipOTP: true,
+        data: {
+          admin: {
+            id: admin._id,
+            email: admin.email,
+            role: admin.role,
+            assignedEventId: admin.assignedEventId
+          }
+        }
+      });
+    }
+
+    // 3. Generate secure 6 digit OTP
     const rawOtp = crypto.randomInt(100000, 1000000).toString();
     const expiresAt = new Date(Date.now() + (process.env.OTP_EXPIRES_MIN || 5) * 60000);
 
-    // 3. Hash OTP
+    // 4. Hash OTP
     const otpHash = crypto.createHash('sha256').update(rawOtp).digest('hex');
 
-    // 4. Save securely
+    // 5. Save securely
     admin.otpHash = otpHash;
     admin.otpExpiresAt = expiresAt;
     admin.otpAttempts = 0;
     admin.otpCreatedAt = new Date();
     await admin.save();
 
-    // 5. Send real email
+    // 6. Send real email
     try {
       await sendAdminLoginOTP(admin.email, rawOtp);
       await logSecurityEvent(req, email, admin._id, 'LOGIN_OTP_SENT', 'OTP sent for login', 'INFO');
@@ -71,7 +121,7 @@ export const requestOTP = async (req, res) => {
       });
     }
 
-    // 6. Return safe generic response
+    // 7. Return safe generic response
     res.status(200).json({ 
       success: true,
       message: 'If the administrator account exists, an OTP has been sent to the registered email address.' 
@@ -166,7 +216,8 @@ export const verifyOTP = async (req, res) => {
         admin: {
           id: admin._id,
           email: admin.email,
-          role: admin.role
+          role: admin.role,
+          assignedEventId: admin.assignedEventId
         }
       }
     });

@@ -1,5 +1,5 @@
 import express from 'express';
-import { protectAdmin } from '../middleware/auth.js';
+import { protectAdmin, requireGlobalAdmin, requireEventAccess } from '../middleware/auth.js';
 import { uploadImage, processAndProtectImage } from '../middleware/upload.js';
 import { 
   getDashboardStats, 
@@ -53,41 +53,59 @@ import {
 import { getSettings, updateSettings } from '../controllers/settingsController.js';
 import { getNotifications, markAsRead, markAllAsRead } from '../controllers/notificationController.js';
 
+import {
+  createEventAdmin,
+  getEventAdmins,
+  disableEventAdmin,
+  resetEventAdminPassword,
+  extendEventAdminExpiration
+} from '../controllers/eventAdminController.js';
+
 const router = express.Router();
 
 // Apply auth middleware to ALL admin routes
 router.use(protectAdmin);
 
 // Dashboard
-router.get('/stats', getDashboardStats);
+router.get('/stats', requireGlobalAdmin, getDashboardStats);
 
 // Security Logs
-router.get('/security-logs', getSecurityLogs);
+router.get('/security-logs', requireGlobalAdmin, getSecurityLogs);
+
+// Event Admins
+router.route('/event-admins')
+  .get(requireGlobalAdmin, getEventAdmins)
+  .post(requireGlobalAdmin, createEventAdmin);
+router.patch('/event-admins/:id/disable', requireGlobalAdmin, disableEventAdmin);
+router.patch('/event-admins/:id/reset-password', requireGlobalAdmin, resetEventAdminPassword);
+router.patch('/event-admins/:id/extend', requireGlobalAdmin, extendEventAdminExpiration);
+
 
 // Join Us Requests
 router.route('/join-us')
-  .get(getJoinRequests);
+  .get(requireGlobalAdmin, getJoinRequests);
 router.route('/join-us/:id')
-  .patch(updateJoinRequestStatus)
-  .put(updateJoinRequest)
-  .delete(deleteJoinRequest);
+  .patch(requireGlobalAdmin, updateJoinRequestStatus)
+  .put(requireGlobalAdmin, updateJoinRequest)
+  .delete(requireGlobalAdmin, deleteJoinRequest);
 
 // Teams
 router.route('/teams')
-  .get(getTeams)
-  .post(createTeam);
+  .get(requireGlobalAdmin, getTeams)
+  .post(requireGlobalAdmin, createTeam);
 
 // Contact Queries
 router.route('/contact')
-  .get(getContactQueries);
+  .get(requireGlobalAdmin, getContactQueries);
 router.route('/contact/:id')
-  .patch(updateContactQueryStatus);
-router.post('/contact/:id/reply', replyToContactQuery);
+  .patch(requireGlobalAdmin, updateContactQueryStatus);
+router.post('/contact/:id/reply', requireGlobalAdmin, replyToContactQuery);
 
 // Members
 router.route('/members')
-  .get(getAllMembersAdmin)
+  .get(requireGlobalAdmin, getAllMembersAdmin)
   .post(
+    requireGlobalAdmin,
     uploadImage.single('profileImage'),
     processAndProtectImage('protected'),
     createMember
@@ -95,44 +113,47 @@ router.route('/members')
 
 router.route('/members/:id')
   .patch(
+    requireGlobalAdmin,
     uploadImage.single('profileImage'),
     processAndProtectImage('protected'),
     updateMember
   )
-  .delete(deleteMember);
+  .delete(requireGlobalAdmin, deleteMember);
 
-router.patch('/members/:id/approve', approveMember);
-router.patch('/members/:id/reject', rejectMember);
+router.patch('/members/:id/approve', requireGlobalAdmin, approveMember);
+router.patch('/members/:id/reject', requireGlobalAdmin, rejectMember);
 
 // Events
 router.post(
   '/events/upload-image',
+  requireGlobalAdmin,
   uploadImage.single('image'),
   processAndProtectImage('public'),
   uploadEventImageStandalone
 );
 
 router.route('/events')
-  .get(getAllEventsAdmin)
-  .post(createEvent);
+  .get(requireGlobalAdmin, getAllEventsAdmin)
+  .post(requireGlobalAdmin, createEvent);
 
 router.route('/events/:id')
-  .patch(updateEvent)
-  .delete(deleteEvent);
+  .patch(requireGlobalAdmin, updateEvent)
+  .delete(requireGlobalAdmin, deleteEvent);
 
-router.patch('/events/:id/registration', toggleEventRegistration);
+router.patch('/events/:id/registration', requireGlobalAdmin, toggleEventRegistration);
 
 router.route('/events/:id/entries')
-  .get(getEventEntriesAdmin);
+  .get(requireEventAccess, getEventEntriesAdmin);
 
 router.route('/events/:id/entries/:registrationId')
-  .patch(updateEventEntryStatusAdmin)
-  .delete(deleteEventEntryAdmin);
+  .patch(requireGlobalAdmin, updateEventEntryStatusAdmin)
+  .delete(requireGlobalAdmin, deleteEventEntryAdmin);
 
-router.post('/events/:id/scan', scanEventQR);
+router.post('/events/:id/scan', requireEventAccess, scanEventQR);
 
 router.post(
-  '/events/:id/poster', 
+  '/events/:id/poster',
+  requireGlobalAdmin, 
   uploadImage.single('poster'), 
   processAndProtectImage('public'), // Event posters are meant for public display
   uploadEventPoster
@@ -140,46 +161,49 @@ router.post(
 
 router.post(
   '/events/:id/images',
+  requireGlobalAdmin,
   uploadImage.single('image'),
   processAndProtectImage('public'),
   uploadEventGalleryImage
 );
 
 // Exports
-router.get('/exports', exportData);
+router.get('/exports', requireGlobalAdmin, exportData);
 
 // Links
 router.route('/links')
-  .get(getAdminLinks)
+  .get(requireGlobalAdmin, getAdminLinks)
   .post(
+    requireGlobalAdmin,
     uploadImage.single('customIcon'),
     processAndProtectImage('public'), // Link icons are public
     createLink
   );
-router.patch('/links/reorder', reorderLinks);
+router.patch('/links/reorder', requireGlobalAdmin, reorderLinks);
 router.route('/links/:id')
   .patch(
+    requireGlobalAdmin,
     uploadImage.single('customIcon'),
     processAndProtectImage('public'),
     updateLink
   )
-  .delete(deleteLink);
+  .delete(requireGlobalAdmin, deleteLink);
 
 
 // Settings
 router.route('/settings')
-  .get(getSettings)
-  .put(updateSettings);
+  .get(requireGlobalAdmin, getSettings)
+  .put(requireGlobalAdmin, updateSettings);
 
 // Notifications
 router.route('/notifications')
-  .get(getNotifications);
-router.patch('/notifications/read-all', markAllAsRead);
-router.patch('/notifications/:id/read', markAsRead);
+  .get(requireGlobalAdmin, getNotifications);
+router.patch('/notifications/read-all', requireGlobalAdmin, markAllAsRead);
+router.patch('/notifications/:id/read', requireGlobalAdmin, markAsRead);
 
 // Ideas
-router.route('/ideas').get(getIdeas);
-router.route('/ideas/:id').get(getIdeaById).patch(updateIdeaStatus).delete(deleteIdea);
-router.route('/ideas/:id/pdf').get(getIdeaPdf);
+router.route('/ideas').get(requireGlobalAdmin, getIdeas);
+router.route('/ideas/:id').get(requireGlobalAdmin, getIdeaById).patch(requireGlobalAdmin, updateIdeaStatus).delete(requireGlobalAdmin, deleteIdea);
+router.route('/ideas/:id/pdf').get(requireGlobalAdmin, getIdeaPdf);
 
 export default router;

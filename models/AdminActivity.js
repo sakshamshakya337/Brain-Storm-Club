@@ -46,7 +46,7 @@ const adminActivitySchema = new mongoose.Schema({
   }
 });
 
-// Index for fetching recent activity efficiently
-adminActivitySchema.index({ createdAt: -1 });
+// Index for fetching recent activity efficiently and auto-deleting after 30 days
+adminActivitySchema.index({ createdAt: -1 }, { expireAfterSeconds: 30 * 24 * 60 * 60 });
 
 export default mongoose.models.AdminActivity || mongoose.model('AdminActivity', adminActivitySchema);

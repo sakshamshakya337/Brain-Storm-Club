@@ -42,6 +42,7 @@ import AdminLinks from './pages/admin/AdminLinks';
 import AdminSettings from './pages/admin/AdminSettings';
 import AdminNotifications from './pages/admin/AdminNotifications';
 import AdminMemberRegistration from './pages/admin/AdminMemberRegistration';
+import AdminEventAdmins from './pages/admin/AdminEventAdmins';
 import AdminLayout from './components/admin/AdminLayout';
 
 import Preloader from './components/layout/Preloader';
@@ -175,6 +176,7 @@ function AppContent() {
               <Route path="/control/settings" element={<AdminSettings />} />
               <Route path="/control/notifications" element={<AdminNotifications />} />
               <Route path="/control/member-registration" element={<AdminMemberRegistration />} />
+              <Route path="/control/event-admins" element={<AdminEventAdmins />} />
             </Route>
 
             {/* 404 Catch-All Route */}

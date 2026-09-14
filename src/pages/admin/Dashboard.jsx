@@ -23,9 +23,27 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const [adminRole, setAdminRole] = useState(() => {
+    try {
+      const data = localStorage.getItem('admin_data');
+      return data ? JSON.parse(data).role?.toLowerCase() || 'admin' : 'admin';
+    } catch { return 'admin'; }
+  });
+  
+  const [adminData, setAdminData] = useState(() => {
+    try {
+      const data = localStorage.getItem('admin_data');
+      return data ? JSON.parse(data) : null;
+    } catch { return null; }
+  });
+
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
+    if (adminRole !== 'event_admin') {
+      fetchDashboardData();
+    } else {
+      setLoading(false);
+    }
+  }, [adminRole]);
 
   const fetchDashboardData = async () => {
     try {
@@ -121,10 +139,34 @@ export default function Dashboard() {
       {/* Page Header */}
       <div>
         <p className="text-[10px] font-mono font-bold text-brand-primary uppercase tracking-[0.2em] mb-2">Dashboard</p>
-        <h2 className="text-3xl font-heading font-bold text-slate-900 tracking-tight">Welcome back, Administrator.</h2>
-        <p className="text-sm font-body text-slate-500 mt-2">Here's an overview of what's happening across Brainstorm.</p>
+        <h2 className="text-3xl font-heading font-bold text-slate-900 tracking-tight">
+          Welcome back, {adminData?.name || 'Administrator'}.
+        </h2>
+        <p className="text-sm font-body text-slate-500 mt-2">
+          {adminRole === 'event_admin' 
+            ? "You are logged in as an Event Admin. Use the sidebar to manage your assigned event's scanner and registrations."
+            : "Here's an overview of what's happening across Brainstorm."}
+        </p>
       </div>
 
+      {adminRole === 'event_admin' ? (
+        <div className="bg-white rounded-xl border border-slate-200 p-8 shadow-sm text-center">
+          <CalendarDays className="mx-auto h-16 w-16 text-brand-primary/20 mb-4" />
+          <h3 className="text-xl font-heading font-bold text-slate-900 mb-2">Event Operations Mode</h3>
+          <p className="text-slate-500 max-w-md mx-auto mb-6">
+            Your account has been granted temporary access to manage a specific event. Select <strong>Event Scanner</strong> to scan QR passes, or <strong>Registrations</strong> to view the entry list.
+          </p>
+          <div className="flex justify-center gap-4">
+            <Link to={`/control/events/${adminData?.assignedEventId}/scanner`} className="px-6 py-2.5 bg-brand-primary text-white font-medium rounded-lg hover:bg-brand-primary/90 transition-colors shadow-sm">
+              Open Scanner
+            </Link>
+            <Link to={`/control/events/${adminData?.assignedEventId}/entries`} className="px-6 py-2.5 bg-white text-slate-700 border border-slate-200 font-medium rounded-lg hover:bg-slate-50 transition-colors shadow-sm">
+              View Registrations
+            </Link>
+          </div>
+        </div>
+      ) : (
+      <>
       {/* Stats Grid */}
       <div>
         <h3 className="text-[11px] font-mono font-bold uppercase tracking-widest text-slate-400 mb-4">Overview</h3>
@@ -366,6 +408,8 @@ export default function Dashboard() {
         </div>
 
       </div>
+      </>
+      )}
     </div>
   );
 }

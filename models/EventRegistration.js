@@ -48,8 +48,10 @@ const eventRegistrationSchema = new mongoose.Schema({
   
   // Registration QR Token for scanning attendance
   qrToken: { type: String, unique: true, sparse: true, index: true },
+  
+  // Audit details
   participatedAt: { type: Date },
-  participatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  participatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' },
 
   // Legacy fields to maintain backward compatibility for older entries that don't have a 'leader' object:
   registrationNumber: { type: String, trim: true, uppercase: true },

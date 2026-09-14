@@ -37,18 +37,31 @@ export default function EventEntries() {
   
   const [sortColumns, setSortColumns] = useState([]);
   const [selectedRows, setSelectedRows] = useState(new Set());
+  
+  const [adminRole, setAdminRole] = useState('admin');
 
   useEffect(() => {
-    fetchEntries();
+    try {
+      const data = localStorage.getItem('admin_data');
+      if (data) {
+        const parsed = JSON.parse(data);
+        if (parsed.role) setAdminRole(parsed.role);
+      }
+    } catch(e) {}
+    if (id && id !== 'undefined') {
+      fetchEntries();
+    }
   }, [id, pagination.page, statusFilter]);
 
   // Debounced search
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (pagination.page !== 1) {
-        setPagination(prev => ({ ...prev, page: 1 }));
-      } else {
-        fetchEntries();
+      if (id && id !== 'undefined') {
+        if (pagination.page !== 1) {
+          setPagination(prev => ({ ...prev, page: 1 }));
+        } else {
+          fetchEntries();
+        }
       }
     }, 500);
     return () => clearTimeout(timer);
@@ -355,20 +368,22 @@ export default function EventEntries() {
         width: 140,
         sortable: true,
         renderCell({ row }) {
-          if (row.type === 'member') return null;
+          if (adminRole === 'event_admin') {
+            return (
+              <div className="h-full w-full p-1 flex items-center justify-center">
+                <span className={cn("px-2 py-1 text-[10px] uppercase font-bold tracking-wider rounded-md border", getStatusColor(row.paymentStatus || 'pending'))}>
+                  {row.paymentStatus || 'pending'}
+                </span>
+              </div>
+            );
+          }
           return (
             <div className="h-full w-full p-1 flex items-center justify-center">
               <select 
                 value={row.paymentStatus || 'pending'}
                 onChange={(e) => {
                   const val = e.target.value;
-                  // Immediately send update to backend
                   handleUpdateStatus(row._id, 'paymentStatus', val);
-                  // Update local state is handled implicitly by gridRows recalculation?
-                  // Wait, actually, react-data-grid doesn't provide onRowChange in renderCell in a way that automatically commits if we don't return it.
-                  // But wait, our entries are loaded from state. handleUpdateStatus will update the backend, and then re-fetch or we should update local state!
-                  // Let's check handleUpdateStatus to see if it updates local state. 
-                  // If we don't have onRowChange, we can just rely on handleUpdateStatus updating local state!
                 }}
                 className={cn("w-full h-full px-2 py-1 text-xs font-medium rounded-md border outline-none cursor-pointer", getStatusColor(row.paymentStatus || 'pending'))}
               >
@@ -390,6 +405,15 @@ export default function EventEntries() {
         sortable: true,
         renderCell({ row }) {
           if (row.type === 'member') return null;
+          if (adminRole === 'event_admin') {
+            return (
+              <div className="h-full w-full p-1 flex items-center justify-center">
+                <span className={cn("px-2 py-1 text-[10px] uppercase font-bold tracking-wider rounded-md border", getStatusColor(row.status))} >
+                  {row.status}
+                </span>
+              </div>
+            );
+          }
           return (
             <div className="h-full w-full p-1 flex items-center justify-center">
               <select 
@@ -595,7 +619,7 @@ export default function EventEntries() {
             </div>
           ) : (
             <div className="flex flex-col h-full bg-white relative">
-              {selectedRows.size > 0 && (
+              {selectedRows.size > 0 && adminRole !== 'event_admin' && (
                 <div className="absolute top-0 left-0 right-0 z-20 bg-indigo-50 border-b border-indigo-100 p-3 flex items-center justify-between animate-in slide-in-from-top-2">
                   <div className="text-sm font-medium text-indigo-800">
                     {selectedRows.size} row{selectedRows.size > 1 ? 's' : ''} selected
@@ -798,9 +822,13 @@ export default function EventEntries() {
             </div>
 
             <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center">
-              <button onClick={() => handleDelete(selectedEntry._id)} className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium transition-colors">
-                <Trash2 size={16} /> Delete
-              </button>
+              {adminRole !== 'event_admin' ? (
+                <button onClick={() => handleDelete(selectedEntry._id)} className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium transition-colors">
+                  <Trash2 size={16} /> Delete
+                </button>
+              ) : (
+                <div></div>
+              )}
               <button onClick={() => setDetailsModalOpen(false)} className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors shadow-sm">
                 Close
               </button>

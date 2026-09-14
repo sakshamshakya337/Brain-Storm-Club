@@ -18,9 +18,14 @@ import { cn } from '../../lib/utils';
 
 export default function Sidebar({ isOpen, setIsOpen }) {
   const navigate = useNavigate();
-  const [admin, setAdmin] = useState(null);
+  const [admin, setAdmin] = useState(() => {
+    try {
+      const data = localStorage.getItem('admin_data');
+      return data ? JSON.parse(data) : null;
+    } catch { return null; }
+  });
 
-  const navGroups = [
+  const baseNavGroups = [
     {
       title: 'MAIN',
       items: [
@@ -34,6 +39,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
         { name: 'Join Requests', path: '/control/join-us', icon: UserPlus },
         { name: 'Members', path: '/control/members', icon: Users },
         { name: 'Events', path: '/control/events', icon: CalendarDays },
+        { name: 'Event Admins', path: '/control/event-admins', icon: Users },
         { name: 'Submit Ideas', path: '/control/ideas', icon: Lightbulb },
         { name: 'Contact Queries', path: '/control/contact', icon: MessageSquare },
         { name: 'Links', path: '/control/links', icon: LinkIcon },
@@ -53,13 +59,48 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     }
   ];
 
-  useEffect(() => {
-    const data = localStorage.getItem('admin_data');
-    if (data) {
-      try {
-        setAdmin(JSON.parse(data));
-      } catch (e) {}
+  const [navGroups, setNavGroups] = useState(() => {
+    if (admin && admin.role && admin.role.toLowerCase() === 'event_admin') {
+      return [
+        {
+          title: 'EVENT CONTROLS',
+          items: [
+            { name: 'Dashboard', path: '/control/dashboard', icon: LayoutDashboard },
+            { name: 'Event Scanner', path: `/control/events/${admin.assignedEventId}/scanner`, icon: CalendarDays },
+            { name: 'Registrations', path: `/control/events/${admin.assignedEventId}/entries`, icon: Users },
+          ]
+        }
+      ];
     }
+    return baseNavGroups;
+  });
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      try {
+        const data = localStorage.getItem('admin_data');
+        if (data) {
+          const adminData = JSON.parse(data);
+          setAdmin(adminData);
+          if (adminData.role && adminData.role.toLowerCase() === 'event_admin') {
+            setNavGroups([
+              {
+                title: 'EVENT CONTROLS',
+                items: [
+                  { name: 'Dashboard', path: '/control/dashboard', icon: LayoutDashboard },
+                  { name: 'Event Scanner', path: `/control/events/${adminData.assignedEventId}/scanner`, icon: CalendarDays },
+                  { name: 'Registrations', path: `/control/events/${adminData.assignedEventId}/entries`, icon: Users },
+                ]
+              }
+            ]);
+          } else {
+            setNavGroups(baseNavGroups);
+          }
+        }
+      } catch (e) {}
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const handleLogout = async () => {

@@ -39,10 +39,29 @@ export const processAndProtectImage = (visibility = 'protected') => async (req, 
   };
 
   try {
-    // 1. Resize to max 1200×1200, convert to WebP at 80% quality
+    let buffer = req.file.buffer;
+
+    // Detect and decode HEIC if needed
+    const header = buffer.toString('hex', 0, 12).toLowerCase();
+    const isHeic = buffer.toString('utf8', 4, 12).includes('ftypmif1') || 
+                   buffer.toString('utf8', 4, 12).includes('ftypheic') ||
+                   buffer.toString('utf8', 4, 12).includes('ftypheix');
+
+    if (isHeic) {
+      try {
+        const { data, width, height } = await heicDecode({ buffer });
+        buffer = await sharp(data, {
+          raw: { width, height, channels: 4 }
+        }).jpeg().toBuffer();
+      } catch (err) {
+        return sendError(500, 'Failed to process HEIC image format. Please try converting to JPG/PNG.');
+      }
+    }
+
+    // 1. Resize to max 1200x1200, convert to WebP at 80% quality
     let processedBuffer;
     try {
-      processedBuffer = await sharp(req.file.buffer)
+      processedBuffer = await sharp(buffer)
         .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
         .toFormat('webp')
         .webp({ quality: 80 })

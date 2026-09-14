@@ -577,8 +577,8 @@ export const scanEventQR = async (req, res) => {
 
     registration.status = 'Participated';
     registration.participatedAt = new Date();
-    if (req.user && req.user._id) {
-      registration.participatedBy = req.user._id;
+    if (req.admin && req.admin._id) {
+      registration.participatedBy = req.admin._id;
     }
     
     await registration.save();
