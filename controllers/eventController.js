@@ -117,6 +117,26 @@ const processEventPayload = async (body) => {
     }
   }
 
+  if (payload.dateStatus && !['confirmed', 'tentative'].includes(payload.dateStatus)) {
+    throw new Error('Invalid dateStatus. Allowed values are "confirmed" or "tentative".');
+  }
+
+  if (payload.paymentRequired) {
+    if (payload.paymentAppliesTo && !['participant', 'team'].includes(payload.paymentAppliesTo)) {
+      throw new Error('Invalid paymentAppliesTo. Allowed values are "participant" or "team".');
+    }
+    if (payload.paymentWarning !== undefined) {
+      payload.paymentWarning = String(payload.paymentWarning).trim();
+      if (payload.paymentWarning.length > 500) {
+        throw new Error('Payment warning exceeds maximum length of 500 characters.');
+      }
+    }
+  } else {
+    // If payment not required, we can clear these out just to be safe, though not strictly necessary.
+    payload.paymentAppliesTo = 'participant';
+    payload.paymentWarning = '';
+  }
+
   return payload;
 };
 

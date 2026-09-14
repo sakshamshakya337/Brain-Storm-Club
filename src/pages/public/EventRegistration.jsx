@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowRight, ArrowLeft, CheckCircle2, AlertCircle, Calendar, MapPin, Clock, Upload, Trash2, Plus } from 'lucide-react';
+import { ArrowRight, ArrowLeft, CheckCircle2, AlertCircle, AlertTriangle, Calendar, MapPin, Clock, Upload, Trash2, Plus } from 'lucide-react';
 import Footer from '../../components/layout/Footer';
 import EventStatus from '../../components/events/EventStatus';
 import ProtectedImage from '../../components/common/ProtectedImage';
 import { validateRegistrationNumber, validatePhone, validateEmail, validateName, validateTransactionId } from '../../utils/validation';
 import { generateEventPass } from '../../utils/pdfGenerator';
+import { formatEventDate } from '../../lib/utils';
 
 const FIELD_CLASS = "w-full bg-[var(--paper-dim)] border border-[var(--border)] px-4 py-3 font-body text-sm text-[var(--ink)] placeholder-[var(--ink-soft)] focus:outline-none focus:border-[var(--circuit)] transition-colors";
 const LABEL_CLASS = "block font-mono text-[10px] font-bold tracking-[0.25em] uppercase text-[var(--ink)] mb-2";
@@ -222,7 +223,7 @@ export default function EventRegistration() {
     if (!confirmedRegistration) return;
     setIsGeneratingPdf(true);
     try {
-      const pdfBytes = await generateEventPass(confirmedRegistration, event.title);
+      const pdfBytes = await generateEventPass(confirmedRegistration, event.title, formatEventDate(event), event.paymentRequired, event.paymentAppliesTo);
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -303,7 +304,7 @@ export default function EventRegistration() {
               </p>
             </div>
             <div className="flex flex-wrap gap-4 md:flex-col md:items-end font-mono text-[10px] tracking-widest uppercase text-[var(--ink-soft)]">
-              {event.date && <span className="flex items-center gap-1.5"><Calendar size={11} className="text-[var(--circuit)]" />{new Date(event.date).toLocaleDateString()}</span>}
+              {event.date && <span className="flex items-center gap-1.5"><Calendar size={11} className="text-[var(--circuit)]" />{formatEventDate(event)}</span>}
               {event.venue && <span className="flex items-center gap-1.5"><MapPin size={11} className="text-[var(--circuit)]" />{event.venue}</span>}
             </div>
           </div>
@@ -555,6 +556,24 @@ export default function EventRegistration() {
                       </div>
                     )}
 
+                    {/* Important Payment Notice */}
+                    {event.paymentRequired && (
+                      <div className="mb-6 p-5 border-2 border-red-500/40 bg-red-50/50 dark:bg-red-950/20 rounded-none relative overflow-hidden group">
+                        <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-red-500" />
+                        <div className="flex items-start gap-4 ml-1">
+                          <AlertTriangle className="text-red-500 flex-shrink-0 mt-0.5" size={24} />
+                          <div>
+                            <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-red-600 dark:text-red-400 mb-1.5">Important Notice</div>
+                            <div className="font-body text-base md:text-[15px] font-bold text-[var(--ink)] leading-relaxed" role="note">
+                              {event.paymentWarning || (event.paymentAppliesTo === 'team' 
+                                ? 'IMPORTANT: The registration fee must be paid once per team.' 
+                                : 'IMPORTANT: The registration fee must be paid individually by each participant.')}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Submit */}
                     <div className="pt-6 border-t border-[var(--border)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
                       <p className="font-mono text-[9px] tracking-wider text-[var(--ink-soft)] max-w-sm">
@@ -581,7 +600,7 @@ export default function EventRegistration() {
                   {event.date && (
                     <div>
                       <div className="font-mono text-[9px] tracking-widest uppercase text-[var(--ink-soft)] mb-1">Date</div>
-                      <div className="font-body font-medium text-[var(--ink)] flex items-center gap-1.5"><Calendar size={12} className="text-[var(--circuit)]" />{new Date(event.date).toLocaleDateString()}</div>
+                      <div className="font-body font-medium text-[var(--ink)] flex items-center gap-1.5"><Calendar size={12} className="text-[var(--circuit)]" />{formatEventDate(event)}</div>
                     </div>
                   )}
                   {event.venue && (

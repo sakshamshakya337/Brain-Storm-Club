@@ -6,6 +6,11 @@ const eventSchema = new mongoose.Schema({
   description: { type: String, required: true },
   eventStory: { type: String, default: '' },
   date: { type: Date, required: true },
+  dateStatus: { 
+    type: String, 
+    enum: ['confirmed', 'tentative'], 
+    default: 'confirmed' 
+  },
   venue: { type: String, required: true },
   category: { type: String, required: true }, // e.g. Hackathon, Workshop
   posterId: {
@@ -38,6 +43,12 @@ const eventSchema = new mongoose.Schema({
   allowTeamRegistration: { type: Boolean, default: false },
   maxTeamSize: { type: Number, min: 2, max: 10, default: 5 },
   paymentRequired: { type: Boolean, default: false },
+  paymentAppliesTo: { 
+    type: String, 
+    enum: ['participant', 'team'], 
+    default: 'participant' 
+  },
+  paymentWarning: { type: String, default: '', maxlength: 500 },
   paymentQrImage: { type: mongoose.Schema.Types.ObjectId, ref: 'Image' },
   gallery: [{ type: String }],
   schedule: [{

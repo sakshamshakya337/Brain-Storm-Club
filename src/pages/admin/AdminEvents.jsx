@@ -10,6 +10,7 @@ import ProtectedImage from '../../components/common/ProtectedImage';
 import ReactQuill from 'react-quill';
 import imageCompression from 'browser-image-compression';
 import 'react-quill/dist/quill.snow.css';
+import { formatEventDate } from '../../lib/utils';
 
 function decodeHtmlEntities(html) {
   if (!html) return '';
@@ -36,6 +37,7 @@ export default function AdminEvents() {
     description: '',
     eventStory: '',
     date: '',
+    dateStatus: 'confirmed',
     venue: '',
     category: 'Other',
     status: 'Upcoming',
@@ -44,6 +46,8 @@ export default function AdminEvents() {
     allowTeamRegistration: false,
     maxTeamSize: 5,
     paymentRequired: false,
+    paymentAppliesTo: 'participant',
+    paymentWarning: '',
     paymentQrImage: null
   };
   const [formData, setFormData] = useState(initialFormData);
@@ -94,6 +98,7 @@ export default function AdminEvents() {
       description: event.description || '',
       eventStory: decodeHtmlEntities(event.eventStory || ''),
       date: event.date ? new Date(event.date).toISOString().slice(0, 16) : '',
+      dateStatus: event.dateStatus || 'confirmed',
       venue: event.venue,
       category: event.category || 'Other',
       status: event.status,
@@ -102,6 +107,8 @@ export default function AdminEvents() {
       allowTeamRegistration: event.allowTeamRegistration ?? false,
       maxTeamSize: event.maxTeamSize || 5,
       paymentRequired: event.paymentRequired ?? false,
+      paymentAppliesTo: event.paymentAppliesTo || 'participant',
+      paymentWarning: event.paymentWarning || '',
       paymentQrImage: event.paymentQrImage || null
     });
 
@@ -506,7 +513,7 @@ export default function AdminEvents() {
                     <div className="space-y-2 text-xs text-[var(--ink-soft)]">
                       <div className="flex items-center gap-2">
                         <Clock size={14} className="text-[var(--ink-soft)]" />
-                        <span>{new Date(event.date).toLocaleDateString()} at {new Date(event.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span>{formatEventDate(event)} at {new Date(event.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <MapPin size={14} className="text-[var(--ink-soft)]" />
@@ -591,15 +598,28 @@ export default function AdminEvents() {
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block font-mono text-[10px] font-bold tracking-[0.25em] uppercase text-[var(--ink)] mb-2">Date & Time</label>
-                    <input 
-                      type="datetime-local" 
-                      value={formData.date}
-                      onChange={(e) => setFormData({...formData, date: e.target.value})}
-                      required
-                      className="w-full px-4 py-3 border border-[var(--border)] rounded-none text-sm focus:outline-none focus:border-[var(--circuit)] focus:ring-1 focus:ring-[var(--circuit)] transition-colors"
-                    />
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="flex-1">
+                      <label className="block font-mono text-[10px] font-bold tracking-[0.25em] uppercase text-[var(--ink)] mb-2">Date & Time</label>
+                      <input 
+                        type="datetime-local" 
+                        value={formData.date}
+                        onChange={(e) => setFormData({...formData, date: e.target.value})}
+                        required
+                        className="w-full px-4 py-3 border border-[var(--border)] rounded-none text-sm focus:outline-none focus:border-[var(--circuit)] focus:ring-1 focus:ring-[var(--circuit)] transition-colors"
+                      />
+                    </div>
+                    <div className="w-full sm:w-1/3">
+                      <label className="block font-mono text-[10px] font-bold tracking-[0.25em] uppercase text-[var(--ink)] mb-2">Date Status</label>
+                      <select 
+                        value={formData.dateStatus}
+                        onChange={(e) => setFormData({...formData, dateStatus: e.target.value})}
+                        className="w-full px-4 py-3 border border-[var(--border)] rounded-none text-sm focus:outline-none focus:border-[var(--circuit)] focus:ring-1 focus:ring-[var(--circuit)] transition-colors bg-[var(--paper)]"
+                      >
+                        <option value="confirmed">Confirmed</option>
+                        <option value="tentative">Tentative</option>
+                      </select>
+                    </div>
                   </div>
                   <div>
                     <label className="block font-mono text-[10px] font-bold tracking-[0.25em] uppercase text-[var(--ink)] mb-2">Venue</label>
@@ -775,6 +795,30 @@ export default function AdminEvents() {
                                 <input type="file" accept="image/*" onChange={handleUploadQr} className="hidden" disabled={uploadingQr} />
                               </label>
                             )}
+                            
+                            <div className="mt-4 pt-4 border-t border-[var(--border)]">
+                              <label className="block font-mono text-[10px] font-bold tracking-[0.25em] uppercase text-[var(--ink)] mb-2">Payment Applies To</label>
+                              <select
+                                value={formData.paymentAppliesTo}
+                                onChange={(e) => setFormData({...formData, paymentAppliesTo: e.target.value})}
+                                className="w-full sm:w-1/2 px-4 py-3 border border-[var(--border)] rounded-none text-sm focus:outline-none focus:border-[var(--circuit)] focus:ring-1 focus:ring-[var(--circuit)] transition-colors bg-[var(--paper)]"
+                              >
+                                <option value="participant">Per Participant</option>
+                                <option value="team">Per Team</option>
+                              </select>
+                            </div>
+                            
+                            <div className="mt-4">
+                              <label className="block font-mono text-[10px] font-bold tracking-[0.25em] uppercase text-[var(--ink)] mb-2">Payment Warning / Important Notice</label>
+                              <textarea
+                                value={formData.paymentWarning}
+                                onChange={(e) => setFormData({...formData, paymentWarning: e.target.value})}
+                                placeholder={formData.paymentAppliesTo === 'participant' ? "IMPORTANT: The registration fee must be paid individually by each participant." : "IMPORTANT: The registration fee must be paid once per team."}
+                                rows={2}
+                                className="w-full px-4 py-3 border border-[var(--border)] rounded-none text-sm focus:outline-none focus:border-[var(--circuit)] focus:ring-1 focus:ring-[var(--circuit)] transition-colors resize-none"
+                              />
+                              <p className="text-[10px] text-[var(--ink-soft)] mt-1">Leave blank to use the default bolded warning.</p>
+                            </div>
                           </div>
                         )}
                       </div>

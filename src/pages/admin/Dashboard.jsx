@@ -287,7 +287,7 @@ export default function Dashboard() {
                           </span>
                         </td>
                         <td className="px-5 py-4 text-right">
-                          <Link to="/control/join-us" className="text-xs font-heading font-semibold text-brand-primary opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-end gap-1">
+                          <Link to="/control/join-us" className="text-[11px] font-mono font-bold uppercase tracking-wider text-[var(--circuit)] hover:text-[var(--circuit-hover)] transition-colors flex items-center justify-end gap-1">
                             Review <ArrowRight size={12} />
                           </Link>
                         </td>
@@ -337,7 +337,7 @@ export default function Dashboard() {
                     </div>
                     <Link
                       to="/control/join-us"
-                      className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-brand-primary bg-brand-primary/10 hover:bg-brand-primary/20 rounded-lg transition-colors"
+                      className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 text-[10px] font-mono font-bold uppercase tracking-wider text-[var(--circuit)] bg-[var(--circuit)]/10 hover:bg-[var(--circuit)]/20 rounded-none transition-colors"
                     >
                       Review <ArrowRight size={12} />
                     </Link>

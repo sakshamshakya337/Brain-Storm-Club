@@ -6,14 +6,7 @@ import ProtectedImage from '../../components/common/ProtectedImage';
 import Footer from '../../components/layout/Footer';
 import DOMPurify from 'dompurify';
 
-function formatEventDate(dateVal) {
-  if (!dateVal) return '';
-  try {
-    const d = new Date(dateVal);
-    if (isNaN(d.getTime())) return dateVal;
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
-  } catch { return dateVal; }
-}
+import { formatEventDate } from '../../lib/utils';
 
 function decodeHtmlEntities(html) {
   if (!html) return '';
@@ -108,7 +101,7 @@ export default function EventDetail() {
     </div>
   );
 
-  const displayDate = formatEventDate(event.date) || event.date || '';
+  const displayDate = formatEventDate(event, { customFormat: { month: 'short', day: 'numeric', year: 'numeric' }, uppercase: true }) || event.date || '';
   const displayDescription = event.overview || event.description || event.desc || '';
   const isLive = ['Live', 'Ongoing', 'Upcoming'].includes(event.status);
 
@@ -400,7 +393,7 @@ export default function EventDetail() {
                       <span className="font-mono text-[9px] font-bold tracking-[0.2em] uppercase text-[var(--ink-soft)] mb-2">{rel.category}</span>
                       <h3 className="font-heading font-bold text-lg uppercase tracking-tight text-[var(--ink)] group-hover:text-[var(--circuit)] transition-colors line-clamp-2 leading-tight flex-1">{rel.title}</h3>
                       <div className="mt-4 pt-4 border-t border-[var(--border)] flex items-center justify-between">
-                        <span className="font-mono text-[9px] tracking-widest uppercase text-[var(--ink-soft)]">{rel.date}</span>
+                        <span className="font-mono text-[9px] tracking-widest uppercase text-[var(--ink-soft)]">{rel.date ? formatEventDate(rel, { customFormat: { month: 'short', day: 'numeric', year: 'numeric' }, uppercase: true }) : ''}</span>
                         <ArrowUpRight size={14} className="text-[var(--ink-soft)] group-hover:text-[var(--circuit)] transition-colors" />
                       </div>
                     </div>

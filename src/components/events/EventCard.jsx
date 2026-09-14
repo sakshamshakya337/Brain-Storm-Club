@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Calendar } from 'lucide-react';
 import EventStatus from './EventStatus';
 import ProtectedImage from '../common/ProtectedImage';
+import { formatEventDate } from '../../lib/utils';
 
 export default function EventCard({ event }) {
   const cover = event.coverImage || (event.images && event.images.find(img => img.isCover)) || (event.images && event.images[0]);
@@ -68,7 +69,7 @@ export default function EventCard({ event }) {
       {/* Footer Block */}
       <div className="relative z-10 flex flex-col gap-4 border-t border-slate-200 dark:border-slate-800 pt-4 pb-6 px-6 md:px-8 font-mono text-[9px] md:text-[10px] tracking-widest uppercase text-slate-500 dark:text-slate-400">
         <div className="flex justify-between items-center">
-          <span className="flex items-center gap-1.5"><Calendar size={12}/> {event.date || event.year}</span>
+          <span className="flex items-center gap-1.5"><Calendar size={12}/> {event.date ? formatEventDate(event, { customFormat: { month: 'short', day: 'numeric', year: 'numeric' }, uppercase: true }) : event.year}</span>
           <span className={event.registrationOpen ? 'text-emerald-500 dark:text-emerald-400 font-bold' : 'text-slate-400 dark:text-slate-500 font-bold'}>
             {event.registrationOpen ? 'REG OPEN' : 'REG CLOSED'}
           </span>

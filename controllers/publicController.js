@@ -14,7 +14,7 @@ export const getPublicEvents = async (req, res) => {
       .populate('posterId', 'imageId')
       .populate('coverImage.imageId', 'imageId')
       .populate('images.imageId', 'imageId')
-      .select('title slug date venue category status registrationOpen posterId coverImage images')
+      .select('title slug date dateStatus venue category status registrationOpen posterId coverImage images')
       .sort({ date: 1 });
       
     res.status(200).json({ status: 'success', results: events.length, data: { events } });
