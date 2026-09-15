@@ -30,6 +30,7 @@ export const getPublicEventDetails = async (req, res) => {
     const event = await Event.findOne({ slug })
       .populate('posterId', 'imageId')
       .populate('paymentQrImage', 'imageId')
+      .populate('paymentQrCodes.imageId', 'imageId')
       .populate('coverImage.imageId', 'imageId')
       .populate('images.imageId', 'imageId');
     

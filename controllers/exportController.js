@@ -104,6 +104,8 @@ export const exportData = async (req, res) => {
 
         columns = [
           { header: 'Type', key: 'type', width: 12 },
+          { header: 'Team Name', key: 'teamName', width: 20 },
+          { header: 'Size', key: 'teamSize', width: 10 },
           { header: 'Role', key: 'role', width: 12 },
           { header: 'Reg Number', key: 'registrationNumber', width: 15 },
           { header: 'Full Name', key: 'fullName', width: 25 },
@@ -120,8 +122,10 @@ export const exportData = async (req, res) => {
         data = [];
         for (const r of registrations) {
           if (r.registrationType === 'team' || r.leader?.fullName) {
-             data.push({
+              data.push({
                 type: r.registrationType === 'team' ? 'Team' : 'Individual',
+                teamName: r.teamName || '-',
+                teamSize: r.teamSize || 1,
                 role: r.registrationType === 'team' ? 'Leader' : 'Participant',
                 registrationNumber: r.leader?.registrationNumber || r.registrationNumber || '-',
                 fullName: r.leader?.fullName || r.fullName || '-',
@@ -136,11 +140,13 @@ export const exportData = async (req, res) => {
              });
 
              if (r.members && r.members.length > 0) {
-                for (const m of r.members) {
+                for (const [i, m] of r.members.entries()) {
                    data.push({
                       type: 'Team',
-                      role: 'Member',
-                      registrationNumber: m.registrationNumber,
+                      teamName: r.teamName || '-',
+                      teamSize: r.teamSize || 1,
+                      role: `Member ${i+1}`,
+                      registrationNumber: m.registrationNumber || '-',
                       fullName: m.fullName,
                       course: '-',
                       section: '-',

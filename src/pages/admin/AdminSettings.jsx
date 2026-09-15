@@ -209,6 +209,7 @@ export default function AdminSettings() {
     maintenanceMode: false,
     publicSiteActive: true,
     registrationOpen: true,
+    memberRegistrationOpen: false,
     notificationsEnabled: {
       memberRegistration: true,
       joinUs: true,
@@ -617,6 +618,27 @@ export default function AdminSettings() {
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer shrink-0">
                     <input type="checkbox" checked={settings.registrationOpen} onChange={(e) => handleSettingsChange('registrationOpen', e.target.checked)} className="sr-only peer" />
+                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-primary"></div>
+                  </label>
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-lg">
+                  <div className="flex-1 pr-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="font-bold text-slate-900 text-sm">Join Us (Member Registration)</div>
+                      <span className={cn(
+                        "inline-flex px-2 py-0.5 rounded text-[10px] font-mono font-bold tracking-widest uppercase",
+                        settings.memberRegistrationOpen
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-slate-200 text-slate-700"
+                      )}>
+                        {settings.memberRegistrationOpen ? 'ON' : 'OFF'}
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-500 max-w-sm">When enabled, students can apply to join the club through the public 'Join Us' page.</div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                    <input type="checkbox" checked={settings.memberRegistrationOpen} onChange={(e) => handleSettingsChange('memberRegistrationOpen', e.target.checked)} className="sr-only peer" />
                     <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-primary"></div>
                   </label>
                 </div>

@@ -13,6 +13,13 @@ const eventRegistrationSchema = new mongoose.Schema({
     required: true,
     default: 'individual'
   },
+  teamSize: {
+    type: Number,
+    required: true,
+    default: 1,
+    min: 1,
+    max: 10
+  },
   teamName: {
     type: String,
     trim: true,

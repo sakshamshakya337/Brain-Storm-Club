@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowRight, ArrowLeft, CheckCircle2, AlertCircle, AlertTriangle, Calendar, MapPin, Clock, Upload, Trash2, Plus } from 'lucide-react';
 import Footer from '../../components/layout/Footer';
@@ -38,6 +38,7 @@ export default function EventRegistration() {
 
   const [screenshotPreview, setScreenshotPreview] = useState(null);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const [selectedTeamSize, setSelectedTeamSize] = useState(null);
   
   const fileInputRef = React.useRef(null);
   const [showPaymentInstructions, setShowPaymentInstructions] = useState(false);
@@ -50,6 +51,11 @@ export default function EventRegistration() {
       .then(data => {
         if (data.status === 'success') {
           setEvent(data.data.event);
+          if (data.data.event.allowTeamRegistration) {
+            setSelectedTeamSize(null);
+          } else {
+            setSelectedTeamSize(1);
+          }
           if (data.data.event.allowIndividualRegistration && !data.data.event.allowTeamRegistration) {
             setRegistrationType('individual');
           } else if (!data.data.event.allowIndividualRegistration && data.data.event.allowTeamRegistration) {
@@ -81,14 +87,48 @@ export default function EventRegistration() {
   };
 
   const addMember = () => {
-    if (formData.members.length < 4) { // max 5 members including leader = max 4 in members array
-      setFormData(p => ({ ...p, members: [...p.members, { ...emptyMember }] }));
-    }
+    // Note: this is now handled automatically by the size selector.
+    // Keeping function for legacy, but logic will be dynamic.
   };
 
+  // Adjust member list length when selectedTeamSize changes
+  useEffect(() => {
+    if (selectedTeamSize === null) return;
+    if (selectedTeamSize > 1) {
+      setRegistrationType('team');
+      const requiredMembers = selectedTeamSize - 1;
+      setFormData(prev => {
+        let newMembers = [...prev.members];
+        if (newMembers.length < requiredMembers) {
+          const diff = requiredMembers - newMembers.length;
+          newMembers = [...newMembers, ...Array(diff).fill().map(() => ({ ...emptyMember }))];
+        } else if (newMembers.length > requiredMembers) {
+          newMembers = newMembers.slice(0, requiredMembers);
+        }
+        return { ...prev, members: newMembers };
+      });
+    } else {
+      setRegistrationType('individual');
+    }
+  }, [selectedTeamSize]);
+
+  // Determine the correct payment QR for the current size
+  const currentQrId = useMemo(() => {
+    if (!event || !event.paymentRequired) return null;
+    if (event.allowTeamRegistration && selectedTeamSize) {
+      const sizeQr = event.paymentQrCodes?.find(c => c.teamSize === selectedTeamSize);
+      if (sizeQr) return sizeQr.imageId?.imageId || sizeQr.imageId;
+    }
+    return event.paymentQrImage?.imageId || event.paymentQrImage;
+  }, [event, selectedTeamSize]);
+
+  const isMissingQr = useMemo(() => {
+    if (!event || !event.paymentRequired) return false;
+    return !currentQrId;
+  }, [event, currentQrId]);
+
   const removeMember = (index) => {
-    const newMembers = formData.members.filter((_, i) => i !== index);
-    setFormData(p => ({ ...p, members: newMembers }));
+    // Disabling manual removal if we strictly follow selectedTeamSize
   };
 
   const handleFileChange = e => {
@@ -107,6 +147,17 @@ export default function EventRegistration() {
   const handleSubmit = async e => {
     e.preventDefault();
     if (!event) return;
+    
+    // Check missing QR config
+    if (event.paymentRequired && event.allowTeamRegistration) {
+      const sizeQr = event.paymentQrCodes?.find(c => c.teamSize === selectedTeamSize);
+      if (!sizeQr && !event.paymentQrImage) {
+        setErrorMessage(`Payment configuration for ${selectedTeamSize}-member registration is currently unavailable.`);
+        setFormState('ERROR');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+    }
     
     // Explicit Client-Side Validation
     const l = formData.leader;
@@ -177,13 +228,14 @@ export default function EventRegistration() {
       fd.append('registrationType', registrationType);
       
       const payloadData = {
-        leader: { ...formData.leader, whatsapp: formData.leader.whatsapp || formData.leader.phone, hasWhatsapp: true }
+        leader: { ...formData.leader, whatsapp: formData.leader.whatsapp || formData.leader.phone, hasWhatsapp: true },
+        teamSize: selectedTeamSize
       };
       if (event.allowTeamRegistration) {
         payloadData.teamName = formData.teamName;
       }
-      if (registrationType === 'team') {
-        payloadData.members = formData.members;
+      if (selectedTeamSize > 1) {
+        payloadData.members = formData.members.slice(0, selectedTeamSize - 1);
       }
       fd.append('data', JSON.stringify(payloadData));
 
@@ -223,7 +275,7 @@ export default function EventRegistration() {
     if (!confirmedRegistration) return;
     setIsGeneratingPdf(true);
     try {
-      const pdfBytes = await generateEventPass(confirmedRegistration, event.title, formatEventDate(event), event.paymentRequired, event.paymentAppliesTo);
+      const pdfBytes = await generateEventPass(confirmedRegistration, event.title, formatEventDate(event), event.paymentRequired);
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -367,26 +419,49 @@ export default function EventRegistration() {
                 {formState !== 'SUCCESS' && (
                   <form onSubmit={handleSubmit} className="space-y-10">
 
-                    {/* Registration Mode Selection */}
-                    {event.allowIndividualRegistration && event.allowTeamRegistration && (
+                    {/* Registration Size Selection */}
+                    {event.allowTeamRegistration && selectedTeamSize === null && (
                       <div>
                         <div className="flex items-center gap-3 mb-6 pb-4 border-b border-[var(--border)]">
-                          <span className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-[var(--circuit)]">MODE</span>
+                          <span className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-[var(--circuit)]">STEP 01</span>
+                          <span className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-[var(--ink-soft)]">Registration Size</span>
                         </div>
-                        <div className="flex gap-4">
-                          <label className={`flex-1 p-4 border ${registrationType === 'individual' ? 'border-[var(--circuit)] bg-[var(--paper-dim)]' : 'border-[var(--border)] bg-[var(--paper)]'} cursor-pointer text-center transition-colors`}>
-                            <input type="radio" name="registrationType" value="individual" checked={registrationType === 'individual'} onChange={() => setRegistrationType('individual')} className="hidden" />
-                            <div className="font-heading font-bold uppercase text-[var(--ink)] mb-1">Individual</div>
-                            <div className="text-xs text-[var(--ink-soft)]">Register as a single participant</div>
-                          </label>
-                          <label className={`flex-1 p-4 border ${registrationType === 'team' ? 'border-[var(--circuit)] bg-[var(--paper-dim)]' : 'border-[var(--border)] bg-[var(--paper)]'} cursor-pointer text-center transition-colors`}>
-                            <input type="radio" name="registrationType" value="team" checked={registrationType === 'team'} onChange={() => setRegistrationType('team')} className="hidden" />
-                            <div className="font-heading font-bold uppercase text-[var(--ink)] mb-1">Team</div>
-                            <div className="text-xs text-[var(--ink-soft)]">Register as a team (2-{event.maxTeamSize || 5} members)</div>
-                          </label>
+                        <h3 className="font-heading font-black text-2xl uppercase tracking-tight text-[var(--ink)] mb-4">How many members are registering?</h3>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                          {Array.from({ length: event.maxTeamSize || 5 }, (_, i) => i + 1).map(size => (
+                            <label key={size} className={`p-4 border ${selectedTeamSize === size ? 'border-[var(--circuit)] bg-[var(--paper-dim)]' : 'border-[var(--border)] bg-[var(--paper)]'} cursor-pointer text-center transition-colors flex flex-col items-center justify-center`}>
+                              <input 
+                                type="radio" 
+                                name="selectedTeamSize" 
+                                value={size} 
+                                checked={selectedTeamSize === size} 
+                                onChange={() => setSelectedTeamSize(size)} 
+                                className="hidden" 
+                              />
+                              <div className="font-heading font-bold uppercase text-[var(--ink)] text-xl mb-1">{size}</div>
+                              <div className="text-[10px] uppercase tracking-wider font-bold text-[var(--ink-soft)]">Member{size > 1 ? 's' : ''}</div>
+                            </label>
+                          ))}
                         </div>
                       </div>
                     )}
+
+                    {selectedTeamSize !== null && (
+                      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        {event.allowTeamRegistration && (
+                          <div className="mb-6 flex justify-between items-center bg-[var(--paper-dim)] p-4 border border-[var(--border)]">
+                            <div className="font-mono text-[10px] font-bold uppercase tracking-widest text-[var(--ink)]">
+                              Selected Size: <span className="text-[var(--circuit)]">{selectedTeamSize} Member{selectedTeamSize > 1 ? 's' : ''}</span>
+                            </div>
+                            <button 
+                              type="button" 
+                              onClick={() => setSelectedTeamSize(null)}
+                              className="font-mono text-[10px] font-bold uppercase tracking-widest text-[var(--ink-soft)] hover:text-[var(--ink)] transition-colors flex items-center gap-1.5"
+                            >
+                              <ArrowLeft size={12} /> Change Registration Size
+                            </button>
+                          </div>
+                        )}
 
                     {/* Team Details (if allowTeamRegistration is true) */}
                     {event.allowTeamRegistration && (
@@ -399,7 +474,7 @@ export default function EventRegistration() {
                           <div className="md:col-span-2">
                             <label className={LABEL_CLASS}>
                               Team Name <span className="text-[var(--spark)]">*</span>
-                              {registrationType === 'individual' && <span className="ml-2 font-normal text-xs normal-case text-[var(--ink-soft)]">(You're registering as a one-person team.)</span>}
+                              {selectedTeamSize === 1 && <span className="ml-2 font-normal text-xs normal-case text-[var(--ink-soft)]">(You're registering as a one-person team.)</span>}
                             </label>
                             <input 
                               type="text" 
@@ -490,70 +565,72 @@ export default function EventRegistration() {
                                   <input type="tel" inputMode="numeric" pattern="\d*" maxLength={10} name="phone" required value={member.phone} onChange={(e) => handleMemberChange(index, e)} className={FIELD_CLASS} />
                                 </div>
                               </div>
-                              {formData.members.length > 1 && (
-                                <button type="button" onClick={() => removeMember(index)} className="text-red-500 font-mono text-[10px] font-bold uppercase flex items-center gap-1 mt-4 hover:text-red-400">
-                                  <Trash2 size={12} /> Remove Member
-                                </button>
-                              )}
                             </div>
                           ))}
-
-                          {formData.members.length < (event.maxTeamSize ? event.maxTeamSize - 1 : 4) && (
-                            <button type="button" onClick={addMember} className="w-full p-4 border border-dashed border-[var(--border)] hover:border-[var(--circuit)] transition-colors flex items-center justify-center gap-2 font-mono text-[10px] font-bold tracking-widest uppercase text-[var(--ink)]">
-                              <Plus size={14} /> Add Another Member (Max {event.maxTeamSize ? event.maxTeamSize - 1 : 4})
-                            </button>
-                          )}
                         </div>
                       </div>
                     )}
 
                     {/* Payment Proof */}
                     {event.paymentRequired && (
-                      <div>
-                        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-[var(--border)]">
-                          <span className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-[var(--circuit)]">
-                            {registrationType === 'team' ? '04' : (event.allowTeamRegistration ? '03' : '02')}
-                          </span>
-                          <span className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-[var(--ink-soft)]">Payment Details</span>
-                        </div>
-                        <div className="bg-[var(--paper-dim)] border border-[var(--border)] p-6 md:p-8 grid grid-cols-1 md:grid-cols-[minmax(280px,0.9fr)_minmax(320px,1.1fr)] gap-8 md:gap-12 items-start">
-                          {event.paymentQrImage && (
-                            <div className="flex flex-col items-center gap-4 w-full max-w-[360px] mx-auto md:mx-0">
-                              <button type="button" onClick={() => setIsQrModalOpen(true)} className="w-full aspect-square bg-white border border-[var(--border)] p-4 md:p-6 hover:border-[var(--circuit)] transition-colors cursor-zoom-in relative group shadow-sm">
-                                <ProtectedImage imageId={event.paymentQrImage?.imageId || event.paymentQrImage} variant="public" alt="Event payment QR code" className="w-full h-full object-contain" />
-                                <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                  <span className="bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-none text-[10px] font-mono font-bold uppercase tracking-widest text-slate-800 shadow-sm border border-slate-200">Click to enlarge</span>
-                                </div>
-                              </button>
-                              <span className="font-mono text-[11px] font-bold tracking-[0.2em] uppercase text-[var(--ink-soft)] text-center">Scan to Pay</span>
+                        <div>
+                          <div className="flex items-center gap-3 mb-6 pb-4 border-b border-[var(--border)]">
+                            <span className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-[var(--circuit)]">
+                              {selectedTeamSize > 1 ? '04' : (event.allowTeamRegistration ? '03' : '02')}
+                            </span>
+                            <span className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase text-[var(--ink-soft)]">Payment Details</span>
+                          </div>
+                          
+                          {isMissingQr ? (
+                            <div className="bg-red-50 border border-red-200 p-6 flex flex-col items-center justify-center text-center">
+                              <AlertTriangle className="text-red-500 mb-3" size={32} />
+                              <h3 className="font-bold text-red-800 mb-2">Payment Configuration Unavailable</h3>
+                              <p className="text-sm text-red-600">The organizer has not configured a payment QR code for a registration size of {selectedTeamSize} member{selectedTeamSize > 1 ? 's' : ''}. Please try another size or contact the organizers.</p>
                             </div>
-                          )}
-                          <div className="flex flex-col gap-6">
-                            <div>
-                              <label className={LABEL_CLASS}>Transaction / Reference ID <span className="text-[var(--spark)]">*</span></label>
-                              <input type="text" name="transactionId" required maxLength={30} value={formData.transactionId} onChange={(e) => setFormData(p => ({...p, transactionId: e.target.value.replace(/[^A-Za-z0-9]/g, '')}))} className={FIELD_CLASS} placeholder="e.g. UPI Ref / UTR Number" />
-                            </div>
-                            <div>
-                              <label className={LABEL_CLASS}>Payment Screenshot <span className="text-[var(--spark)]">*</span></label>
-                              <button type="button" onClick={() => { setShowPaymentInstructions(true); setPaymentInstructionsAccepted(false); }} className="flex flex-col items-center justify-center w-full h-40 md:h-48 border-2 border-dashed border-[var(--border)] hover:border-[var(--circuit)] transition-colors cursor-pointer bg-[var(--paper)]">
-                                <div className="flex flex-col items-center justify-center text-[var(--ink-soft)] px-4 text-center">
-                                  <Upload className="w-6 h-6 mb-3" />
-                                  <p className="font-mono text-[10px] uppercase font-bold tracking-widest">{screenshotPreview ? 'Change Image' : 'Click to upload'}</p>
-                                  <p className="font-body text-xs mt-2">PNG, JPG, HEIC</p>
-                                  <p className="font-body text-[10px] opacity-75 mt-1">(Max 10MB, auto-compressed to &lt;2MB)</p>
-                                </div>
-                              </button>
-                              <input type="file" ref={fileInputRef} className="hidden" accept="image/png, image/jpeg, image/heic, image/heif" onChange={handleFileChange} />
-                              {screenshotPreview && (
-                                <div className="mt-4 flex items-center gap-4 bg-[var(--paper)] p-3 border border-[var(--border)]">
-                                  <img src={screenshotPreview} alt="Preview" className="w-12 h-12 object-cover border border-[var(--border)]" />
-                                  <span className="font-mono text-[10px] uppercase text-[var(--circuit)] font-bold">Screenshot Attached</span>
+                          ) : (
+                            <div className="bg-[var(--paper-dim)] border border-[var(--border)] p-6 md:p-8 grid grid-cols-1 md:grid-cols-[minmax(280px,0.9fr)_minmax(320px,1.1fr)] gap-8 md:gap-12 items-start">
+                              {currentQrId && (
+                                <div className="flex flex-col items-center gap-4 w-full max-w-[360px] mx-auto md:mx-0">
+                                  <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-[var(--ink-soft)] bg-white border border-[var(--border)] px-4 py-2 text-center w-full shadow-sm">
+                                    PAYMENT — {selectedTeamSize} MEMBER REGISTRATION
+                                  </div>
+                                  <button type="button" onClick={() => setIsQrModalOpen(true)} className="w-full aspect-square bg-white border border-[var(--border)] p-4 md:p-6 hover:border-[var(--circuit)] transition-colors cursor-zoom-in relative group shadow-sm">
+                                    {/* Using key={currentQrId} ensures React unmounts and remounts the component when the QR changes, avoiding cached image issues */}
+                                    <ProtectedImage key={currentQrId} imageId={currentQrId} variant="public" alt="Event payment QR code" className="w-full h-full object-contain" />
+                                    <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                      <span className="bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-none text-[10px] font-mono font-bold uppercase tracking-widest text-slate-800 shadow-sm border border-slate-200">Click to enlarge</span>
+                                    </div>
+                                  </button>
+                                  <span className="font-mono text-[11px] font-bold tracking-[0.2em] uppercase text-[var(--ink-soft)] text-center">Scan to Pay</span>
                                 </div>
                               )}
+                              <div className="flex flex-col gap-6">
+                                <div>
+                                  <label className={LABEL_CLASS}>Transaction / Reference ID <span className="text-[var(--spark)]">*</span></label>
+                                  <input type="text" name="transactionId" required maxLength={30} value={formData.transactionId} onChange={(e) => setFormData(p => ({...p, transactionId: e.target.value.replace(/[^A-Za-z0-9]/g, '')}))} className={FIELD_CLASS} placeholder="e.g. UPI Ref / UTR Number" />
+                                </div>
+                                <div>
+                                  <label className={LABEL_CLASS}>Payment Screenshot <span className="text-[var(--spark)]">*</span></label>
+                                  <button type="button" onClick={() => { setShowPaymentInstructions(true); setPaymentInstructionsAccepted(false); }} className="flex flex-col items-center justify-center w-full h-40 md:h-48 border-2 border-dashed border-[var(--border)] hover:border-[var(--circuit)] transition-colors cursor-pointer bg-[var(--paper)]">
+                                    <div className="flex flex-col items-center justify-center text-[var(--ink-soft)] px-4 text-center">
+                                      <Upload className="w-6 h-6 mb-3" />
+                                      <p className="font-mono text-[10px] uppercase font-bold tracking-widest">{screenshotPreview ? 'Change Image' : 'Click to upload'}</p>
+                                      <p className="font-body text-xs mt-2">PNG, JPG, HEIC</p>
+                                      <p className="font-body text-[10px] opacity-75 mt-1">(Max 10MB, auto-compressed to &lt;2MB)</p>
+                                    </div>
+                                  </button>
+                                  <input type="file" ref={fileInputRef} className="hidden" accept="image/png, image/jpeg, image/heic, image/heif" onChange={handleFileChange} />
+                                  {screenshotPreview && (
+                                    <div className="mt-4 flex items-center gap-4 bg-[var(--paper)] p-3 border border-[var(--border)]">
+                                      <img src={screenshotPreview} alt="Preview" className="w-12 h-12 object-cover border border-[var(--border)]" />
+                                      <span className="font-mono text-[10px] uppercase text-[var(--circuit)] font-bold">Screenshot Attached</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                          </div>
+                          )}
                         </div>
-                      </div>
                     )}
 
                     {/* Important Payment Notice */}
@@ -565,9 +642,7 @@ export default function EventRegistration() {
                           <div>
                             <div className="font-mono text-[10px] font-bold tracking-widest uppercase text-red-600 dark:text-red-400 mb-1.5">Important Notice</div>
                             <div className="font-body text-base md:text-[15px] font-bold text-[var(--ink)] leading-relaxed" role="note">
-                              {event.paymentWarning || (event.paymentAppliesTo === 'team' 
-                                ? 'IMPORTANT: The registration fee must be paid once per team.' 
-                                : 'IMPORTANT: The registration fee must be paid individually by each participant.')}
+                              {event.paymentWarning || 'IMPORTANT: Please complete the payment as required.'}
                             </div>
                           </div>
                         </div>
@@ -580,11 +655,13 @@ export default function EventRegistration() {
                         By submitting, you agree to participate and receive event communications.
                       </p>
                       <button type="submit" disabled={formState === 'SENDING'}
-                        className="flex-shrink-0 inline-flex items-center gap-2 bg-spark text-ink px-8 py-4 font-mono text-[10px] font-bold tracking-widest uppercase hover:bg-spark-soft transition-colors disabled:opacity-60 disabled:cursor-not-allowed group shadow-xl shadow-spark/20 hover:-translate-y-0.5 disabled:translate-y-0">
+                        className="flex-shrink-0 inline-flex items-center gap-2 bg-[var(--circuit)] text-white px-8 py-4 font-mono text-[10px] font-bold tracking-widest uppercase hover:bg-[var(--circuit-soft)] transition-colors disabled:opacity-60 disabled:cursor-not-allowed group shadow-xl hover:-translate-y-0.5 disabled:translate-y-0">
                         {formState === 'SENDING' ? 'SUBMITTING…' : 'CONFIRM REGISTRATION'}
                         <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
                       </button>
                     </div>
+                  </div>
+                  )}
                   </form>
                 )}
               </div>
@@ -623,7 +700,7 @@ export default function EventRegistration() {
       <Footer />
 
       {/* QR Lightbox Modal */}
-      {isQrModalOpen && event?.paymentQrImage && (
+      {isQrModalOpen && currentQrId && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setIsQrModalOpen(false)}>
           <div className="relative max-w-3xl max-h-[90vh] flex flex-col items-center justify-center animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
             <button onClick={() => setIsQrModalOpen(false)} className="absolute -top-12 right-0 text-white hover:text-[var(--circuit)] transition-colors p-2">
@@ -631,7 +708,7 @@ export default function EventRegistration() {
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
             <div className="bg-white p-4 border border-[var(--border)]">
-              <ProtectedImage imageId={event.paymentQrImage?.imageId || event.paymentQrImage} variant="public" alt="Payment QR Code Enlarged" className="max-w-full max-h-[75vh] object-contain" />
+              <ProtectedImage key={currentQrId} imageId={currentQrId} variant="public" alt="Payment QR Code Enlarged" className="max-w-full max-h-[75vh] object-contain" />
             </div>
             <div className="mt-4 font-mono text-xs font-bold uppercase tracking-widest text-white">Scan to Pay</div>
           </div>

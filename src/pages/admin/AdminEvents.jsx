@@ -46,8 +46,8 @@ export default function AdminEvents() {
     allowTeamRegistration: false,
     maxTeamSize: 5,
     paymentRequired: false,
-    paymentAppliesTo: 'participant',
     paymentWarning: '',
+    paymentQrCodes: [],
     paymentQrImage: null
   };
   const [formData, setFormData] = useState(initialFormData);
@@ -57,9 +57,10 @@ export default function AdminEvents() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [externalUrlInput, setExternalUrlInput] = useState('');
   const [urlError, setUrlError] = useState('');
-
+  
   // Payment QR Upload State
   const [uploadingQr, setUploadingQr] = useState(false);
+  const [uploadingSizeQr, setUploadingSizeQr] = useState({});
 
   useEffect(() => {
     fetchEvents();
@@ -107,8 +108,8 @@ export default function AdminEvents() {
       allowTeamRegistration: event.allowTeamRegistration ?? false,
       maxTeamSize: event.maxTeamSize || 5,
       paymentRequired: event.paymentRequired ?? false,
-      paymentAppliesTo: event.paymentAppliesTo || 'participant',
       paymentWarning: event.paymentWarning || '',
+      paymentQrCodes: event.paymentQrCodes || [],
       paymentQrImage: event.paymentQrImage || null
     });
 
@@ -313,6 +314,62 @@ export default function AdminEvents() {
       setUploadingQr(false);
       e.target.value = '';
     }
+  };
+
+  const handleUploadSizeQr = async (size, e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingSizeQr(prev => ({ ...prev, [size]: true }));
+      let uploadFile = file;
+      if (file.type.startsWith('image/')) {
+        try {
+          const options = { maxSizeMB: 2, maxWidthOrHeight: 1200, useWebWorker: true };
+          uploadFile = await imageCompression(file, options);
+        } catch (compErr) {
+          console.warn('Image compression failed on client, proceeding with original', compErr);
+        }
+      }
+
+      const fd = new FormData();
+      fd.append('image', uploadFile);
+
+      const res = await fetch('/api/admin/events/upload-image', {
+        method: 'POST',
+        body: fd
+      });
+
+      let data;
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        throw new Error('Server returned an invalid response.');
+      }
+      
+      if (!res.ok) throw new Error(data?.message || 'Image upload failed');
+
+      setFormData(prev => {
+        const newCodes = [...prev.paymentQrCodes];
+        const existingIdx = newCodes.findIndex(c => c.teamSize === size);
+        const newQr = { teamSize: size, imageId: { _id: data.data._id, imageId: data.data.imageId } };
+        if (existingIdx >= 0) newCodes[existingIdx] = newQr;
+        else newCodes.push(newQr);
+        return { ...prev, paymentQrCodes: newCodes };
+      });
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setUploadingSizeQr(prev => ({ ...prev, [size]: false }));
+      e.target.value = '';
+    }
+  };
+
+  const handleRemoveSizeQr = (size) => {
+    setFormData(prev => ({
+      ...prev,
+      paymentQrCodes: prev.paymentQrCodes.filter(c => c.teamSize !== size)
+    }));
   };
 
   const handleSave = async (e) => {
@@ -707,19 +764,30 @@ export default function AdminEvents() {
                 </div>
 
                 {/* Registration Open Toggle */}
-                <div className="pt-2 border-t border-[var(--border)] mt-4">
-                  <label className="flex items-center gap-2 cursor-pointer select-none mb-3">
+                <div className="pt-4 border-t border-[var(--border)] mt-6">
+                  <div className="mb-3">
+                    <span className="block font-mono text-[10px] font-bold tracking-[0.25em] uppercase text-[var(--ink)] mb-1">Registration</span>
+                    <p className="text-[11px] text-[var(--ink-soft)]">Control whether the public can currently submit new registrations for this event.</p>
+                  </div>
+                  <label className="flex items-center gap-3 cursor-pointer select-none mb-4 bg-[var(--paper-dim)] p-3 border border-[var(--border)]">
                     <input 
                       type="checkbox"
                       checked={formData.registrationOpen}
                       onChange={(e) => setFormData({...formData, registrationOpen: e.target.checked})}
-                      className="w-4 h-4 text-[var(--circuit)] rounded-none border-[var(--border)] focus:ring-[var(--circuit)]"
+                      className="w-5 h-5 text-[var(--circuit)] rounded-none border-[var(--border)] focus:ring-[var(--circuit)]"
                     />
-                    <span className="text-sm font-bold text-[var(--ink)]">Registrations Open (Allow public users to register)</span>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-bold text-[var(--ink)]">
+                        {formData.registrationOpen ? "ON — Registration Open" : "OFF — Registration Closed"}
+                      </span>
+                      <span className="text-[10px] text-[var(--ink-soft)] mt-0.5">
+                        {formData.registrationOpen ? "Registration is currently open for this event." : "Registration is currently closed for this event."}
+                      </span>
+                    </div>
                   </label>
 
                   {formData.registrationOpen && (
-                    <div className="pl-6 space-y-3">
+                    <div className="pl-4 border-l-2 border-[var(--circuit)] ml-2 space-y-3 mb-4">
                       <label className="flex items-center gap-2 cursor-pointer select-none">
                         <input 
                           type="checkbox"
@@ -772,48 +840,80 @@ export default function AdminEvents() {
                           <div className="mt-3 bg-[var(--paper-dim)] border border-[var(--border)] rounded-none p-4">
                             <label className="block font-mono text-[10px] font-bold tracking-[0.25em] uppercase text-[var(--ink)] mb-2 mb-2">Payment QR Code</label>
                             
-                            {formData.paymentQrImage ? (
-                              <div className="flex items-center gap-4">
-                                <div className="w-16 h-16 rounded-none border border-[var(--border)] overflow-hidden relative bg-[var(--paper)]">
-                                  <ProtectedImage imageId={formData.paymentQrImage?.imageId || formData.paymentQrImage} variant="public" alt="QR" className="w-full h-full object-cover" />
-                                </div>
-                                <div className="flex gap-2">
-                                  <label className="text-xs font-medium bg-[var(--paper)] border border-[var(--border)] px-3 py-1.5 rounded-none cursor-pointer hover:bg-[var(--paper-dim)] transition-colors shadow-none">
-                                    {uploadingQr ? <Loader2 size={14} className="animate-spin inline mr-1" /> : <Upload size={14} className="inline mr-1" />}
-                                    Replace
-                                    <input type="file" accept="image/*" onChange={handleUploadQr} className="hidden" disabled={uploadingQr} />
-                                  </label>
-                                  <button type="button" onClick={() => setFormData({...formData, paymentQrImage: null})} className="text-xs font-medium text-red-600 bg-red-50 px-3 py-1.5 rounded-none border border-red-100 hover:bg-red-100 transition-colors">
-                                    Remove
-                                  </button>
-                                </div>
+                            {formData.allowTeamRegistration ? (
+                              <div className="space-y-4">
+                                {Array.from({ length: formData.maxTeamSize }, (_, i) => i + 1).map(size => {
+                                  const sizeQr = formData.paymentQrCodes.find(c => c.teamSize === size);
+                                  const isUploading = uploadingSizeQr[size];
+                                  return (
+                                    <div key={size} className="flex items-center justify-between p-3 border border-[var(--border)] bg-[var(--paper)]">
+                                      <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-none border border-[var(--border)] overflow-hidden relative bg-[var(--paper-dim)] flex items-center justify-center text-[10px] font-mono text-[var(--ink-soft)]">
+                                          {sizeQr ? (
+                                            <ProtectedImage imageId={sizeQr.imageId?.imageId || sizeQr.imageId} variant="public" alt={`QR ${size}`} className="w-full h-full object-cover" />
+                                          ) : 'NO QR'}
+                                        </div>
+                                        <div>
+                                          <div className="text-sm font-bold text-[var(--ink)]">{size} Member{size > 1 ? 's' : ''}</div>
+                                          {!sizeQr && <div className="text-[10px] text-red-500 font-bold tracking-widest uppercase">Missing QR</div>}
+                                        </div>
+                                      </div>
+                                      <div className="flex gap-2">
+                                        <label className="text-xs font-medium bg-[var(--paper-dim)] border border-[var(--border)] px-3 py-1.5 rounded-none cursor-pointer hover:bg-[var(--paper)] transition-colors shadow-none">
+                                          {isUploading ? <Loader2 size={14} className="animate-spin inline mr-1" /> : <Upload size={14} className="inline mr-1" />}
+                                          {sizeQr ? 'Replace' : 'Upload'}
+                                          <input type="file" accept="image/*" onChange={(e) => handleUploadSizeQr(size, e)} className="hidden" disabled={isUploading} />
+                                        </label>
+                                        {sizeQr && (
+                                          <button type="button" onClick={() => handleRemoveSizeQr(size)} className="text-xs font-medium text-red-600 bg-red-50 px-3 py-1.5 rounded-none border border-red-100 hover:bg-red-100 transition-colors">
+                                            Remove
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                                {formData.paymentQrImage && (
+                                  <div className="mt-4 p-3 border border-orange-200 bg-orange-50">
+                                    <div className="text-xs font-bold text-orange-800 mb-1">Legacy QR Found</div>
+                                    <div className="text-[10px] text-orange-700">This event has a legacy single payment QR. It will be ignored on the public page if you configure per-size QRs.</div>
+                                  </div>
+                                )}
                               </div>
                             ) : (
-                              <label className="inline-flex items-center gap-2 text-xs font-medium bg-[var(--paper)] border border-[var(--border)] px-3 py-2 rounded-none cursor-pointer hover:bg-[var(--paper-dim)] transition-colors shadow-none">
-                                {uploadingQr ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
-                                {uploadingQr ? 'Uploading...' : 'Upload QR Image'}
-                                <input type="file" accept="image/*" onChange={handleUploadQr} className="hidden" disabled={uploadingQr} />
-                              </label>
+                              <>
+                                {formData.paymentQrImage ? (
+                                  <div className="flex items-center gap-4">
+                                    <div className="w-16 h-16 rounded-none border border-[var(--border)] overflow-hidden relative bg-[var(--paper)]">
+                                      <ProtectedImage imageId={formData.paymentQrImage?.imageId || formData.paymentQrImage} variant="public" alt="QR" className="w-full h-full object-cover" />
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <label className="text-xs font-medium bg-[var(--paper)] border border-[var(--border)] px-3 py-1.5 rounded-none cursor-pointer hover:bg-[var(--paper-dim)] transition-colors shadow-none">
+                                        {uploadingQr ? <Loader2 size={14} className="animate-spin inline mr-1" /> : <Upload size={14} className="inline mr-1" />}
+                                        Replace
+                                        <input type="file" accept="image/*" onChange={handleUploadQr} className="hidden" disabled={uploadingQr} />
+                                      </label>
+                                      <button type="button" onClick={() => setFormData({...formData, paymentQrImage: null})} className="text-xs font-medium text-red-600 bg-red-50 px-3 py-1.5 rounded-none border border-red-100 hover:bg-red-100 transition-colors">
+                                        Remove
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <label className="inline-flex items-center gap-2 text-xs font-medium bg-[var(--paper)] border border-[var(--border)] px-3 py-2 rounded-none cursor-pointer hover:bg-[var(--paper-dim)] transition-colors shadow-none">
+                                    {uploadingQr ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                                    {uploadingQr ? 'Uploading...' : 'Upload QR Image'}
+                                    <input type="file" accept="image/*" onChange={handleUploadQr} className="hidden" disabled={uploadingQr} />
+                                  </label>
+                                )}
+                              </>
                             )}
                             
                             <div className="mt-4 pt-4 border-t border-[var(--border)]">
-                              <label className="block font-mono text-[10px] font-bold tracking-[0.25em] uppercase text-[var(--ink)] mb-2">Payment Applies To</label>
-                              <select
-                                value={formData.paymentAppliesTo}
-                                onChange={(e) => setFormData({...formData, paymentAppliesTo: e.target.value})}
-                                className="w-full sm:w-1/2 px-4 py-3 border border-[var(--border)] rounded-none text-sm focus:outline-none focus:border-[var(--circuit)] focus:ring-1 focus:ring-[var(--circuit)] transition-colors bg-[var(--paper)]"
-                              >
-                                <option value="participant">Per Participant</option>
-                                <option value="team">Per Team</option>
-                              </select>
-                            </div>
-                            
-                            <div className="mt-4">
                               <label className="block font-mono text-[10px] font-bold tracking-[0.25em] uppercase text-[var(--ink)] mb-2">Payment Warning / Important Notice</label>
                               <textarea
                                 value={formData.paymentWarning}
                                 onChange={(e) => setFormData({...formData, paymentWarning: e.target.value})}
-                                placeholder={formData.paymentAppliesTo === 'participant' ? "IMPORTANT: The registration fee must be paid individually by each participant." : "IMPORTANT: The registration fee must be paid once per team."}
+                                placeholder="IMPORTANT: Provide any necessary payment instructions here."
                                 rows={2}
                                 className="w-full px-4 py-3 border border-[var(--border)] rounded-none text-sm focus:outline-none focus:border-[var(--circuit)] focus:ring-1 focus:ring-[var(--circuit)] transition-colors resize-none"
                               />

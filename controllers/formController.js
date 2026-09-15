@@ -360,6 +360,22 @@ export const submitEventRegistration = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Team registration is not allowed for this event.' });
     }
 
+    const teamSize = Number(dataPayload.teamSize) || 1;
+    if (teamSize < 1) {
+      return res.status(400).json({ success: false, message: 'Team size must be at least 1.' });
+    }
+    if (event.allowTeamRegistration && teamSize > (event.maxTeamSize || 5)) {
+      return res.status(400).json({ success: false, message: `Maximum team size is ${event.maxTeamSize || 5} members.` });
+    }
+
+    if (event.paymentRequired && event.allowTeamRegistration) {
+      // Validate that a payment QR exists for this team size unless there's a fallback legacy QR
+      const sizeQrConfig = event.paymentQrCodes?.find(qr => qr.teamSize === teamSize);
+      if (!sizeQrConfig && !event.paymentQrImage) {
+        return res.status(400).json({ success: false, message: `Payment configuration for ${teamSize}-member registration is currently unavailable. Please choose another registration size or contact the organizer.` });
+      }
+    }
+
     const rawLeader = dataPayload.leader || {};
     const leaderErrors = [
       validateName(rawLeader.fullName, 'Leader name'),
@@ -405,15 +421,12 @@ export const submitEventRegistration = async (req, res) => {
       }
     }
 
-    if (registrationType === 'team') {
-      const maxTeamSize = event.maxTeamSize || 5;
-      const totalMembers = 1 + (dataPayload.members ? dataPayload.members.length : 0);
+    if (event.allowTeamRegistration) {
+      const expectedMembers = teamSize - 1;
+      const totalProvidedMembers = dataPayload.members ? dataPayload.members.length : 0;
       
-      if (totalMembers < 2) {
-        return res.status(400).json({ success: false, message: 'A team must have at least 2 members.' });
-      }
-      if (totalMembers > maxTeamSize) {
-        return res.status(400).json({ success: false, message: `Maximum team size is ${maxTeamSize} members.` });
+      if (totalProvidedMembers !== expectedMembers) {
+        return res.status(400).json({ success: false, message: `Expected ${expectedMembers} additional members for a team size of ${teamSize}, but got ${totalProvidedMembers}.` });
       }
 
       if (dataPayload.members) {
@@ -464,6 +477,7 @@ export const submitEventRegistration = async (req, res) => {
     const regData = {
       eventId,
       registrationType: registrationType || 'individual',
+      teamSize,
       teamName: event.allowTeamRegistration ? trimmedTeamName : undefined,
       leader,
       members,

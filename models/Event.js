@@ -43,12 +43,11 @@ const eventSchema = new mongoose.Schema({
   allowTeamRegistration: { type: Boolean, default: false },
   maxTeamSize: { type: Number, min: 2, max: 10, default: 5 },
   paymentRequired: { type: Boolean, default: false },
-  paymentAppliesTo: { 
-    type: String, 
-    enum: ['participant', 'team'], 
-    default: 'participant' 
-  },
   paymentWarning: { type: String, default: '', maxlength: 500 },
+  paymentQrCodes: [{
+    teamSize: { type: Number, required: true },
+    imageId: { type: mongoose.Schema.Types.ObjectId, ref: 'Image' }
+  }],
   paymentQrImage: { type: mongoose.Schema.Types.ObjectId, ref: 'Image' },
   gallery: [{ type: String }],
   schedule: [{

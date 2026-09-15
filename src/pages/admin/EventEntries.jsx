@@ -351,10 +351,15 @@ export default function EventEntries() {
         renderCell({ row }) {
           if (row.type === 'member') return null;
           return (
-            <div className="flex items-center h-full">
-              <span className={cn("px-2.5 py-1 text-xs font-medium rounded-md border", isTeam(row) ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-slate-100 text-slate-700 border-slate-200")}>
+            <div className="flex flex-col h-full justify-center">
+              <span className={cn("inline-flex w-fit px-2.5 py-1 text-xs font-medium rounded-md border", isTeam(row) ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-slate-100 text-slate-700 border-slate-200")}>
                 {isTeam(row) ? 'Team' : 'Individual'}
               </span>
+              {isTeam(row) && row.teamSize && (
+                <span className="text-[10px] text-slate-500 font-mono mt-1">
+                  Size: {row.teamSize}
+                </span>
+              )}
             </div>
           );
         }

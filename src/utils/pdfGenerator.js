@@ -1,7 +1,7 @@
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import QRCode from 'qrcode';
 
-export const generateEventPass = async (registration, eventTitle, displayDate = '', paymentRequired = false, paymentAppliesTo = 'participant') => {
+export const generateEventPass = async (registration, eventTitle, displayDate = '', paymentRequired = false) => {
   const pdfDoc = await PDFDocument.create();
   let page = pdfDoc.addPage([595.28, 841.89]); // A4 Size
   const { width, height } = page.getSize();
@@ -154,8 +154,11 @@ export const generateEventPass = async (registration, eventTitle, displayDate = 
     drawDataRow('Event Date', displayDate);
   }
   drawDataRow('Registration', registration.registrationType === 'team' ? 'Team' : 'Individual');
+  if (registration.registrationType === 'team' && registration.teamSize) {
+    drawDataRow('Team Size', `${registration.teamSize} Member(s)`);
+  }
   if (paymentRequired) {
-    drawDataRow('Payment', paymentAppliesTo === 'team' ? 'Per Team' : 'Per Participant');
+    drawDataRow('Payment', 'Required');
   }
   
   cursorY -= 6;

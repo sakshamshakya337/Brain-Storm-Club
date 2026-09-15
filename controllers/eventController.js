@@ -122,19 +122,25 @@ const processEventPayload = async (body) => {
   }
 
   if (payload.paymentRequired) {
-    if (payload.paymentAppliesTo && !['participant', 'team'].includes(payload.paymentAppliesTo)) {
-      throw new Error('Invalid paymentAppliesTo. Allowed values are "participant" or "team".');
-    }
     if (payload.paymentWarning !== undefined) {
       payload.paymentWarning = String(payload.paymentWarning).trim();
       if (payload.paymentWarning.length > 500) {
         throw new Error('Payment warning exceeds maximum length of 500 characters.');
       }
     }
+    if (payload.allowTeamRegistration && Array.isArray(payload.paymentQrCodes)) {
+      const validQrCodes = [];
+      for (const qr of payload.paymentQrCodes) {
+        if (qr.teamSize && qr.imageId) {
+          validQrCodes.push({ teamSize: Number(qr.teamSize), imageId: qr.imageId._id || qr.imageId });
+        }
+      }
+      payload.paymentQrCodes = validQrCodes;
+    }
   } else {
     // If payment not required, we can clear these out just to be safe, though not strictly necessary.
-    payload.paymentAppliesTo = 'participant';
     payload.paymentWarning = '';
+    payload.paymentQrCodes = [];
   }
 
   return payload;
@@ -143,8 +149,8 @@ const processEventPayload = async (body) => {
 export const getAllEventsAdmin = async (req, res) => {
   try {
     const events = await Event.find()
-      .populate('posterId')
       .populate('paymentQrImage', 'imageId')
+      .populate('paymentQrCodes.imageId', 'imageId')
       .populate('coverImage.imageId')
       .populate('images.imageId')
       .sort({ date: -1 });
@@ -438,7 +444,7 @@ export const toggleEventRegistration = async (req, res) => {
     const action = registrationOpen ? 'Enabled' : 'Disabled';
     const AdminActivity = (await import('../models/AdminActivity.js')).default;
     await AdminActivity.create({
-      adminId: req.user._id,
+      adminId: req.admin._id,
       action: `${action} registration for event: ${event.title}`,
     }).catch(err => console.error('Failed to log admin activity', err));
 
